@@ -101,3 +101,107 @@ $string['servererror']          = 'Analytics could not be computed for this quiz
 $string['viewquestionanalytics'] = 'Question analytics';
 $string['viewselectlabel']      = 'View:';
 $string['viewsolutionprocess']  = 'Solution process visualization';
+
+// Model & Diagnostics Analytics section (models.php, modelspdf.php —
+// ported from the standalone local_stackanalytics plugin this merges).
+// Values unchanged from that plugin's own lang file; its own 'pluginname',
+// 'privacy:metadata', 'stackanalytics:view' (superseded by this plugin's
+// unified strings/capability — the old capability id doesn't exist here at
+// all), 'downloadpdfbutton', and 'pdfnosections' (identical text to the
+// Quiz Analytics section's own copies above) were dropped here rather than
+// duplicated.
+$string['indicator:gradetrajectory'] = 'STACK grade trajectory';
+$string['indicator:responselatencyanomaly'] = 'Anomalous STACK response latency';
+$string['indicator:disengagemententropy'] = 'STACK disengagement entropy';
+$string['indicator:helpseekinggap'] = 'STACK help-seeking gap';
+$string['indicator:feedbackrevisiondistance'] = 'STACK feedback revision distance';
+$string['target:studentatrisk'] = 'Student at risk in a STACK-based course';
+$string['errornostackactivity'] = 'This course has no STACK (qtype_stack) question activity';
+$string['indicator:questiondifficultyirt'] = 'STACK question difficulty';
+$string['indicator:syntaxerrorrate'] = 'STACK syntax-error rate';
+$string['indicator:unreachednoderatio'] = 'STACK PRT unreached-node ratio';
+$string['indicator:feedbackineffectiveness'] = 'STACK feedback ineffectiveness';
+$string['target:questionneedsreview'] = 'STACK question/PRT needs review';
+$string['dashboardtitle'] = 'STACK Analytics Dashboard';
+$string['quizselectorlabel'] = 'Quiz:';
+$string['viewselectorlabel'] = 'View:';
+$string['allquizzes'] = 'All quizzes';
+$string['seedbiasheading'] = 'Seed bias (one-way ANOVA across random seeds)';
+$string['bloatedtreeheading'] = 'PRT branch coverage';
+$string['seedgroups'] = 'Distinct seeds observed';
+$string['notenoughdata'] = 'Not enough attempt data yet to compute this.';
+$string['notavailable'] = 'n/a';
+$string['etamagnitude_negligible'] = 'negligible effect';
+$string['etamagnitude_small'] = 'small effect';
+$string['etamagnitude_medium'] = 'medium effect';
+$string['etamagnitude_large'] = 'large effect';
+$string['node'] = 'Node';
+$string['branch'] = 'Branch';
+$string['traversals'] = 'Traversals observed';
+$string['coverage'] = 'Coverage';
+$string['coverage_unreached'] = 'Never reached — pruning candidate';
+$string['coverage_low_traffic'] = 'Low traffic — review before pruning';
+$string['coverage_adequate'] = 'Adequately traversed';
+$string['unknownquestion'] = 'Unknown question';
+$string['unknownquiz'] = 'Unknown quiz';
+$string['model1heading'] = 'Model 1: Student Risk & Behaviour';
+$string['model1intro'] = 'Predicts which students are at risk of not passing the course, from five behavioural signals in their STACK question activity. It\'s recomputed at points through the course, so a warning can fire before the course ends rather than only at the final grade.';
+$string['aboutthismodel'] = 'About this model';
+$string['model1aboutbody'] = 'What\'s actually predicted (the "target") is simple: will this student\'s final grade fall below the course\'s own pass grade? The five indicators below are what a trained model would use as evidence for that prediction — today, before any model is trained, this page just shows each indicator\'s current reading directly.';
+$string['model1aboutfooter'] = 'This model ships disabled, so nothing here is a trained AI prediction yet — only live readings of each signal. An administrator can enable and train it under Site Administration > Analytics > Models, after which trained predictions appear in Moodle\'s own Insights report.';
+$string['model1nostudents'] = 'No students are enrolled in this course yet.';
+$string['columnstudent'] = 'Student';
+$string['columncurrentstatus'] = 'Current status';
+$string['gradestatusatrisk'] = 'At risk — {$a->grade}%, below the {$a->gradepass}% needed to pass';
+$string['gradestatuspassing'] = 'On track — {$a->grade}%, at or above the {$a->gradepass}% needed to pass';
+$string['gradestatusnogradeyet'] = 'No grade recorded yet';
+$string['gradestatusnothreshold'] = 'This course has no pass grade set';
+$string['band_good'] = 'Good';
+$string['band_neutral'] = 'Typical';
+$string['band_watch'] = 'Worth a look';
+$string['truncatednotice'] = 'Showing the first {$a->shown} of {$a->total}. Use the selectors above to narrow this down.';
+$string['model1desc_gradetrajectory'] = 'How this student\'s STACK scores compare to full marks.';
+$string['model1sentence_gradetrajectory'] = 'Averaging {$a->meanpercent}% across {$a->attempts} finished attempt(s).';
+$string['model1desc_responselatencyanomaly'] = 'Whether this student answers implausibly fast compared to the class — a correlational flag only, never evidence of misconduct on its own.';
+$string['model1sentence_responselatencyanomaly'] = 'Averages {$a->userseconds}s between tries, vs. a class average of {$a->cohortseconds}s.';
+$string['model1desc_disengagemententropy'] = 'Whether this student\'s attempts look mechanical (very regular timing, questions abandoned) rather than genuine problem-solving.';
+$string['model1sentence_disengagemententropy'] = '{$a->abandonedcount} of {$a->attempts} attempt(s) abandoned before completion.';
+$string['model1desc_helpseekinggap'] = 'Whether this student seeks help (forums, glossary, other resources) after a wrong answer as often as their classmates do.';
+$string['model1sentence_helpseekinggap'] = 'Seeks help after {$a->studentpercent}% of mistakes, vs. a class average of {$a->baselinepercent}%.';
+$string['model1desc_feedbackrevisiondistance'] = 'Whether this student meaningfully changes their answer after seeing feedback, or resubmits close to the same thing.';
+$string['model1sentence_feedbackrevisiondistance'] = 'Changes their answer by {$a->changepercent}% on average, across {$a->revisions} revision(s).';
+$string['model2heading'] = 'Model 2: Question & PRT Quality';
+$string['model2intro'] = 'One row per STACK question (with the quiz it belongs to shown underneath), flagging ones that may be worth an instructor\'s review from four signals in how students actually answer them — including their PRT, the step-by-step marking logic that checks the answer and gives feedback.';
+$string['model2aboutbody'] = 'What\'s actually predicted (the "target") is: does this question\'s pass rate fall below a threshold (50% by default, an admin setting)? The four indicators below are the evidence a trained model would use for that — today, before any model is trained, this page just shows each indicator\'s current reading directly. Note: this pass-rate read and the difficulty indicator both ultimately come from the same pass rate, so treat "needs review" and "difficult" as related, not independent, signals.';
+$string['model2noquestions'] = 'No STACK questions to show for this selection.';
+$string['columnquestion'] = 'Question';
+$string['quizlabel'] = 'Quiz: {$a}';
+$string['quizoptionlabel'] = '{$a->name} ({$a->count} STACK question(s))';
+$string['needsreviewyes'] = 'Needs review — {$a->passpercent}% pass rate, below the {$a->thresholdpercent}% threshold';
+$string['needsreviewno'] = 'No flag — {$a->passpercent}% pass rate, at or above the {$a->thresholdpercent}% threshold';
+$string['model2desc_questiondifficultyirt'] = 'How hard this question is in practice, from its empirical pass rate.';
+$string['model2sentence_questiondifficultyirt'] = '{$a->passpercent}% pass rate across {$a->attempts} finished attempt(s).';
+$string['model2desc_syntaxerrorrate'] = 'Whether most of this question\'s wrong answers are input/syntax mistakes (an input-format problem) rather than genuine maths errors.';
+$string['model2sentence_syntaxerrorrate'] = '{$a->syntaxerrorcount} of {$a->totalfailed} failed attempt(s) were syntax/input errors.';
+$string['model2desc_unreachednoderatio'] = 'How much of this question\'s PRT branching logic has never actually been exercised by a real attempt — a pruning candidate if it stays that way.';
+$string['model2sentence_unreachednoderatio'] = '{$a->unreachedcount} of {$a->totalbranches} PRT branch(es) never reached.';
+$string['model2desc_feedbackineffectiveness'] = 'Whether students who get this wrong tend to improve on their next try more than they would on a fresh question — a rough read on whether the feedback is actually helping.';
+$string['model2sentence_feedbackineffectiveness'] = '{$a->improvepercent}% improve after a wrong try, vs. a {$a->baselinepercent}% first-try baseline.';
+$string['diagnosticsheading'] = 'Diagnostics Dashboard';
+$string['diagnosticsintro'] = 'Two checks per STACK question, listed below with the quiz it belongs to. Every time a student attempts a STACK question, Moodle picks a random "seed" that changes its numbers (e.g. different coefficients) while keeping the same structure — <strong>Seed bias</strong> checks whether some of those seed variants are unfairly harder or easier than others, so a low grade isn\'t just "you got the harder version". Each STACK question also grades answers through a PRT (its step-by-step marking/feedback logic, made of "branches" for different right/wrong paths) — <strong>PRT branch coverage</strong> checks whether some of those branches have ever actually been triggered by a real student answer; a branch that\'s never reached is either working feedback nobody\'s needed yet, or dead logic worth simplifying. A "Worth a look" badge is a prompt to open that question and check it makes sense for how you designed it, not proof something is broken. Click a question below to see the full numbers behind its badges.';
+$string['conceptdependencynote'] = 'Concept-dependency mapping (finding which questions\' failures tend to predict failures on others) isn\'t implemented in this plugin yet — the architecture doc frames it as offline sequence-mining work outside a live dashboard page, not something to half-build here. Noted so it doesn\'t just silently not appear.';
+$string['diagnosticsnoquestions'] = 'No STACK questions to show for this selection.';
+$string['diagnosticsseedbiassentence'] = 'η²={$a->etasquared} ({$a->magnitude})';
+$string['diagnosticsbloatedtreesentence'] = '{$a->unreached} of {$a->total} branch(es) never reached';
+$string['pageintro'] = '<strong>Model 1</strong> looks at each student\'s behaviour, to flag who might be at risk of not passing. <strong>Model 2</strong> looks at each question\'s marking logic (its PRT), to flag ones that might be worth a teacher\'s review. <strong>Diagnostics Dashboard</strong> is a set of statistical reports that don\'t fit either model — not predictions, just direct calculations from the same attempt data. Use the "View:" selector below to switch between them.';
+$string['pageintrolivedata'] = 'Both models ship disabled by default, so everything below is a live reading of each signal today, not a trained AI prediction. An administrator can enable and train a model under Site Administration > Analytics > Models — once trained, real predictions appear alongside this page in Moodle\'s own Insights report.';
+$string['responsibleusecallout'] = 'A few things worth keeping in mind when reading the flags below: they\'re statistical patterns, not proof of anything — an "anomalous" response time is a prompt to check in with a student, not evidence of misconduct on its own. Small courses will show noisier, less reliable readings simply from having fewer data points to work from. And every number here is about what a student did in this course, not who they are.';
+$string['pdfsectionslabel'] = 'Include in the PDF:';
+$string['pdfnorows'] = 'Nothing to show for this section — no data yet, or nothing matched the current filters.';
+$string['pdffooternote'] = 'STACK Analytics Dashboard — live indicator readings, not a trained AI prediction';
+$string['questionneedsreviewthreshold'] = 'Question-needs-review pass-rate threshold';
+$string['questionneedsreviewthreshold_desc'] = 'A question is labelled "needs review" (Model 2\'s proxy label) when its empirical pass rate falls below this value (0.0-1.0). See the architecture doc\'s §3.3 circularity caveat before lowering this to chase a particular result.';
+$string['lowtrafficfloor'] = 'Bloated-tree "low traffic" floor';
+$string['lowtrafficfloor_desc'] = 'On the Diagnostics Dashboard, a PRT branch with at least one but fewer than this many observed traversals is reported as "low traffic" (needs a human look) rather than "never reached" (a pruning candidate).';
+$string['helpseekinglookback'] = 'Help-seeking lookback window (seconds)';
+$string['helpseekinglookback_desc'] = 'How long after a STACK question failure a forum/glossary/resource access still counts as "seeking help for it", for the help-seeking-gap indicator. Defaults to one hour.';
