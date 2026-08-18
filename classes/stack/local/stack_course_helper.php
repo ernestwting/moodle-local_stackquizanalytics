@@ -158,7 +158,27 @@ class stack_course_helper {
      * course-activity check above and Model 2's sample queries. Matches the
      * join local_quizanalytics's data_fetcher and this plugin's
      * stack_attempt_reader both already rely on for the same "which quiz
-     * slots are backed by a qtype_stack question" problem.
+     * slots are backed by a qtype_stack question" problem — except this one
+     * additionally pins {question_versions} to exactly one row per slot.
+     *
+     * A question_bank_entry accumulates one {question_versions} row per edit
+     * (all normally 'ready'), and a bare `qv.questionbankentryid = qbe.id`
+     * join fans a slot out to one row per version — harmless where the
+     * result is de-duplicated by DISTINCT over version-invariant columns (as
+     * local_quizanalytics's own copy of this join happens to be), but
+     * get_course_stack_slots()/get_stack_slots() below select `q.id AS
+     * questionid`, which *does* vary per version. Confirmed via this
+     * plugin's own test data (a question_bank_entries row with 6 accumulated
+     * 'ready' versions): get_records_sql() silently collapsed the resulting
+     * duplicate-keyed rows to whichever version the DB happened to return
+     * last, discovered via a `debugging()` warning flood under
+     * DEBUG_DEVELOPER, not from any functional symptom under normal
+     * settings — meaning Model 2 could have been silently computing
+     * indicators against a stale version of a question. The correlated
+     * subquery below resolves the same "pinned version, or else latest
+     * non-draft" semantics mod_quiz's own qbank_helper::get_question_structure()
+     * uses (confirmed by reading that method directly), simplified since
+     * this plugin doesn't need that method's Oracle-11.2 workaround.
      */
     private static function stack_slot_join_sql(): string {
         return "{quiz} quiz
@@ -172,6 +192,12 @@ class stack_course_helper {
                                                 AND qr.itemid = slot.id
                   JOIN {question_bank_entries} qbe ON qbe.id = qr.questionbankentryid
                   JOIN {question_versions} qv ON qv.questionbankentryid = qbe.id
+                                              AND qv.version = COALESCE(qr.version, (
+                                                  SELECT MAX(latest.version)
+                                                    FROM {question_versions} latest
+                                                   WHERE latest.questionbankentryid = qbe.id
+                                                     AND latest.status <> 'draft'
+                                              ))
                   JOIN {question} q ON q.id = qv.questionid AND q.qtype = 'stack'";
     }
 }

@@ -349,8 +349,19 @@ class stack_attempt_reader {
                    AND quiza.state = 'finished'
                    AND qas.fraction IS NOT NULL";
 
-        $records = $DB->get_records_sql($sql, ['quizid' => $quizid, 'questionid' => $questionid]);
-        return array_map(fn($record) => (float) $record->fraction, $records);
+        // Uses get_fieldset_sql(), not get_records_sql() — the query selects only
+        // one non-unique column (many attempts legitimately share the same
+        // fraction), and get_records_sql() keys its return array by the
+        // first selected column regardless, silently collapsing every
+        // attempt that happened to share a fraction value down to one.
+        // Caught via a `debugging()` warning flood under DEBUG_DEVELOPER
+        // against this plugin's own test data — 21 rows' worth of finished
+        // attempts were silently shrinking to a handful of distinct
+        // fraction values, corrupting question_difficulty_irt's distribution
+        // math well beyond the version-join fan-out bug fixed alongside
+        // this one.
+        $fractions = $DB->get_fieldset_sql($sql, ['quizid' => $quizid, 'questionid' => $questionid]);
+        return array_map(fn($fraction) => (float) $fraction, $fractions);
     }
 
     /**
@@ -417,6 +428,24 @@ class stack_attempt_reader {
     /**
      * The shared "STACK question slots in this quiz's course" join fragment
      * every method above builds on.
+     *
+     * Pins {question_versions} to exactly one row per slot (the referenced
+     * version, or else the latest non-draft one) rather than a bare
+     * `qv.questionbankentryid = qbe.id` join — a question_bank_entry
+     * accumulates one row per edit, and every method above joins straight
+     * on to {quiz_attempts}/{question_attempts}/{question_attempt_steps},
+     * so an unfiltered join here doesn't just risk a wrong questionid (as
+     * in stack_course_helper's own copy of this join) but genuinely
+     * duplicates every attempt step once per accumulated version — silently
+     * feeding grade_trajectory/disengagement_entropy/response_latency_anomaly/
+     * feedback_revision_distance/help_seeking_gap inflated, duplicated
+     * observations. Found via a `debugging()` warning flood under
+     * DEBUG_DEVELOPER against this plugin's own test data (a question with 6
+     * accumulated versions), not from any functional symptom under normal
+     * settings. Same resolution semantics as mod_quiz's own
+     * qbank_helper::get_question_structure() (confirmed by reading that
+     * method directly), simplified since this plugin doesn't need that
+     * method's Oracle-11.2 workaround.
      */
     private static function stack_slot_join_sql(): string {
         return "{quiz} quiz
@@ -430,6 +459,12 @@ class stack_attempt_reader {
                                                 AND qr.itemid = slot.id
                   JOIN {question_bank_entries} qbe ON qbe.id = qr.questionbankentryid
                   JOIN {question_versions} qv ON qv.questionbankentryid = qbe.id
+                                              AND qv.version = COALESCE(qr.version, (
+                                                  SELECT MAX(latest.version)
+                                                    FROM {question_versions} latest
+                                                   WHERE latest.questionbankentryid = qbe.id
+                                                     AND latest.status <> 'draft'
+                                              ))
                   JOIN {question} q ON q.id = qv.questionid AND q.qtype = 'stack'";
     }
 
