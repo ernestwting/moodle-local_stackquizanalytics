@@ -66,7 +66,6 @@ defined('MOODLE_INTERNAL') || die();
  * PRT branch enumeration and coverage.
  */
 class stack_prt_graph {
-
     /**
      * Pure ratio calculation — architecture doc §3.4c:
      * unreached_ratio = |V_unreached| / |V|.

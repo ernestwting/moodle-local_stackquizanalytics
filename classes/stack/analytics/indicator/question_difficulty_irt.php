@@ -54,11 +54,12 @@ defined('MOODLE_INTERNAL') || die();
  * Logit-scale difficulty (b) estimated from empirical pass rate.
  */
 class question_difficulty_irt extends \core_analytics\local\indicator\linear {
-
     /** Clip bound for the logit-scale difficulty, matching the architecture doc's [-3, 3] logit-unit range. */
     const LOGIT_CLIP = 3.0;
 
     /**
+     * Gets this indicator's human-readable name.
+     *
      * @return \lang_string
      */
     public static function get_name(): \lang_string {
@@ -66,6 +67,8 @@ class question_difficulty_irt extends \core_analytics\local\indicator\linear {
     }
 
     /**
+     * Declares which sample-data types this indicator needs.
+     *
      * @return string[]
      */
     public static function required_sample_data() {
@@ -103,6 +106,8 @@ class question_difficulty_irt extends \core_analytics\local\indicator\linear {
     }
 
     /**
+     * Feeds this indicator's score to the Analytics API for one sample.
+     *
      * @param int $sampleid a quiz_slots.id
      * @param string $sampleorigin
      * @param int|false $starttime

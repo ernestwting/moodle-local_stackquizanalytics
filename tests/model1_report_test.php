@@ -43,7 +43,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class model1_report_test extends \advanced_testcase {
-
     public function test_no_students_returns_empty_report(): void {
         $this->resetAfterTest(true);
 

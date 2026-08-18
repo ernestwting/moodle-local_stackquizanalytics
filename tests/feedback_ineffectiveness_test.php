@@ -28,7 +28,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class feedback_ineffectiveness_test extends \advanced_testcase {
-
     public function test_equal_rates_have_zero_effect(): void {
         $this->assertEqualsWithDelta(0.0, feedback_ineffectiveness::log_odds_to_indicator(0.5, 0.5), 0.0001);
     }

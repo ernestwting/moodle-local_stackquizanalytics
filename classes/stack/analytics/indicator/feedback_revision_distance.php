@@ -49,8 +49,9 @@ defined('MOODLE_INTERNAL') || die();
  * the same STACK input, after feedback was shown.
  */
 class feedback_revision_distance extends \core_analytics\local\indicator\linear {
-
     /**
+     * Gets this indicator's human-readable name.
+     *
      * @return \lang_string
      */
     public static function get_name(): \lang_string {
@@ -58,6 +59,8 @@ class feedback_revision_distance extends \core_analytics\local\indicator\linear 
     }
 
     /**
+     * Declares which sample-data types this indicator needs.
+     *
      * @return string[]
      */
     public static function required_sample_data() {
@@ -81,6 +84,8 @@ class feedback_revision_distance extends \core_analytics\local\indicator\linear 
     }
 
     /**
+     * Normalizes an average normalized edit distance to the indicator's [-1, 1] range.
+     *
      * @param float $avgdistance in [0, 1]
      * @return float
      */
@@ -100,6 +105,8 @@ class feedback_revision_distance extends \core_analytics\local\indicator\linear 
     }
 
     /**
+     * Feeds this indicator's score to the Analytics API for one sample.
+     *
      * @param int $sampleid a user_enrolments.id
      * @param string $sampleorigin
      * @param int|false $starttime

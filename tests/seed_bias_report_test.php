@@ -28,7 +28,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class seed_bias_report_test extends \advanced_testcase {
-
     public function test_fewer_than_two_groups_returns_null(): void {
         $this->assertNull(seed_bias_report::anova(['seed1' => [1.0, 0.5]]));
         $this->assertNull(seed_bias_report::anova([]));

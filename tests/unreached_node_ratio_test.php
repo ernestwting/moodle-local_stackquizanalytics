@@ -30,7 +30,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class unreached_node_ratio_test extends \advanced_testcase {
-
     public function test_all_branches_reached_is_zero_ratio(): void {
         $this->assertEqualsWithDelta(0.0, stack_prt_graph::unreached_ratio(7, 7), 0.0001);
     }

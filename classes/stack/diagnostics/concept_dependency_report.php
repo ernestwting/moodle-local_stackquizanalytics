@@ -42,8 +42,9 @@ defined('MOODLE_INTERNAL') || die();
  * Placeholder for the concept-dependency Markov-chain analysis.
  */
 class concept_dependency_report {
-
     /**
+     * Reports whether concept-dependency mapping is implemented yet.
+     *
      * @return bool always false — see class docblock.
      */
     public static function is_available(): bool {

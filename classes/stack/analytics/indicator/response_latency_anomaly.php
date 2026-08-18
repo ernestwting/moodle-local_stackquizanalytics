@@ -39,8 +39,9 @@ defined('MOODLE_INTERNAL') || die();
  * Cohort-relative z-score of a student's own inter-step response timing.
  */
 class response_latency_anomaly extends \core_analytics\local\indicator\linear {
-
     /**
+     * Gets this indicator's human-readable name.
+     *
      * @return \lang_string
      */
     public static function get_name(): \lang_string {
@@ -48,6 +49,8 @@ class response_latency_anomaly extends \core_analytics\local\indicator\linear {
     }
 
     /**
+     * Declares which sample-data types this indicator needs.
+     *
      * @return string[]
      */
     public static function required_sample_data() {
@@ -55,6 +58,8 @@ class response_latency_anomaly extends \core_analytics\local\indicator\linear {
     }
 
     /**
+     * Computes the population mean and standard deviation of a list of values.
+     *
      * @param float[] $values
      * @return array [float $mean, float $stddev] (population stddev; 0.0 if fewer than 2 values)
      */
@@ -76,6 +81,8 @@ class response_latency_anomaly extends \core_analytics\local\indicator\linear {
     }
 
     /**
+     * Computes how many standard deviations a value sits from the cohort mean.
+     *
      * @param float $value
      * @param float $mean
      * @param float $stddev
@@ -99,6 +106,8 @@ class response_latency_anomaly extends \core_analytics\local\indicator\linear {
     }
 
     /**
+     * Feeds this indicator's score to the Analytics API for one sample.
+     *
      * @param int $sampleid a user_enrolments.id
      * @param string $sampleorigin
      * @param int|false $starttime

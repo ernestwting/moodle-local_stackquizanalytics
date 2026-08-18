@@ -29,7 +29,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class response_latency_anomaly_test extends \advanced_testcase {
-
     public function test_mean_and_stddev_of_uniform_values_is_zero_variance(): void {
         [$mean, $stddev] = response_latency_anomaly::mean_and_stddev([10.0, 10.0, 10.0]);
         $this->assertEqualsWithDelta(10.0, $mean, 0.0001);
@@ -52,7 +51,7 @@ final class response_latency_anomaly_test extends \advanced_testcase {
     }
 
     public function test_faster_than_cohort_pushes_toward_positive_one(): void {
-        // z = -3 (three standard deviations faster than the cohort) should clip to +1, not overshoot.
+        // Z of -3 (three standard deviations faster than the cohort) should clip to +1, not overshoot.
         $this->assertEqualsWithDelta(1.0, response_latency_anomaly::zscore_to_indicator(-3.0), 0.0001);
     }
 

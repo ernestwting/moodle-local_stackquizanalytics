@@ -49,7 +49,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class student_at_risk_test extends \advanced_testcase {
-
     public function test_rejects_course_without_stack_activity(): void {
         global $DB;
 

@@ -40,11 +40,12 @@ defined('MOODLE_INTERNAL') || die();
  * Composite of attempt-gap entropy and question-abandonment rate.
  */
 class disengagement_entropy extends \core_analytics\local\indicator\linear {
-
     /** State recorded on a question_attempt_steps row when a student gives up before closing the question. */
     const ABANDONED_STATE = 'gaveup';
 
     /**
+     * Gets this indicator's human-readable name.
+     *
      * @return \lang_string
      */
     public static function get_name(): \lang_string {
@@ -52,6 +53,8 @@ class disengagement_entropy extends \core_analytics\local\indicator\linear {
     }
 
     /**
+     * Declares which sample-data types this indicator needs.
+     *
      * @return string[]
      */
     public static function required_sample_data() {
@@ -132,6 +135,8 @@ class disengagement_entropy extends \core_analytics\local\indicator\linear {
     }
 
     /**
+     * Feeds this indicator's score to the Analytics API for one sample.
+     *
      * @param int $sampleid a user_enrolments.id
      * @param string $sampleorigin
      * @param int|false $starttime

@@ -29,7 +29,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class help_seeking_gap_test extends \advanced_testcase {
-
     public function test_no_failures_returns_null(): void {
         $this->assertNull(help_seeking_gap::conditional_access_rate([], [1000], 3600));
     }

@@ -33,7 +33,6 @@ defined('MOODLE_INTERNAL') || die();
  * Course/enrolment level helpers shared across targets and indicators.
  */
 class stack_course_helper {
-
     /**
      * Does this course contain at least one quiz slot backed by a
      * qtype_stack question?

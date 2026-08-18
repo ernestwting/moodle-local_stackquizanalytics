@@ -43,7 +43,6 @@ defined('MOODLE_INTERNAL') || die();
  * the course-wide baseline rate.
  */
 class help_seeking_gap extends \core_analytics\local\indicator\linear {
-
     /**
      * How long after a failure a resource access still counts as "seeking
      * help for it". Default used when the
@@ -52,6 +51,8 @@ class help_seeking_gap extends \core_analytics\local\indicator\linear {
     const LOOKBACK_SECONDS = HOURSECS;
 
     /**
+     * Gets this indicator's human-readable name.
+     *
      * @return \lang_string
      */
     public static function get_name(): \lang_string {
@@ -59,6 +60,8 @@ class help_seeking_gap extends \core_analytics\local\indicator\linear {
     }
 
     /**
+     * Gets the lookback window a resource access must fall within after a failure to count as help-seeking.
+     *
      * @return int the admin-configured lookback in seconds, or LOOKBACK_SECONDS if unset
      */
     public static function get_lookback_seconds(): int {
@@ -67,6 +70,8 @@ class help_seeking_gap extends \core_analytics\local\indicator\linear {
     }
 
     /**
+     * Declares which sample-data types this indicator needs.
+     *
      * @return string[]
      */
     public static function required_sample_data() {
@@ -84,7 +89,11 @@ class help_seeking_gap extends \core_analytics\local\indicator\linear {
      * @param int $lookbackseconds
      * @return float|null null if there were no failures to condition on
      */
-    public static function conditional_access_rate(array $failuretimestamps, array $accesstimestamps, int $lookbackseconds): ?float {
+    public static function conditional_access_rate(
+        array $failuretimestamps,
+        array $accesstimestamps,
+        int $lookbackseconds
+    ): ?float {
         if (empty($failuretimestamps)) {
             return null;
         }
@@ -106,6 +115,8 @@ class help_seeking_gap extends \core_analytics\local\indicator\linear {
     }
 
     /**
+     * Compares a student's own help-seeking rate against the course baseline.
+     *
      * @param float $pstudent
      * @param float $pbaseline
      * @return float
@@ -119,6 +130,8 @@ class help_seeking_gap extends \core_analytics\local\indicator\linear {
     }
 
     /**
+     * Feeds this indicator's score to the Analytics API for one sample.
+     *
      * @param int $sampleid a user_enrolments.id
      * @param string $sampleorigin
      * @param int|false $starttime

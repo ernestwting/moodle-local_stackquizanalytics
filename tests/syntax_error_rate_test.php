@@ -28,7 +28,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class syntax_error_rate_test extends \advanced_testcase {
-
     public function test_no_failures_returns_null(): void {
         $this->assertNull(syntax_error_rate::proportion_to_indicator(0, 0));
     }

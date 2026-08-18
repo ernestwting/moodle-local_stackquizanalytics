@@ -49,7 +49,6 @@ defined('MOODLE_INTERNAL') || die();
  * Pass-rate-threshold proxy label for "needs review".
  */
 class question_needs_review extends \core_analytics\local\target\binary {
-
     /**
      * Below this pass rate, a question is labelled "needs review". Default
      * used when the local_stackquizanalytics/questionneedsreviewthreshold admin
@@ -58,6 +57,8 @@ class question_needs_review extends \core_analytics\local\target\binary {
     const DEFAULT_PASSRATE_THRESHOLD = 0.5;
 
     /**
+     * Gets the pass-rate threshold below which a question is labelled "needs review".
+     *
      * @return float the admin-configured threshold, or DEFAULT_PASSRATE_THRESHOLD if unset
      */
     public static function get_passrate_threshold(): float {
@@ -66,6 +67,8 @@ class question_needs_review extends \core_analytics\local\target\binary {
     }
 
     /**
+     * Gets this target's human-readable name.
+     *
      * @return \lang_string
      */
     public static function get_name(): \lang_string {
@@ -73,6 +76,8 @@ class question_needs_review extends \core_analytics\local\target\binary {
     }
 
     /**
+     * Gets the analyser class that supplies this target's samples.
+     *
      * @return string
      */
     public function get_analyser_class() {
@@ -94,6 +99,8 @@ class question_needs_review extends \core_analytics\local\target\binary {
     }
 
     /**
+     * Checks whether a course has any STACK activity for this target to analyse.
+     *
      * @param \core_analytics\analysable $course
      * @param bool $fortraining
      * @return true|string
@@ -106,6 +113,8 @@ class question_needs_review extends \core_analytics\local\target\binary {
     }
 
     /**
+     * Checks whether a sample (quiz_slots.id) resolves to a real STACK question slot.
+     *
      * @param int $sampleid
      * @param \core_analytics\analysable $course
      * @param bool $fortraining
@@ -116,6 +125,8 @@ class question_needs_review extends \core_analytics\local\target\binary {
     }
 
     /**
+     * Feeds this target's label to the Analytics API for one sample.
+     *
      * @param int $sampleid a quiz_slots.id
      * @param \core_analytics\analysable $course
      * @param int|false $starttime

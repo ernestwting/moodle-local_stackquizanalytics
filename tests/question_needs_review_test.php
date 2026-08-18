@@ -40,7 +40,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class question_needs_review_test extends \advanced_testcase {
-
     public function test_rejects_course_without_stack_activity(): void {
         $this->resetAfterTest(true);
 

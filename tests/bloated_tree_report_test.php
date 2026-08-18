@@ -30,7 +30,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class bloated_tree_report_test extends \advanced_testcase {
-
     public function test_zero_traversals_is_unreached(): void {
         $this->assertEquals('unreached', bloated_tree_report::classify(0));
     }

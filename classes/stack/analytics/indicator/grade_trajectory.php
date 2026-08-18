@@ -36,8 +36,9 @@ defined('MOODLE_INTERNAL') || die();
  * Scaled rolling mean of a student's own STACK question grades.
  */
 class grade_trajectory extends \core_analytics\local\indicator\linear {
-
     /**
+     * Gets this indicator's human-readable name.
+     *
      * @return \lang_string
      */
     public static function get_name(): \lang_string {
@@ -45,6 +46,8 @@ class grade_trajectory extends \core_analytics\local\indicator\linear {
     }
 
     /**
+     * Declares which sample-data types this indicator needs.
+     *
      * @return string[]
      */
     public static function required_sample_data() {
@@ -70,6 +73,8 @@ class grade_trajectory extends \core_analytics\local\indicator\linear {
     }
 
     /**
+     * Feeds this indicator's score to the Analytics API for one sample.
+     *
      * @param int $sampleid a user_enrolments.id
      * @param string $sampleorigin
      * @param int|false $starttime

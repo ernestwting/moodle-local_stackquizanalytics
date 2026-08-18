@@ -40,8 +40,9 @@ defined('MOODLE_INTERNAL') || die();
  * How much of a question's PRT tree has never been exercised by a real attempt.
  */
 class unreached_node_ratio extends \core_analytics\local\indicator\linear {
-
     /**
+     * Gets this indicator's human-readable name.
+     *
      * @return \lang_string
      */
     public static function get_name(): \lang_string {
@@ -49,6 +50,8 @@ class unreached_node_ratio extends \core_analytics\local\indicator\linear {
     }
 
     /**
+     * Declares which sample-data types this indicator needs.
+     *
      * @return string[]
      */
     public static function required_sample_data() {
@@ -56,6 +59,8 @@ class unreached_node_ratio extends \core_analytics\local\indicator\linear {
     }
 
     /**
+     * Normalizes the unreached-node ratio to the indicator's [-1, 1] range.
+     *
      * @param float $unreachedratio in [0, 1]
      * @return float
      */
@@ -64,6 +69,8 @@ class unreached_node_ratio extends \core_analytics\local\indicator\linear {
     }
 
     /**
+     * Feeds this indicator's score to the Analytics API for one sample.
+     *
      * @param int $sampleid a quiz_slots.id
      * @param string $sampleorigin
      * @param int|false $starttime

@@ -100,7 +100,10 @@ class dashboard_renderer {
 
         $table = new \html_table();
         $table->head = array_merge(
-            [get_string('columnstudent', 'local_stackquizanalytics'), get_string('columncurrentstatus', 'local_stackquizanalytics')],
+            [
+                get_string('columnstudent', 'local_stackquizanalytics'),
+                get_string('columncurrentstatus', 'local_stackquizanalytics'),
+            ],
             array_map(
                 fn($stringsuffix) => get_string('indicator:' . $stringsuffix, 'local_stackquizanalytics'),
                 array_values(self::MODEL1_INDICATORS)
@@ -157,7 +160,10 @@ class dashboard_renderer {
 
         $table = new \html_table();
         $table->head = array_merge(
-            [get_string('columnquestion', 'local_stackquizanalytics'), get_string('columncurrentstatus', 'local_stackquizanalytics')],
+            [
+                get_string('columnquestion', 'local_stackquizanalytics'),
+                get_string('columncurrentstatus', 'local_stackquizanalytics'),
+            ],
             array_map(
                 fn($stringsuffix) => get_string('indicator:' . $stringsuffix, 'local_stackquizanalytics'),
                 array_values(self::MODEL2_INDICATORS)
@@ -278,7 +284,11 @@ class dashboard_renderer {
      */
     public static function render_diagnostics_section(\stdClass $report): string {
         if (empty($report->rows)) {
-            return \html_writer::tag('p', get_string('diagnosticsnoquestions', 'local_stackquizanalytics'), ['class' => 'text-muted']);
+            return \html_writer::tag(
+                'p',
+                get_string('diagnosticsnoquestions', 'local_stackquizanalytics'),
+                ['class' => 'text-muted']
+            );
         }
 
         $html = '';

@@ -28,13 +28,12 @@ defined('MOODLE_INTERNAL') || die();
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class question_difficulty_irt_test extends \advanced_testcase {
-
     public function test_half_passrate_has_zero_logit(): void {
         $this->assertEqualsWithDelta(0.0, question_difficulty_irt::passrate_to_logit(0.5), 0.0001);
     }
 
     public function test_low_passrate_is_a_hard_question(): void {
-        // p = 1/(1+e^b), so b = ln((1-p)/p); a low pass rate should give a large positive logit (hard).
+        // P = 1/(1+e^b), so b = ln((1-p)/p); a low pass rate should give a large positive logit (hard).
         $logit = question_difficulty_irt::passrate_to_logit(0.1);
         $this->assertGreaterThan(0.0, $logit);
     }

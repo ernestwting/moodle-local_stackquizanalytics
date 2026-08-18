@@ -48,7 +48,6 @@ defined('MOODLE_INTERNAL') || die();
  * validation rather than mathematical equivalence.
  */
 class syntax_error_rate extends \core_analytics\local\indicator\linear {
-
     /** The question-engine state assigned to input-validation/syntax failures. */
     const INVALID_STATE = 'invalid';
 
@@ -56,6 +55,8 @@ class syntax_error_rate extends \core_analytics\local\indicator\linear {
     const INCORRECT_STATES = ['gradedwrong', 'gradedpartial'];
 
     /**
+     * Gets this indicator's human-readable name.
+     *
      * @return \lang_string
      */
     public static function get_name(): \lang_string {
@@ -63,6 +64,8 @@ class syntax_error_rate extends \core_analytics\local\indicator\linear {
     }
 
     /**
+     * Declares which sample-data types this indicator needs.
+     *
      * @return string[]
      */
     public static function required_sample_data() {
@@ -70,6 +73,8 @@ class syntax_error_rate extends \core_analytics\local\indicator\linear {
     }
 
     /**
+     * Normalizes the proportion of syntax-error failures to the indicator's [-1, 1] range.
+     *
      * @param int $invalidcount attempts that failed on syntax/input validation
      * @param int $totalfailedcount all failed attempts (invalid + mathematically incorrect)
      * @return float|null null if there were no failed attempts to judge a proportion from
@@ -83,6 +88,8 @@ class syntax_error_rate extends \core_analytics\local\indicator\linear {
     }
 
     /**
+     * Feeds this indicator's score to the Analytics API for one sample.
+     *
      * @param int $sampleid a quiz_slots.id
      * @param string $sampleorigin
      * @param int|false $starttime

@@ -63,13 +63,14 @@ defined('MOODLE_INTERNAL') || die();
  * STACK question (quiz-slot-grained) analyser, course-scoped like student_enrolments.
  */
 class stack_question_analyser extends \core_analytics\local\analyser\by_course {
-
     /**
      * @var array Cache for quiz_slots id -> course id, populated as samples are built.
      */
     private $samplecourses = [];
 
     /**
+     * Declares the sample-data table this analyser's sample ids are keyed against.
+     *
      * @return string
      */
     public function get_samples_origin() {
@@ -77,6 +78,8 @@ class stack_question_analyser extends \core_analytics\local\analyser\by_course {
     }
 
     /**
+     * Declares which sample-data types this analyser provides to targets/indicators.
+     *
      * @return string[]
      */
     protected function provided_sample_data() {
@@ -84,6 +87,8 @@ class stack_question_analyser extends \core_analytics\local\analyser\by_course {
     }
 
     /**
+     * Gets the context a user needs access to in order to see this sample.
+     *
      * @param int $sampleid a quiz_slots.id
      * @return \context
      */
@@ -92,6 +97,8 @@ class stack_question_analyser extends \core_analytics\local\analyser\by_course {
     }
 
     /**
+     * Gets the analysable (course) this sample belongs to.
+     *
      * @param int $sampleid a quiz_slots.id
      * @return \core_analytics\analysable
      */
@@ -134,6 +141,8 @@ class stack_question_analyser extends \core_analytics\local\analyser\by_course {
     }
 
     /**
+     * Builds the human-readable description and icon shown for this sample in Analytics API UI.
+     *
      * @param int $sampleid
      * @param int $contextid
      * @param array $sampledata
@@ -179,6 +188,8 @@ class stack_question_analyser extends \core_analytics\local\analyser\by_course {
     }
 
     /**
+     * Resolves a sample id to its course id, caching the lookup.
+     *
      * @param int $sampleid a quiz_slots.id
      * @return int
      */

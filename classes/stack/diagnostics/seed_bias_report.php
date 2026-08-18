@@ -49,7 +49,6 @@ defined('MOODLE_INTERNAL') || die();
  * One-way ANOVA of question score by STACK random seed.
  */
 class seed_bias_report {
-
     /**
      * Groups final fractions by the STACK seed used for that attempt.
      *

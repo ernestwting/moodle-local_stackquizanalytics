@@ -32,7 +32,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class grade_trajectory_test extends \advanced_testcase {
-
     public function test_full_marks_scales_to_one(): void {
         $this->assertEqualsWithDelta(1.0, grade_trajectory::scale_to_indicator(10.0, 10.0), 0.0001);
     }

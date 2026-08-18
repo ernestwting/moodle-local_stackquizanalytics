@@ -40,7 +40,6 @@ defined('MOODLE_INTERNAL') || die();
  * Per-branch traversal coverage for a question's PRTs.
  */
 class bloated_tree_report {
-
     /**
      * Below this many observed traversals (but above zero), a branch is
      * "low-traffic" rather than "unreached". Default used when the
@@ -49,6 +48,8 @@ class bloated_tree_report {
     const LOW_TRAFFIC_FLOOR = 2;
 
     /**
+     * Gets the branch-occurrence floor below which coverage counts as "low traffic".
+     *
      * @return int the admin-configured floor, or LOW_TRAFFIC_FLOOR if unset
      */
     public static function get_low_traffic_floor(): int {
@@ -57,6 +58,8 @@ class bloated_tree_report {
     }
 
     /**
+     * Classifies a branch's observed occurrence count into a coverage band.
+     *
      * @param int $count
      * @return string 'unreached'|'low_traffic'|'adequate'
      */

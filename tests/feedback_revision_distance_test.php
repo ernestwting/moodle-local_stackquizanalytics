@@ -29,7 +29,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class feedback_revision_distance_test extends \advanced_testcase {
-
     public function test_identical_strings_have_zero_distance(): void {
         $this->assertEqualsWithDelta(0.0, feedback_revision_distance::normalized_edit_distance('x^2+1', 'x^2+1'), 0.0001);
     }
@@ -39,12 +38,12 @@ final class feedback_revision_distance_test extends \advanced_testcase {
     }
 
     public function test_completely_different_same_length_strings(): void {
-        // levenshtein('ab', 'cd') = 2, max length 2 -> normalized distance 1.0.
+        // Edit distance 2 over max length 2 normalizes to 1.0.
         $this->assertEqualsWithDelta(1.0, feedback_revision_distance::normalized_edit_distance('ab', 'cd'), 0.0001);
     }
 
     public function test_single_character_change(): void {
-        // levenshtein('x^2', 'x^3') = 1, max length 3.
+        // Edit distance 1 over max length 3.
         $this->assertEqualsWithDelta(1 / 3, feedback_revision_distance::normalized_edit_distance('x^2', 'x^3'), 0.0001);
     }
 

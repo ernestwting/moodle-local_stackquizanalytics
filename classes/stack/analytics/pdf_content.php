@@ -73,7 +73,10 @@ class pdf_content {
         $report = model1_report::build($courseid);
 
         $columns = array_merge(
-            [get_string('columnstudent', 'local_stackquizanalytics'), get_string('columncurrentstatus', 'local_stackquizanalytics')],
+            [
+                get_string('columnstudent', 'local_stackquizanalytics'),
+                get_string('columncurrentstatus', 'local_stackquizanalytics'),
+            ],
             array_map(
                 fn($stringsuffix) => get_string('indicator:' . $stringsuffix, 'local_stackquizanalytics'),
                 array_values(self::MODEL1_INDICATORS)
@@ -110,7 +113,10 @@ class pdf_content {
         $report = model2_report::build($courseid, $quizid);
 
         $columns = array_merge(
-            [get_string('columnquestion', 'local_stackquizanalytics'), get_string('columncurrentstatus', 'local_stackquizanalytics')],
+            [
+                get_string('columnquestion', 'local_stackquizanalytics'),
+                get_string('columncurrentstatus', 'local_stackquizanalytics'),
+            ],
             array_map(
                 fn($stringsuffix) => get_string('indicator:' . $stringsuffix, 'local_stackquizanalytics'),
                 array_values(self::MODEL2_INDICATORS)

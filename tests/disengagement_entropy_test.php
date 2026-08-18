@@ -29,7 +29,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class disengagement_entropy_test extends \advanced_testcase {
-
     public function test_shannon_entropy_of_certain_outcome_is_zero(): void {
         $this->assertEqualsWithDelta(0.0, disengagement_entropy::shannon_entropy([1.0, 0.0, 0.0]), 0.0001);
     }

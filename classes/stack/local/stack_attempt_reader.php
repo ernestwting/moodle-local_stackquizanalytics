@@ -44,7 +44,6 @@ defined('MOODLE_INTERNAL') || die();
  * a course and an optional [starttime, endtime] window.
  */
 class stack_attempt_reader {
-
     /**
      * One row per finished STACK question attempt belonging to this student
      * in this course, with the attempt's final fraction and maxmark — the

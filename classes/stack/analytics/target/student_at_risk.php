@@ -49,8 +49,9 @@ defined('MOODLE_INTERNAL') || die();
  * Course-grade-to-pass-based risk target, restricted to STACK courses.
  */
 class student_at_risk extends \core_course\analytics\target\course_gradetopass {
-
     /**
+     * Gets this target's human-readable name.
+     *
      * @return \lang_string
      */
     public static function get_name(): \lang_string {

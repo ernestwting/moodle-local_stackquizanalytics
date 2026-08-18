@@ -42,7 +42,6 @@ defined('MOODLE_INTERNAL') || die();
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 final class stack_question_analyser_test extends \advanced_testcase {
-
     public function test_get_all_samples_excludes_non_stack_questions(): void {
         $this->resetAfterTest(true);
 
