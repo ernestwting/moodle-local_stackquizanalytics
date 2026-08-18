@@ -1,0 +1,60 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * Version details for the STACK Quiz & Model Analytics plugin.
+ *
+ * @package    local_stackquizanalytics
+ * @copyright  2026 Ernest Ting <eting@caltech.edu>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
+
+$plugin->component = 'local_stackquizanalytics'; // Must match the folder this unzips into:
+                                                  // local/stackquizanalytics on a Moodle install.
+                                                  // This repo's own root IS that folder's contents
+                                                  // (no local/stackquizanalytics/ nesting in the repo
+                                                  // itself), matching the two standalone plugins this
+                                                  // merges — local_quizanalytics and local_stackanalytics
+                                                  // — so a plain "Download ZIP" of the repo has
+                                                  // version.php sitting directly inside the single
+                                                  // top-level wrapper folder, which is what the Moodle
+                                                  // plugin uploader requires to detect the frankenstyle
+                                                  // component, plugin type, and required core version.
+$plugin->version   = 2026081900;                 // YYYYMMDDXX — bump this every time you push an update.
+$plugin->requires  = 2022041900;                 // Moodle 4.0.0 — matches both source plugins' own
+                                                  // requirement (the analyser/target/indicator base
+                                                  // classes local_stackanalytics used are present since
+                                                  // Moodle 3.4 and stable through 4.x/5.x).
+$plugin->maturity  = MATURITY_ALPHA;
+$plugin->release   = '1.0.0';
+
+// This plugin is the merger of two previously-standalone plugins:
+// local_quizanalytics (course-wide/question/solution-process STACK response
+// analytics, PDF export) and local_stackanalytics (the Analytics API's
+// Model 1/Model 2 + the non-ML Diagnostics Dashboard). Both are STACK
+// (qtype_stack) specific and depend on mod_quiz as the vehicle for STACK
+// question attempts. ANY_VERSION for qtype_stack since nothing here calls
+// an API added in a particular STACK release — both source plugins read
+// finished attempts through mod_quiz's own question engine, and qtype_stack
+// is only touched for question text rendering (castext2_qa_processor) and
+// PRT tree definitions (the long-standing, stable mdl_qtype_stack_prts /
+// mdl_qtype_stack_prt_nodes tables), never a version-specific PHP API.
+$plugin->dependencies = [
+    'mod_quiz' => 2022041900,
+    'qtype_stack' => ANY_VERSION,
+];
