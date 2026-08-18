@@ -17,10 +17,26 @@
 /**
  * Library functions for local_stackquizanalytics.
  *
- * Placeholder for this build's skeleton phase — the real navigation hooks
- * (course-nav "Analytics" link + per-quiz settings-menu link, merging both
- * source plugins' lib.php behaviour into one) land once index.php/models.php
- * exist to link to. See CHANGELOG.md for the phase this was filled in.
+ * HOW THIS GETS THE "Analytics" TAB ONTO THE SECONDARY NAV BAR
+ * -------------------------------------------------------------
+ * Confirmed against a real Moodle 4.5 core checkout while building the two
+ * source plugins this merges (both used this exact mechanism):
+ *
+ *   1. public/lib/classes/navigation/settings_navigation.php calls
+ *      get_plugins_with_function('extend_navigation_course', 'lib.php') for
+ *      every installed plugin, so a lib.php function named exactly
+ *      local_stackquizanalytics_extend_navigation_course($navigation,
+ *      $course, $context) gets called automatically with $navigation set to
+ *      the course's "courseadmin" node.
+ *
+ *   2. public/lib/classes/navigation/views/secondary.php::load_course_navigation()
+ *      then promotes any child key not in core's "expected" list onto the
+ *      course's secondary nav bar (or its "More" overflow) automatically.
+ *
+ * ONE nav entry, not two — this merge's whole point is that a teacher sees
+ * a single "Analytics" tab, landing on the Quiz Analytics section
+ * (index.php), with the "Section:" selector at the top of every page one
+ * click away from Model & Diagnostics Analytics (models.php).
  *
  * @package local_stackquizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
@@ -28,3 +44,106 @@
  */
 
 defined('MOODLE_INTERNAL') || die();
+
+/**
+ * Adds a single "Analytics" link to a course's own administration
+ * navigation, landing on the Quiz Analytics section (index.php) — the
+ * "Section:" selector on that page reaches Model & Diagnostics Analytics
+ * from there.
+ *
+ * @param navigation_node $navigation the course admin node
+ * @param stdClass $course
+ * @param context_course $context
+ */
+function local_stackquizanalytics_extend_navigation_course($navigation, $course, $context) {
+    global $CFG;
+
+    if (!has_capability('local/stackquizanalytics:view', $context)) {
+        return;
+    }
+
+    require_once($CFG->dirroot . '/local/stackquizanalytics/classes/quiz/data_fetcher.php');
+
+    // The one genuinely expensive-ish check here: does this course have any
+    // STACK quiz at all? Gate on it so the tab never clutters courses that
+    // have nothing for either section of this plugin to show — both source
+    // plugins' own "does this course have STACK content" checks resolve to
+    // the same underlying quiz_slots-joined-to-a-STACK-question query, so
+    // one gate covers both sections.
+    if (!local_stackquizanalytics_quiz_data_fetcher::course_has_stack_quiz($course->id)) {
+        return;
+    }
+
+    $url = new moodle_url('/local/stackquizanalytics/index.php', ['id' => $course->id]);
+    $navigation->add(
+        get_string('pluginname', 'local_stackquizanalytics'),
+        $url,
+        navigation_node::TYPE_SETTING,
+        null,
+        'stackquizanalyticscourse',
+        new pix_icon('i/report', '')
+    );
+}
+
+/**
+ * Adds an "Analytics" link to a STACK quiz's own settings/administration
+ * menu, jumping straight to the Quiz Analytics page pre-scoped to that quiz
+ * (index.php?id=<courseid>&quizid=<quizid>) — ported from
+ * local_quizanalytics, which had this; local_stackanalytics never did
+ * (Model 2/Diagnostics are course-wide with an in-page quiz filter, not
+ * naturally reached from a single quiz's own menu).
+ *
+ * Called by core for every settings-navigation build, at every context
+ * level (lib/navigationlib.php's load_local_plugin_settings() calls every
+ * local_*_extend_settings_navigation() unconditionally) — so this returns
+ * immediately for anything that isn't a quiz's own page.
+ *
+ * The link is added as a child of the 'modulesettings' node specifically
+ * (found via $settingsnav->find(), the same lookup mod_quiz's own
+ * secondary-nav view uses to decide what belongs in the quiz page's "More"
+ * dropdown), not appended to $settingsnav directly — a plain
+ * $settingsnav->add() would attach it as a top-level sibling of
+ * 'modulesettings' instead, which mod_quiz's dropdown-building code never
+ * looks at.
+ *
+ * @param \settings_navigation $settingsnav
+ * @param \context $context the current page's context
+ */
+function local_stackquizanalytics_extend_settings_navigation($settingsnav, $context) {
+    global $CFG;
+
+    if ($context->contextlevel != CONTEXT_MODULE) {
+        return;
+    }
+
+    $cm = get_coursemodule_from_id('quiz', $context->instanceid, 0, false, IGNORE_MISSING);
+    if (!$cm) {
+        return; // Not a quiz module.
+    }
+
+    $coursecontext = context_course::instance($cm->course);
+    if (!has_capability('local/stackquizanalytics:view', $coursecontext)) {
+        return;
+    }
+
+    require_once($CFG->dirroot . '/local/stackquizanalytics/classes/quiz/data_fetcher.php');
+    if (!local_stackquizanalytics_quiz_data_fetcher::quiz_has_stack_question($cm->instance)) {
+        return;
+    }
+
+    $url = new moodle_url('/local/stackquizanalytics/index.php', [
+        'id'     => $cm->course,
+        'quizid' => $cm->instance,
+    ]);
+
+    $modulenode = $settingsnav->find('modulesettings', navigation_node::TYPE_SETTING);
+    $parent = $modulenode ?: $settingsnav;
+    $parent->add(
+        get_string('pluginname', 'local_stackquizanalytics'),
+        $url,
+        navigation_node::TYPE_SETTING,
+        null,
+        'stackquizanalyticsquiz',
+        new pix_icon('i/report', '')
+    );
+}
