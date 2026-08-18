@@ -123,6 +123,7 @@ $string['indicator:unreachednoderatio'] = 'STACK PRT unreached-node ratio';
 $string['indicator:feedbackineffectiveness'] = 'STACK feedback ineffectiveness';
 $string['target:questionneedsreview'] = 'STACK question/PRT needs review';
 $string['dashboardtitle'] = 'STACK Analytics Dashboard';
+$string['courseselectorlabel'] = 'Course:';
 $string['quizselectorlabel'] = 'Quiz:';
 $string['viewselectorlabel'] = 'View:';
 $string['allquizzes'] = 'All quizzes';
