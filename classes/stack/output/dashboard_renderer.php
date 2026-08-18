@@ -510,18 +510,29 @@ class dashboard_renderer {
      * The "Download PDF" form at the bottom of the page — section checkboxes
      * (all checked by default, matching every other "export everything by
      * default" form in this plugin family), a hidden course/quiz-filter
-     * context, and a plain GET submit to pdf.php. Deliberately GET, not POST
-     * with a client-side chart-capture step like local_quizanalytics's own
-     * PDF form: this dashboard has no charts, only tables, so pdf.php can
-     * re-derive everything server-side with nothing the client needs to hand
-     * it beyond which sections were ticked.
+     * context, and a plain GET submit to this section's own *pdf.php.
+     * Deliberately GET, not POST with a client-side chart-capture step like
+     * local_quizanalytics's own PDF form: this dashboard has no charts, only
+     * tables, so *pdf.php can re-derive everything server-side with nothing
+     * the client needs to hand it beyond which sections were ticked.
      *
-     * @param \moodle_url $action pdf.php's URL
+     * @param \moodle_url $action the section's own *pdf.php URL
      * @param int $courseid
      * @param int|null $quizid the currently-selected quiz filter, or null for "all quizzes"
+     * @param bool $anonymize
+     * @param array<string, string> $sectionheadings section id => lang string key for its checkbox
+     *        label, e.g. ['model1' => 'model1heading']. Callers pass only the sections their own
+     *        page/PDF actually covers — Model Analytics and Diagnostics Analytics each show a
+     *        different subset since they split out of what used to be one combined dashboard.
      * @return string
      */
-    public static function render_pdf_form(\moodle_url $action, int $courseid, ?int $quizid, bool $anonymize = false): string {
+    public static function render_pdf_form(
+        \moodle_url $action,
+        int $courseid,
+        ?int $quizid,
+        bool $anonymize,
+        array $sectionheadings
+    ): string {
         $html = \html_writer::start_tag('form', ['method' => 'get', 'action' => $action->out(false), 'class' => 'mt-4']);
         $html .= \html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id', 'value' => $courseid]);
         if ($quizid !== null) {
@@ -535,11 +546,6 @@ class dashboard_renderer {
         ]);
 
         $html .= \html_writer::tag('p', get_string('pdfsectionslabel', 'local_stackquizanalytics'), ['class' => 'mb-1']);
-        $sectionheadings = [
-            'model1' => 'model1heading',
-            'model2' => 'model2heading',
-            'diagnostics' => 'diagnosticsheading',
-        ];
         foreach ($sectionheadings as $sectionid => $headingstringkey) {
             $checkboxid = 'stackanalytics-pdf-' . $sectionid;
             $html .= \html_writer::empty_tag('input', [

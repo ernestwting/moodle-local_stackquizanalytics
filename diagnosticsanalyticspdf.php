@@ -15,14 +15,17 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Streams a PDF export of the Model & Diagnostics Analytics dashboard —
- * whichever of the Model 1 / Model 2 / Diagnostics sections were ticked on
- * the "Download PDF" form (dashboard_renderer::render_pdf_form()),
- * re-derived server-side from the same report-builder classes models.php
+ * Streams a PDF export of the Diagnostics Analytics dashboard, re-derived
+ * server-side from the same report-builder class diagnosticsanalytics.php
  * uses, respecting the same quiz filter. A separate entry point from
- * models.php, gated by the same local/stackquizanalytics:view capability.
- * Named modelspdf.php (rather than pdf.php) so it doesn't collide with the
- * Quiz Analytics section's own pdf.php in the same plugin.
+ * diagnosticsanalytics.php, gated by the same local/stackquizanalytics:view
+ * capability.
+ *
+ * Split out of modelspdf.php (now modelanalyticspdf.php) when Diagnostics
+ * split into its own section — the "Download PDF" form here only ever
+ * shows one checkbox (diagnostics), but still goes through
+ * dashboard_renderer::render_pdf_form()'s same $sectionheadings mechanism
+ * as Model Analytics, rather than a bespoke non-form download link.
  *
  * @package local_stackquizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
@@ -42,22 +45,15 @@ require_login($course);
 $context = context_course::instance($course->id);
 require_capability('local/stackquizanalytics:view', $context);
 
-// Building all three sections' worth of indicators for a large course can
-// run long — each indicator is its own set of DB queries per sample, with
-// no batching (see model1_report.php/model2_report.php's own docblocks).
+// Each diagnostic indicator is its own set of DB queries per sample, with
+// no batching (see diagnostics_report.php's own docblock) — can run long on
+// a large course.
 core_php_time_limit::raise(120);
 
 $quizid = optional_param('quizid', 0, PARAM_INT);
-$sections = optional_param_array('sections', ['model1', 'model2', 'diagnostics'], PARAM_ALPHANUM);
-$anonymize = (bool) optional_param('anonymize', 0, PARAM_INT);
+$sections = optional_param_array('sections', ['diagnostics'], PARAM_ALPHANUM);
 
 $payload = [];
-if (in_array('model1', $sections, true)) {
-    $payload[] = pdf_content::build_model1_section($courseid, $anonymize);
-}
-if (in_array('model2', $sections, true)) {
-    $payload[] = pdf_content::build_model2_section($courseid, $quizid !== 0 ? $quizid : null);
-}
 if (in_array('diagnostics', $sections, true)) {
     $payload[] = pdf_content::build_diagnostics_section($courseid, $quizid !== 0 ? $quizid : null);
 }
@@ -68,9 +64,9 @@ if (empty($payload)) {
 
 $pdfbytes = pdf_builder::build($course->fullname, $payload);
 
-// Short and to the point: course, report type, download date — which
-// sections/quiz the report was scoped to is already in the PDF's own
-// content, not worth spelling out in the filename too.
-$filename = clean_filename($course->shortname . ' - Model Analytics - ' . date('Y-m-d') . '.pdf');
+// Short and to the point: course, report type, download date — which quiz
+// the report was scoped to is already in the PDF's own content, not worth
+// spelling out in the filename too.
+$filename = clean_filename($course->shortname . ' - Diagnostics Analytics - ' . date('Y-m-d') . '.pdf');
 
 send_file($pdfbytes, $filename, 0, 0, true, true, 'application/pdf');

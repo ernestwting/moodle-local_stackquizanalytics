@@ -23,9 +23,9 @@
  * Started as a 2-way switch (Quiz Analytics / Model & Diagnostics
  * Analytics) when this plugin first merged local_quizanalytics and
  * local_stackanalytics; Quiz Analytics's own per-quiz drill-down later
- * split into its own Question Analytics section (this file's first
- * post-merge change), with Model & Diagnostics Analytics due to split into
- * Model Analytics and Diagnostics Analytics the same way.
+ * split into its own Question Analytics section, and Model & Diagnostics
+ * Analytics split the same way into Model Analytics and Diagnostics
+ * Analytics — four independently-reachable sections in total now.
  *
  * Deliberately global-namespace and outside classes/quiz/ or classes/stack/
  * — this belongs to neither product specifically, only to the merged
@@ -46,7 +46,8 @@ class local_stackquizanalytics_section_selector {
     const SECTION_PAGES = [
         'quiz' => 'index.php',
         'question' => 'questionanalytics.php',
-        'models' => 'models.php',
+        'models' => 'modelanalytics.php',
+        'diagnostics' => 'diagnosticsanalytics.php',
     ];
 
     /**
@@ -61,6 +62,7 @@ class local_stackquizanalytics_section_selector {
             'quiz' => get_string('sectionquiz', 'local_stackquizanalytics'),
             'question' => get_string('sectionquestion', 'local_stackquizanalytics'),
             'models' => get_string('sectionmodels', 'local_stackquizanalytics'),
+            'diagnostics' => get_string('sectiondiagnostics', 'local_stackquizanalytics'),
         ];
 
         // Rendered as plain links rather than a form+select — there's no

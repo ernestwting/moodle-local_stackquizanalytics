@@ -40,13 +40,14 @@ $string['sectionselectorlabel'] = 'Section:';
 $string['pagemaintitle'] = 'STACK Analytics';
 $string['sectionquiz'] = 'Quiz Analytics';
 $string['sectionquestion'] = 'Question Analytics';
-$string['sectionmodels'] = 'Model & Diagnostics Analytics';
+$string['sectionmodels'] = 'Model Analytics';
+$string['sectiondiagnostics'] = 'Diagnostics Analytics';
 $string['privacy:metadata'] = 'The STACK Quiz & Model Analytics plugin does not store any personal data of its own. It reads finished quiz attempts, question responses, grades, and log events directly from Moodle\'s own database (mod_quiz, the question engine, grade_grades, and logstore_standard_log) at request/calculation time, all of which are already covered by their own privacy providers.';
 
-// Quiz Analytics section (index.php, pdf.php — ported from the standalone
-// local_quizanalytics plugin this merges). Values unchanged from that
-// plugin's own lang file; only the two strings superseded by this plugin's
-// unified pluginname/capability (its own 'pluginname' and
+// Quiz Analytics section (index.php, quizanalyticspdf.php — ported from the
+// standalone local_quizanalytics plugin this merges). Values unchanged from
+// that plugin's own lang file; only the two strings superseded by this
+// plugin's unified pluginname/capability (its own 'pluginname' and
 // 'quizanalytics:view') were dropped here.
 $string['anonymizemode'] = 'Anonymize student data';
 $string['anonymizedstudent'] = 'Student {$a}';
@@ -110,9 +111,12 @@ $string['viewquestionanalytics'] = 'Question Analytics';
 $string['viewselectlabel']      = 'View:';
 $string['viewsolutionprocess']  = 'Solution Process Visualization';
 
-// Model & Diagnostics Analytics section (models.php, modelspdf.php —
-// ported from the standalone local_stackanalytics plugin this merges).
-// Values unchanged from that plugin's own lang file; its own 'pluginname',
+// Model Analytics + Diagnostics Analytics sections (modelanalytics.php,
+// modelanalyticspdf.php, diagnosticsanalytics.php, diagnosticsanalyticspdf.php
+// — ported from the standalone local_stackanalytics plugin this merges,
+// which combined them into one page/PDF; split into two sections here, see
+// classes/section_selector.php). Values unchanged from that plugin's own
+// lang file; its own 'pluginname',
 // 'privacy:metadata', 'stackanalytics:view' (superseded by this plugin's
 // unified strings/capability — the old capability id doesn't exist here at
 // all), 'downloadpdfbutton', and 'pdfnosections' (identical text to the
@@ -205,8 +209,10 @@ $string['conceptdependencynote'] = 'Concept-dependency mapping (finding which qu
 $string['diagnosticsnoquestions'] = 'No STACK questions to show for this selection.';
 $string['diagnosticsseedbiassentence'] = 'η²={$a->etasquared} ({$a->magnitude})';
 $string['diagnosticsbloatedtreesentence'] = '{$a->unreached} of {$a->total} branch(es) never reached';
-$string['pageintro'] = '<strong>Model 1</strong> looks at each student\'s behavior and flags who might be at risk of not passing. <strong>Model 2</strong> looks at each question\'s marking logic and flags ones that might be worth a teacher\'s review. The <strong>Diagnostics Dashboard</strong> is a set of statistical reports that don\'t fit either model. These are not predictions, just direct calculations from the same attempt data. Use the "View:" selector below to switch between them. Both models are disabled by default, so everything below is a live reading of each signal today, not a trained AI prediction. An administrator can enable and train a model under Site Administration, Analytics, Models. Once trained, real predictions appear alongside this page in Moodle\'s own Insights report.';
-$string['pageintrosummary'] = 'About Model 1, Model 2, and the Diagnostics Dashboard';
+$string['modelpageintro'] = '<strong>Model 1</strong> looks at each student\'s behavior and flags who might be at risk of not passing. <strong>Model 2</strong> looks at each question\'s marking logic and flags ones that might be worth a teacher\'s review. Use the "View:" selector below to switch between them. Both models are disabled by default, so everything below is a live reading of each signal today, not a trained AI prediction. An administrator can enable and train a model under Site Administration, Analytics, Models. Once trained, real predictions appear alongside this page in Moodle\'s own Insights report.';
+$string['modelpageintrosummary'] = 'About Model 1 and Model 2';
+$string['diagnosticspageintro'] = 'The Diagnostics Dashboard is a set of statistical reports that don\'t fit either model — Seed Bias and PRT Branch Coverage, described below. These are not predictions, just direct calculations from the same attempt data.';
+$string['diagnosticspageintrosummary'] = 'About the Diagnostics Dashboard';
 $string['responsibleusecallout'] = 'A few things worth keeping in mind when reading the flags below. These are statistical patterns, not proof of anything. An anomalous response time is a prompt to check in with a student, not evidence of misconduct on its own. Small courses will show noisier and less reliable readings simply because they have fewer data points to work from. Every number here describes what a student did in this course, not who they are.';
 $string['responsibleusesummary'] = 'Responsible use: a few things to keep in mind';
 $string['pdfsectionslabel'] = 'Include in the PDF:';

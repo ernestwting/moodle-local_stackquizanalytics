@@ -15,25 +15,24 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * The Model & Diagnostics Analytics section (ported from the standalone
- * local_stackanalytics plugin this merges): one page, three sections, one
- * per the architecture doc's own structure — Model 1 (student risk &
- * behavior), Model 2 (question/PRT quality), and the non-ML Diagnostics
- * Dashboard (seed-bias ANOVA and bloated-PRT-tree coverage, computed
- * directly rather than through the Analytics API's ML machinery). Both
- * models ship disabled by default (alpha stage — see db/analytics.php), so
- * what this page shows is each model's *live indicator readings*, not a
- * trained model's predictions; those, once an administrator enables and
- * trains a model, live in Moodle's own Site Administration > Analytics >
- * Insights instead. See index.php for the other half of this plugin (Quiz
- * Analytics, ported from the standalone local_quizanalytics plugin) — the
- * "Section:" selector at the top of both pages switches between them.
+ * The Model Analytics section (ported from the standalone
+ * local_stackanalytics plugin this merges): Model 1 (student risk &
+ * behavior) and Model 2 (question/PRT quality) — the two ML-oriented models
+ * from the architecture doc's own structure. The non-ML Diagnostics
+ * Dashboard used to live on this same page behind a View: selector; it now
+ * has its own diagnosticsanalytics.php, since it doesn't share Model 1/2's
+ * "trained model" framing at all (it's direct calculations, not indicator
+ * readings — see that file's own docblock). Both models ship disabled by
+ * default (alpha stage — see db/analytics.php), so what this page shows is
+ * each model's *live indicator readings*, not a trained model's
+ * predictions; those, once an administrator enables and trains a model,
+ * live in Moodle's own Site Administration > Analytics > Insights instead.
  *
- * Reached from the course's secondary navigation "Analytics" entry (see
- * lib.php's local_stackquizanalytics_extend_navigation_course(), which
- * points at index.php first — this page is one click away via the
- * selector), or directly via
- * /local/stackquizanalytics/models.php?id=<courseid>.
+ * Reached from the "Section:" selector at the top of every page in this
+ * plugin, or directly via
+ * /local/stackquizanalytics/modelanalytics.php?id=<courseid>.
+ *
+ * Renamed from models.php when Diagnostics split into its own section.
  *
  * @package local_stackquizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
@@ -44,10 +43,8 @@ require_once(__DIR__ . '/../../config.php');
 require_once($CFG->dirroot . '/local/stackquizanalytics/classes/section_selector.php');
 
 use local_stackquizanalytics\stack\local\stack_course_helper;
-use local_stackquizanalytics\stack\diagnostics\concept_dependency_report;
 use local_stackquizanalytics\stack\analytics\report\model1_report;
 use local_stackquizanalytics\stack\analytics\report\model2_report;
-use local_stackquizanalytics\stack\analytics\report\diagnostics_report;
 use local_stackquizanalytics\stack\output\dashboard_renderer;
 
 $courseid = required_param('id', PARAM_INT);
@@ -57,7 +54,7 @@ require_login($course);
 $context = context_course::instance($course->id);
 require_capability('local/stackquizanalytics:view', $context);
 
-$PAGE->set_url('/local/stackquizanalytics/models.php', ['id' => $courseid]);
+$PAGE->set_url('/local/stackquizanalytics/modelanalytics.php', ['id' => $courseid]);
 $PAGE->set_pagelayout('report');
 $PAGE->set_context($context);
 $PAGE->set_title($course->shortname . ': ' . get_string('dashboardtitle', 'local_stackquizanalytics'));
@@ -72,8 +69,8 @@ echo local_stackquizanalytics_section_selector::render($courseid, 'models');
 // most teachers only need to read once.
 echo html_writer::tag(
     'details',
-    html_writer::tag('summary', get_string('pageintrosummary', 'local_stackquizanalytics'))
-        . html_writer::div(get_string('pageintro', 'local_stackquizanalytics'), 'mt-2'),
+    html_writer::tag('summary', get_string('modelpageintrosummary', 'local_stackquizanalytics'))
+        . html_writer::div(get_string('modelpageintro', 'local_stackquizanalytics'), 'mt-2'),
     ['class' => 'alert alert-info']
 );
 
@@ -84,7 +81,7 @@ if (count($viewablecourses) > 1) {
         $courseoptions[$viewablecourse->id] = format_string($viewablecourse->fullname);
     }
     $courseselector = new single_select(
-        new moodle_url('/local/stackquizanalytics/models.php'),
+        new moodle_url('/local/stackquizanalytics/modelanalytics.php'),
         'id',
         $courseoptions,
         $courseid,
@@ -102,21 +99,20 @@ if (empty($slots)) {
     exit;
 }
 
-// One section rendered per page load, not all three at once — the previous
+// One section rendered per page load, not both at once — the previous
 // anchor-link "Jump to section" nav still rendered (and queried) everything
 // on every load, which is what actually made the page unusably long on a
 // course with many students/questions.
 $view = optional_param('view', 'model1', PARAM_ALPHANUM);
-if (!in_array($view, ['model1', 'model2', 'diagnostics'], true)) {
+if (!in_array($view, ['model1', 'model2'], true)) {
     $view = 'model1';
 }
 $viewoptions = [
     'model1' => get_string('model1heading', 'local_stackquizanalytics'),
     'model2' => get_string('model2heading', 'local_stackquizanalytics'),
-    'diagnostics' => get_string('diagnosticsheading', 'local_stackquizanalytics'),
 ];
 $viewselector = new single_select(
-    new moodle_url('/local/stackquizanalytics/models.php', ['id' => $courseid]),
+    new moodle_url('/local/stackquizanalytics/modelanalytics.php', ['id' => $courseid]),
     'view',
     $viewoptions,
     $view,
@@ -132,14 +128,14 @@ echo html_writer::tag(
     ['class' => 'alert alert-warning mt-2']
 );
 
-// Narrows Model 2/Diagnostics (both per-question) to one quiz at a time —
-// Model 1 isn't quiz-scoped (its indicators are per-student), so this
-// selector is skipped entirely on that view.
+// Narrows Model 2 (per-question) to one quiz at a time — Model 1 isn't
+// quiz-scoped (its indicators are per-student), so this selector is skipped
+// entirely on that view.
 $quizid = optional_param('quizid', 0, PARAM_INT);
 
 // Shares its user preference and lang string with Quiz Analytics's own
 // anonymize toggle (classes/quiz/output/sections_output_helper.php) — one
-// teacher preference for anonymization across both sections of this
+// teacher preference for anonymization across every section of this
 // plugin, not a separate on/off switch per page.
 $anonymizeparam = optional_param('anonymize', null, PARAM_INT);
 if ($anonymizeparam !== null) {
@@ -202,7 +198,7 @@ if ($view === 'model1') {
         }
         asort($quizoptions);
         $quizselector = new single_select(
-            new moodle_url('/local/stackquizanalytics/models.php', ['id' => $courseid, 'view' => $view]),
+            new moodle_url('/local/stackquizanalytics/modelanalytics.php', ['id' => $courseid, 'view' => $view]),
             'quizid',
             $quizoptions,
             $quizid,
@@ -214,38 +210,21 @@ if ($view === 'model1') {
         $quizid = 0; // Only one quiz in this course — nothing to filter.
     }
 
-    if ($view === 'model2') {
-        echo $OUTPUT->heading(get_string('model2heading', 'local_stackquizanalytics'), 3);
-        echo html_writer::tag('p', get_string('model2intro', 'local_stackquizanalytics'));
-        echo dashboard_renderer::render_model2_about();
-        echo dashboard_renderer::render_model2_table(model2_report::build($courseid, $quizid !== 0 ? $quizid : null));
-    } else {
-        echo $OUTPUT->heading(get_string('diagnosticsheading', 'local_stackquizanalytics'), 3);
-
-        $diagnosticsintrobody = html_writer::tag('p', get_string('diagnosticsintro', 'local_stackquizanalytics'));
-        if (!concept_dependency_report::is_available()) {
-            $diagnosticsintrobody .= html_writer::tag(
-                'p',
-                get_string('conceptdependencynote', 'local_stackquizanalytics'),
-                ['class' => 'text-muted small mb-0']
-            );
-        }
-        echo html_writer::tag(
-            'details',
-            html_writer::tag('summary', get_string('diagnosticsintrosummary', 'local_stackquizanalytics'))
-                . html_writer::div($diagnosticsintrobody, 'mt-2'),
-            ['class' => 'mb-3']
-        );
-
-        echo dashboard_renderer::render_diagnostics_section(diagnostics_report::build($courseid, $quizid !== 0 ? $quizid : null));
-    }
+    echo $OUTPUT->heading(get_string('model2heading', 'local_stackquizanalytics'), 3);
+    echo html_writer::tag('p', get_string('model2intro', 'local_stackquizanalytics'));
+    echo dashboard_renderer::render_model2_about();
+    echo dashboard_renderer::render_model2_table(model2_report::build($courseid, $quizid !== 0 ? $quizid : null));
 }
 
 echo dashboard_renderer::render_pdf_form(
-    new moodle_url('/local/stackquizanalytics/modelspdf.php'),
+    new moodle_url('/local/stackquizanalytics/modelanalyticspdf.php'),
     $courseid,
     $quizid !== 0 ? $quizid : null,
-    $anonymize
+    $anonymize,
+    [
+        'model1' => 'model1heading',
+        'model2' => 'model2heading',
+    ]
 );
 
 echo $OUTPUT->footer();
