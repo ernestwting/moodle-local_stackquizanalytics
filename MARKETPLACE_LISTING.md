@@ -82,15 +82,9 @@ Requires `qtype_stack` (the STACK question type) to have anything to show.
 Copy-paste source for the "Plugin versions" tab (Edit plugin page →
 Versions) when uploading this release.
 
-Renamed the plugin's frankenstyle component to `local_quizanalytics` — the
-Marketplace upload was rejected twice with "the frankenstyle component
-name in the uploaded plugin does not match," first because the component
-had stayed at the merge's own working name, then because a first attempt
-at fixing this guessed the wrong target (`local_stackanalytics`) before
-confirming which existing listing (id 3995) this upload actually targets.
-No functional or UI changes in this release — purely an internal rename
-(namespaces, capability, class/function prefixes, lang file, asset paths)
-so the plugin uploads correctly as a new version of that listing.
+Internal housekeeping release: no functional or UI changes. Aligns the
+plugin's internal component identifier with this Marketplace listing so
+future versions install as an update rather than a separate plugin.
 
 ## Release notes (v2.1.0)
 
