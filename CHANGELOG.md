@@ -7,7 +7,7 @@ This plugin merges two previously-separate, independently-installed
 plugins — `local_quizanalytics` and `local_stackanalytics` — into one. Each
 phase below corresponds to one commit in this repository's history.
 
-## [1.0.0] — Merge phases 1–18
+## [1.0.0] — Merge phases 1–21
 
 **Phase 1 — Skeleton.** Bare installable no-op plugin: `version.php`
 (component `local_stackquizanalytics`, dependencies `mod_quiz` + declared
@@ -144,3 +144,60 @@ PHPDoc Checker stay `continue-on-error` pending Phase 20's cleanup.
 **Phase 18 — Docs.** `README.md`, `INSTALL.md`, `MARKETPLACE_LISTING.md`,
 and this changelog rewritten to describe the merged plugin; the Model &
 Diagnostics Analytics architecture doc carried over to `docs/`.
+
+**Phase 19 — Full functional pass, two real bugs found and fixed.** Fresh
+full redeploy (not an incremental sync) and a complete click-through of
+every page/view in both sections with `$CFG->debug` set to
+`DEVELOPER`/`debugdisplay` on, to catch what `debug=0` silently swallows.
+This surfaced two real, pre-existing correctness bugs in Model &
+Diagnostics Analytics's question-versioning handling, both predating this
+merge:
+
+- `stack_course_helper.php` and `stack_attempt_reader.php` each joined
+  `{question_versions}` on `questionbankentryid` alone, with no filter to
+  a single version. Any STACK question with edit history (this plugin's
+  own test course has one with 6 accumulated 'ready' versions) fanned
+  every slot out to one row per version — in `stack_course_helper.php`
+  this could return the wrong `questionid` for a slot depending on row
+  order; in `stack_attempt_reader.php` it duplicated every attempt step
+  once per version, corrupting five indicators with inflated observations.
+  Fixed by pinning `{question_versions}` to the referenced version or the
+  latest non-draft one, the same semantics mod_quiz's own
+  `qbank_helper::get_question_structure()` uses.
+- `get_slot_finished_fractions()` selected only `qas.fraction` (no unique
+  column) via `get_records_sql()`, which keys its return array by the
+  first selected column regardless — silently collapsing every attempt
+  sharing a fraction value down to one, badly corrupting
+  `question_difficulty_irt`'s distribution math. Fixed by switching to
+  `get_fieldset_sql()`, the correct API for a flat list of one column's
+  values.
+
+Both found via genuine `debugging()` warning floods against real test
+data, not guessed. Re-ran the Phase 16 pure-math suite (still 73/73) and
+regenerated a real PDF after the fix (same row counts) to confirm nothing
+else broke. The only remaining warning after both fixes is confirmed to
+originate entirely inside `qtype_stack`'s own `connector.class.php`
+(third-party code), not this plugin's.
+
+**Phase 20 — Marketplace compliance pass.** Ran `phpcbf` across the whole
+plugin (34 opening-brace violations auto-fixed), then manually resolved
+the remaining ~40 "missing one-line docblock description" errors and 6
+over-length lines — full-plugin `phpcs` total went from 85 errors/52
+warnings (baseline debt tracked since Phase 7-9) to 0 errors/41 warnings
+(all MOODLE_INTERNAL stylistic notices, left as-is, matching both source
+plugins' universal convention). Re-verified zero regressions via the pure-
+math suite and a full page click-through after redeploying. Security
+review: grepped for eval/exec/shell_exec, unescaped superglobal access,
+raw SQL interpolation, unserialize(), extract(), debug leftovers, and
+hardcoded credentials — zero hits. Confirmed every entry point requires
+login+capability before doing anything, `settings.php` gates on
+`$hassiteconfig`, and the plugin's one POST form (Quiz Analytics's PDF
+export, POST only because it carries client-captured chart images too
+large for a GET query string) is a read-only, capability-gated action that
+doesn't need sesskey protection by Moodle's own convention. Flagged rather
+than silently fixed: this repository's name (`moodle_analytics`) doesn't
+follow the Moodle Plugins directory's `moodle-{plugintype}_{pluginname}`
+convention for single-plugin repos — the user's own call to make at
+submission time.
+
+**Phase 21 — Wrap-up.** This changelog entry.
