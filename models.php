@@ -18,7 +18,7 @@
  * The Model & Diagnostics Analytics section (ported from the standalone
  * local_stackanalytics plugin this merges): one page, three sections, one
  * per the architecture doc's own structure — Model 1 (student risk &
- * behaviour), Model 2 (question/PRT quality), and the non-ML Diagnostics
+ * behavior), Model 2 (question/PRT quality), and the non-ML Diagnostics
  * Dashboard (seed-bias ANOVA and bloated-PRT-tree coverage, computed
  * directly rather than through the Analytics API's ML machinery). Both
  * models ship disabled by default (alpha stage — see db/analytics.php), so
@@ -68,7 +68,6 @@ echo $OUTPUT->heading(get_string('dashboardtitle', 'local_stackquizanalytics'));
 echo local_stackquizanalytics_section_selector::render($courseid, 'models');
 
 echo html_writer::div(get_string('pageintro', 'local_stackquizanalytics'), 'alert alert-info');
-echo html_writer::div(get_string('pageintrolivedata', 'local_stackquizanalytics'), 'alert alert-info');
 
 $viewablecourses = stack_course_helper::get_viewable_courses();
 if (count($viewablecourses) > 1) {
@@ -125,11 +124,51 @@ echo html_writer::div(get_string('responsibleusecallout', 'local_stackquizanalyt
 // selector is skipped entirely on that view.
 $quizid = optional_param('quizid', 0, PARAM_INT);
 
+// Shares its user preference and lang string with Quiz Analytics's own
+// anonymize toggle (classes/quiz/output/sections_output_helper.php) — one
+// teacher preference for anonymization across both sections of this
+// plugin, not a separate on/off switch per page.
+$anonymizeparam = optional_param('anonymize', null, PARAM_INT);
+if ($anonymizeparam !== null) {
+    set_user_preference('local_stackquizanalytics_anonymize', (bool) $anonymizeparam);
+    $anonymize = (bool) $anonymizeparam;
+} else {
+    $anonymize = (bool) get_user_preferences('local_stackquizanalytics_anonymize', false);
+}
+
 if ($view === 'model1') {
     echo $OUTPUT->heading(get_string('model1heading', 'local_stackquizanalytics'), 3);
     echo html_writer::tag('p', get_string('model1intro', 'local_stackquizanalytics'));
     echo dashboard_renderer::render_model1_about();
-    echo dashboard_renderer::render_model1_table(model1_report::build($courseid));
+
+    echo html_writer::start_tag('form', [
+        'method' => 'get', 'action' => $PAGE->url->out_omit_querystring(), 'class' => 'mb-3',
+    ]);
+    foreach ($PAGE->url->params() as $name => $value) {
+        if ($name === 'anonymize') {
+            continue;
+        }
+        echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => $name, 'value' => $value]);
+    }
+    // An unchecked checkbox submits nothing at all, so this hidden 0 (kept
+    // first, overridden by the checkbox's own '1' only when it's actually
+    // checked) is what makes unchecking the box and submitting genuinely
+    // clear the preference, not just leave it at its last value.
+    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'anonymize', 'value' => '0']);
+    $anonymizeattrs = ['type' => 'checkbox', 'name' => 'anonymize', 'value' => '1', 'id' => 'ma-anonymize-toggle'];
+    if ($anonymize) {
+        $anonymizeattrs['checked'] = 'checked';
+    }
+    echo html_writer::empty_tag('input', $anonymizeattrs);
+    echo ' ' . html_writer::label(get_string('anonymizemode', 'local_stackquizanalytics'), 'ma-anonymize-toggle');
+    echo ' ' . html_writer::empty_tag('input', [
+        'type' => 'submit',
+        'value' => get_string('gobutton', 'local_stackquizanalytics'),
+        'class' => 'btn btn-secondary btn-sm ml-2',
+    ]);
+    echo html_writer::end_tag('form');
+
+    echo dashboard_renderer::render_model1_table(model1_report::build($courseid), $anonymize);
 } else {
     $quiznames = $DB->get_records_menu('quiz', ['course' => $courseid], '', 'id, name');
     $slotsperquiz = [];
@@ -186,7 +225,8 @@ if ($view === 'model1') {
 echo dashboard_renderer::render_pdf_form(
     new moodle_url('/local/stackquizanalytics/modelspdf.php'),
     $courseid,
-    $quizid !== 0 ? $quizid : null
+    $quizid !== 0 ? $quizid : null,
+    $anonymize
 );
 
 echo $OUTPUT->footer();

@@ -20,7 +20,7 @@
  * One capability for the whole merged plugin — both source plugins
  * (local_quizanalytics's local/quizanalytics:view, local_stackanalytics's
  * local/stackanalytics:view) gated the exact same content class (individual
- * students' response/grade/behavioural data across a whole course) to the
+ * students' response/grade/behavioral data across a whole course) to the
  * exact same archetypes, so merging them into one check is a like-for-like
  * simplification, not a scope change.
  *
@@ -35,7 +35,7 @@ $capabilities = [
 
     'local/stackquizanalytics:view' => [
         'riskbitmask'  => RISK_PERSONAL, // Shows individual students' response data, grades, and
-                                          // behavioural indicators across the whole course.
+                                          // behavioral indicators across the whole course.
         'captype'      => 'read',
         'contextlevel' => CONTEXT_COURSE,
         'archetypes'   => [

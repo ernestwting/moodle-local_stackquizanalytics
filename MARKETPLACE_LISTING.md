@@ -42,7 +42,7 @@ toggle.
 
 **Model & Diagnostics Analytics** — built on Moodle's own Analytics API.
 **Model 1 (Student risk)**: a target predicting whether a student is at
-risk of not achieving course success, fed by five behavioural indicators
+risk of not achieving course success, fed by five behavioral indicators
 (grade trajectory, response-latency anomaly, disengagement entropy,
 help-seeking gap, feedback-revision distance). **Model 2 (Question/PRT
 review)**: a target predicting whether a STACK question's Potential
@@ -66,6 +66,20 @@ computation runs in-process in plain PHP, and nothing ever leaves the
 Moodle server.
 
 Requires `qtype_stack` (the STACK question type) to have anything to show.
+
+## Release notes (v2.0.0)
+
+Copy-paste source for the "Plugin versions" tab (Edit plugin page →
+Versions) when uploading this release.
+
+Post-merge polish, ahead of submission: wording fixes throughout (title
+case on the view/quiz selectors, plain-sentence intro text with no dashes
+or semicolons, American spelling), the Model & Diagnostics PDF export now
+colors each cell to match the on-screen good/watch bands, descriptive
+per-download PDF filenames (course, scope, date) across all four PDF
+export entry points, and a new "Anonymize student data" toggle on the
+Model 1 view (shared with Quiz Analytics's existing one) that replaces
+student names with stable pseudonyms on-screen and in the PDF alike.
 
 ## Release notes (v1.0.0)
 
@@ -122,18 +136,18 @@ if not.
 
 ## Repository
 
-https://github.com/ernestwting/moodle_analytics
+https://github.com/ernestwting/moodle-local_stackquizanalytics
 
 ## Issue tracker
 
-https://github.com/ernestwting/moodle_analytics/issues
+https://github.com/ernestwting/moodle-local_stackquizanalytics/issues
 
 (Required field — confirm GitHub Issues is enabled for the repo:
 Settings → General → Features → Issues, on github.com.)
 
 ## Documentation
 
-https://github.com/ernestwting/moodle_analytics#readme
+https://github.com/ernestwting/moodle-local_stackquizanalytics#readme
 
 ## License
 

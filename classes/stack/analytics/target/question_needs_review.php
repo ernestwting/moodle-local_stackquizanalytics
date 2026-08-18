@@ -18,7 +18,7 @@
  * Model 2 target: "this question/PRT needs instructor review".
  *
  * Architecture doc §3.3: no direct ground truth exists for "needs review", so
- * this uses proxy-label option (2) — a question is labelled 1 (needs review)
+ * this uses proxy-label option (2) — a question is labeled 1 (needs review)
  * if its empirical pass rate falls below a threshold, 0 otherwise. The doc is
  * explicit that this risks circularity against question_difficulty_irt (both
  * ultimately read the same pass rate) — that is a genuine validity threat,
@@ -50,14 +50,14 @@ defined('MOODLE_INTERNAL') || die();
  */
 class question_needs_review extends \core_analytics\local\target\binary {
     /**
-     * Below this pass rate, a question is labelled "needs review". Default
+     * Below this pass rate, a question is labeled "needs review". Default
      * used when the local_stackquizanalytics/questionneedsreviewthreshold admin
      * setting (Phase 6) is unset.
      */
     const DEFAULT_PASSRATE_THRESHOLD = 0.5;
 
     /**
-     * Gets the pass-rate threshold below which a question is labelled "needs review".
+     * Gets the pass-rate threshold below which a question is labeled "needs review".
      *
      * @return float the admin-configured threshold, or DEFAULT_PASSRATE_THRESHOLD if unset
      */
@@ -87,7 +87,7 @@ class question_needs_review extends \core_analytics\local\target\binary {
     /**
      * Architecture doc §3.5: single_range or no_splitting, since PRT/question
      * quality doesn't have Model 1's within-course temporal structure —
-     * cumulative behaviour across all historical attempts, refreshed
+     * cumulative behavior across all historical attempts, refreshed
      * periodically, matching the same restriction pattern core's own
      * no_teaching target uses for its own single_range-only static model.
      *

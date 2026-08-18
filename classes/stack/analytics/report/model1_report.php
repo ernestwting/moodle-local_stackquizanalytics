@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Builds the dashboard's Model 1 ("Student Risk & Behaviour") table: one row
+ * Builds the dashboard's Model 1 ("Student Risk & Behavior") table: one row
  * per enrolled student, combining a direct grade-vs-pass read (the same
  * comparison \core_course\analytics\target\course_gradetopass::calculate_sample()
  * makes — confirmed against a real Moodle 4.5 core checkout — student_at_risk

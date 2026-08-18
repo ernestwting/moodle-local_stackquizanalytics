@@ -1,6 +1,6 @@
 # STACK Quiz & Model Analytics for Moodle
 
-[![Moodle Plugin CI](https://github.com/ernestwting/moodle_analytics/actions/workflows/moodle-ci.yml/badge.svg)](https://github.com/ernestwting/moodle_analytics/actions/workflows/moodle-ci.yml)
+[![Moodle Plugin CI](https://github.com/ernestwting/moodle-local_stackquizanalytics/actions/workflows/moodle-ci.yml/badge.svg)](https://github.com/ernestwting/moodle-local_stackquizanalytics/actions/workflows/moodle-ci.yml)
 
 One installable Moodle plugin covering **two** kinds of analytics for STACK
 (Maxima CAS) quizzes: question-level/course-wide statistics and
@@ -26,7 +26,7 @@ server itself. Installing `local_stackquizanalytics` is the only step.
 | Section | Reached via | What it does |
 |---|---|---|
 | **Quiz Analytics** (`index.php`) | The course's "Analytics" nav entry (lands here first), or an "Analytics" link this plugin adds to each STACK quiz's own settings menu | Course-wide cross-quiz comparison, or drill into any one quiz for **Question Analytics** (difficulty analysis, response distribution, per-question error drill-down, student performance matrix, question metrics) or **Solution Process Visualization** (PRT transition graphs, network features, PRT/TED 3D distance charts, cross-attempt comparison with clickable per-student drill-down). |
-| **Model & Diagnostics Analytics** (`models.php`) | The "Section:" switcher at the top of every page | **Model 1 — Student risk**: a Moodle Analytics API target on the course/enrolment analyser, fed by five behavioural indicators (grade trajectory, response-latency anomaly, disengagement entropy, help-seeking gap, feedback-revision distance). **Model 2 — Question/PRT review**: a target on each STACK question-in-a-quiz, fed by four indicators (IRT-inspired difficulty, syntax-error rate, unreached-node ratio, feedback-ineffectiveness). **Diagnostics Dashboard**: seed-bias (one-way ANOVA) and PRT branch-coverage reports, deliberately kept outside the ML pipeline since they have no natural ground-truth label. |
+| **Model & Diagnostics Analytics** (`models.php`) | The "Section:" switcher at the top of every page | **Model 1 — Student risk**: a Moodle Analytics API target on the course/enrolment analyser, fed by five behavioral indicators (grade trajectory, response-latency anomaly, disengagement entropy, help-seeking gap, feedback-revision distance). **Model 2 — Question/PRT review**: a target on each STACK question-in-a-quiz, fed by four indicators (IRT-inspired difficulty, syntax-error rate, unreached-node ratio, feedback-ineffectiveness). **Diagnostics Dashboard**: seed-bias (one-way ANOVA) and PRT branch-coverage reports, deliberately kept outside the ML pipeline since they have no natural ground-truth label. |
 
 Both models ship **disabled** by default (alpha stage) — what the dashboard
 shows is each model's *live indicator reading*, not a trained prediction;

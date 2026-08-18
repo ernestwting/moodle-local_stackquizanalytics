@@ -59,7 +59,7 @@ final class feedback_revision_distance_test extends \advanced_testcase {
         $this->assertEqualsWithDelta(0.0, feedback_revision_distance::distance_to_indicator(0.5), 0.0001);
     }
 
-    public function test_response_keys_exclude_behaviour_internal_prefixes(): void {
+    public function test_response_keys_exclude_behavior_internal_prefixes(): void {
         $this->assertTrue(feedback_revision_distance::is_response_key('ans1'));
         $this->assertFalse(feedback_revision_distance::is_response_key('-submit'));
         $this->assertFalse(feedback_revision_distance::is_response_key('_order'));

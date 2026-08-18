@@ -49,10 +49,11 @@ core_php_time_limit::raise(120);
 
 $quizid = optional_param('quizid', 0, PARAM_INT);
 $sections = optional_param_array('sections', ['model1', 'model2', 'diagnostics'], PARAM_ALPHANUM);
+$anonymize = (bool) optional_param('anonymize', 0, PARAM_INT);
 
 $payload = [];
 if (in_array('model1', $sections, true)) {
-    $payload[] = pdf_content::build_model1_section($courseid);
+    $payload[] = pdf_content::build_model1_section($courseid, $anonymize);
 }
 if (in_array('model2', $sections, true)) {
     $payload[] = pdf_content::build_model2_section($courseid, $quizid !== 0 ? $quizid : null);
@@ -66,6 +67,20 @@ if (empty($payload)) {
 }
 
 $pdfbytes = pdf_builder::build($course->fullname, $payload);
-$filename = clean_filename($course->shortname . '-stack-analytics.pdf');
+
+// Names the file after exactly what's in it — which sections, which quiz if
+// the report was scoped to one, and the download date — so a teacher who
+// downloads several of these over time can tell them apart without opening
+// each one.
+$quizsuffix = '';
+if ($quizid !== 0) {
+    $quizname = $DB->get_field('quiz', 'name', ['id' => $quizid]);
+    if ($quizname) {
+        $quizsuffix = '-' . $quizname;
+    }
+}
+$filename = clean_filename(
+    $course->shortname . $quizsuffix . '-model-diagnostics-' . implode('-', $sections) . '-' . date('Y-m-d') . '.pdf'
+);
 
 send_file($pdfbytes, $filename, 0, 0, true, true, 'application/pdf');

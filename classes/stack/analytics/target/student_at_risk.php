@@ -31,7 +31,7 @@
  * (course_enrolments::is_valid_analysable()/is_valid_sample(), the
  * before_now-only can_use_timesplitting() restriction, and
  * get_analyser_class() returning \core\analytics\analyser\student_enrolments,
- * confirmed as the correct "sample = enrolment" analyser). The only behaviour
+ * confirmed as the correct "sample = enrolment" analyser). The only behavior
  * this class adds is the architecture doc's "STACK courses only" restriction.
  *
  * @package local_stackquizanalytics

@@ -89,7 +89,7 @@ if ($kind === 'quiz') {
     }
 
     $pdf = $client->download_pdf_quiz($course->fullname, $byquiz, $selectedsections, $colorblind, $chartimages, $anonymize);
-    $filename = clean_filename($course->shortname . '-quiz-analysis.pdf');
+    $filename = clean_filename($course->shortname . '-quiz-analytics-course-wide-' . date('Y-m-d') . '.pdf');
 } else if ($kind === 'question' || $kind === 'solutionprocess') {
     $quizid = required_param('quizid', PARAM_INT);
 
@@ -119,7 +119,9 @@ if ($kind === 'quiz') {
             $chartimages,
             $anonymize
         );
-        $filename = clean_filename($selectedquiz->name . '-question-analysis.pdf');
+        $filename = clean_filename(
+            $course->shortname . '-' . $selectedquiz->name . '-question-analytics-' . date('Y-m-d') . '.pdf'
+        );
     } else {
         $meta = $client->solution_process_meta($selectedquiz->name, $records, $anonymize);
         if ($meta === null || empty($meta['questions'])) {
@@ -155,7 +157,8 @@ if ($kind === 'quiz') {
             $anonymize
         );
         $filename = clean_filename(
-            $selectedquiz->name . '-' . $spvquestion . '-part' . $spvpart . '-solution-process.pdf'
+            $course->shortname . '-' . $selectedquiz->name . '-' . $spvquestion . '-part' . $spvpart
+                . '-solution-process-' . date('Y-m-d') . '.pdf'
         );
     }
 } else {

@@ -38,7 +38,7 @@ jobs:
 
     steps:
       # qtype_stack's own db/install.php unconditionally tries to build an
-      # optimised Maxima image whenever PHPUNIT_TEST is true (which it is
+      # optimized Maxima image whenever PHPUNIT_TEST is true (which it is
       # during moodle-plugin-ci's own phpunit-init sub-step), throwing a
       # coding_exception if no working `maxima` binary is available.
       # Confirmed by reading question/type/stack/db/install.php directly
@@ -64,7 +64,7 @@ jobs:
       # (question/type/stack/stack/cas/connectorhelper.class.php) expects to
       # compile against. install.php's own guard condition offers a
       # documented escape hatch instead of fighting that: it skips the
-      # optimised-image build entirely if QTYPE_STACK_TEST_CONFIG_PLATFORM is
+      # optimized-image build entirely if QTYPE_STACK_TEST_CONFIG_PLATFORM is
       # defined as 'server', 'server-proxy', or 'none' *before* its
       # PHPUNIT_TEST branch runs. `moodle-plugin-ci add-config` can't do this
       # — its own source (AddConfigCommand.php) confirms it edits config.php
@@ -73,7 +73,7 @@ jobs:
       # below) instead guarantees the constant exists for every PHP process
       # in this job from the start, including moodle-plugin-ci's internal
       # phpunit-init sub-step.
-      - name: Write qtype_stack CI override (skip its optimised-Maxima-image build)
+      - name: Write qtype_stack CI override (skip its optimized-Maxima-image build)
         run: echo "<?php define('QTYPE_STACK_TEST_CONFIG_PLATFORM', 'none');" > "${{ github.workspace }}/qtype_stack_ci_override.php"
 
       - name: Check out this plugin
@@ -100,7 +100,7 @@ jobs:
           ini-values: max_input_vars=5000, opcache.enable_cli=1, auto_prepend_file=${{ github.workspace }}/qtype_stack_ci_override.php
           coverage: none
 
-      - name: Initialise moodle-plugin-ci
+      - name: Initialize moodle-plugin-ci
         run: |
           composer create-project -n --no-dev --prefer-dist moodlehq/moodle-plugin-ci ci ^4
           echo $(cd ci/bin; pwd) >> $GITHUB_PATH

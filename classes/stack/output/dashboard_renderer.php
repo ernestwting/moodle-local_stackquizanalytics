@@ -91,9 +91,10 @@ class dashboard_renderer {
      * The Model 1 student table, or a "no students" notice if there are none.
      *
      * @param \stdClass $report model1_report::build()'s return value
+     * @param bool $anonymize replace each student's name with a stable "Student N" pseudonym
      * @return string
      */
-    public static function render_model1_table(\stdClass $report): string {
+    public static function render_model1_table(\stdClass $report, bool $anonymize = false): string {
         if (empty($report->rows)) {
             return \html_writer::tag('p', get_string('model1nostudents', 'local_stackquizanalytics'), ['class' => 'text-muted']);
         }
@@ -110,8 +111,9 @@ class dashboard_renderer {
             )
         );
 
-        foreach ($report->rows as $row) {
-            $tablerow = [s($row->fullname), self::render_grade_status($row->gradestatus)];
+        foreach ($report->rows as $i => $row) {
+            $name = $anonymize ? self::pseudonym($i) : $row->fullname;
+            $tablerow = [s($name), self::render_grade_status($row->gradestatus)];
             foreach (self::MODEL1_INDICATORS as $indicatorkey => $stringsuffix) {
                 $tablerow[] = self::render_indicator_cell($row->indicators[$indicatorkey], 'model1sentence_' . $stringsuffix);
             }
@@ -123,6 +125,22 @@ class dashboard_renderer {
             $html .= self::truncated_notice(count($report->rows), $report->total);
         }
         return $html;
+    }
+
+    /**
+     * A stable "Student N" pseudonym for one row of an anonymized Model 1
+     * table — N is the row's position in $report->rows, which
+     * model1_report::build() returns in a fixed, deterministic order (an
+     * enrolment-id-sorted query), so the same student gets the same
+     * pseudonym across reloads and in the PDF export
+     * (pdf_content::build_model1_section(), which numbers rows the same
+     * way) as long as the enrolment data itself hasn't changed.
+     *
+     * @param int $rowindex
+     * @return string
+     */
+    public static function pseudonym(int $rowindex): string {
+        return get_string('anonymizedstudent', 'local_stackquizanalytics', $rowindex + 1);
     }
 
     /**
@@ -434,12 +452,18 @@ class dashboard_renderer {
      * @param int|null $quizid the currently-selected quiz filter, or null for "all quizzes"
      * @return string
      */
-    public static function render_pdf_form(\moodle_url $action, int $courseid, ?int $quizid): string {
+    public static function render_pdf_form(\moodle_url $action, int $courseid, ?int $quizid, bool $anonymize = false): string {
         $html = \html_writer::start_tag('form', ['method' => 'get', 'action' => $action->out(false), 'class' => 'mt-4']);
         $html .= \html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id', 'value' => $courseid]);
         if ($quizid !== null) {
             $html .= \html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'quizid', 'value' => $quizid]);
         }
+        // Carries the Model 1 anonymize toggle's current state through to
+        // the PDF, so a report downloaded while anonymized shows the same
+        // "Student N" pseudonyms the page did, not real names.
+        $html .= \html_writer::empty_tag('input', [
+            'type' => 'hidden', 'name' => 'anonymize', 'value' => $anonymize ? '1' : '0',
+        ]);
 
         $html .= \html_writer::tag('p', get_string('pdfsectionslabel', 'local_stackquizanalytics'), ['class' => 'mb-1']);
         $sectionheadings = [

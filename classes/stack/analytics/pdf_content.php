@@ -39,6 +39,7 @@ namespace local_stackquizanalytics\stack\analytics;
 use local_stackquizanalytics\stack\analytics\report\model1_report;
 use local_stackquizanalytics\stack\analytics\report\model2_report;
 use local_stackquizanalytics\stack\analytics\report\diagnostics_report;
+use local_stackquizanalytics\stack\output\dashboard_renderer;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -67,9 +68,10 @@ class pdf_content {
      * The Model 1 section payload for the PDF export.
      *
      * @param int $courseid
+     * @param bool $anonymize replace each student's name with the same "Student N" pseudonym the on-screen table uses
      * @return array{title: string, columns: string[], rows: array[], shown: int, total: int, truncated: bool}
      */
-    public static function build_model1_section(int $courseid): array {
+    public static function build_model1_section(int $courseid, bool $anonymize = false): array {
         $report = model1_report::build($courseid);
 
         $columns = array_merge(
@@ -84,10 +86,11 @@ class pdf_content {
         );
 
         $rows = [];
-        foreach ($report->rows as $row) {
-            $cells = [$row->fullname, self::gradestatus_text($row->gradestatus)];
+        foreach ($report->rows as $i => $row) {
+            $name = $anonymize ? dashboard_renderer::pseudonym($i) : $row->fullname;
+            $cells = [$name, self::gradestatus_cell($row->gradestatus)];
             foreach (self::MODEL1_INDICATORS as $indicatorkey => $stringsuffix) {
-                $cells[] = self::indicator_text($row->indicators[$indicatorkey], 'model1sentence_' . $stringsuffix);
+                $cells[] = self::indicator_cell($row->indicators[$indicatorkey], 'model1sentence_' . $stringsuffix);
             }
             $rows[] = $cells;
         }
@@ -127,10 +130,10 @@ class pdf_content {
         foreach ($report->rows as $row) {
             $cells = [
                 $row->questionname . ' (' . $row->quizname . ')',
-                self::needsreview_text($row->needsreview),
+                self::needsreview_cell($row->needsreview),
             ];
             foreach (self::MODEL2_INDICATORS as $indicatorkey => $stringsuffix) {
-                $cells[] = self::indicator_text($row->indicators[$indicatorkey], 'model2sentence_' . $stringsuffix);
+                $cells[] = self::indicator_cell($row->indicators[$indicatorkey], 'model2sentence_' . $stringsuffix);
             }
             $rows[] = $cells;
         }
@@ -165,8 +168,8 @@ class pdf_content {
         foreach ($report->rows as $row) {
             $rows[] = [
                 $row->questionname . ' (' . $row->quizname . ')',
-                self::seedbias_text($row->seedbias),
-                self::bloatedtree_text($row->bloatedtree),
+                self::seedbias_cell($row->seedbias),
+                self::bloatedtree_cell($row->bloatedtree),
             ];
         }
 
@@ -181,91 +184,93 @@ class pdf_content {
     }
 
     /**
-     * Plain-text "Label — sentence" for one indicator cell.
+     * "Label — sentence" plus its color band for one indicator cell.
      *
      * @param \stdClass|null $result an indicator's compute_for_sample() return value
      * @param string $sentencestringkey the lang string key for the facts sentence, taking $result->summary as $a
-     * @return string
+     * @return array{text: string, band: ?string}
      */
-    private static function indicator_text(?\stdClass $result, string $sentencestringkey): string {
+    private static function indicator_cell(?\stdClass $result, string $sentencestringkey): array {
         if ($result === null) {
-            return get_string('notenoughdata', 'local_stackquizanalytics');
+            return ['text' => get_string('notenoughdata', 'local_stackquizanalytics'), 'band' => null];
         }
         $label = get_string('band_' . $result->band, 'local_stackquizanalytics');
         $sentence = get_string($sentencestringkey, 'local_stackquizanalytics', (object) $result->summary);
-        return $label . ' — ' . $sentence;
+        return ['text' => $label . ' — ' . $sentence, 'band' => $result->band];
     }
 
     /**
-     * Plain-text "Current status" cell for one Model 1 row.
+     * The "Current status" cell for one Model 1 row, plus its color band.
      *
      * @param \stdClass $gradestatus {gradepasspercent, gradepercent, atrisk} — see model1_report::get_grade_status()
-     * @return string
+     * @return array{text: string, band: ?string}
      */
-    private static function gradestatus_text(\stdClass $gradestatus): string {
+    private static function gradestatus_cell(\stdClass $gradestatus): array {
         if ($gradestatus->gradepasspercent === null) {
-            return get_string('gradestatusnothreshold', 'local_stackquizanalytics');
+            return ['text' => get_string('gradestatusnothreshold', 'local_stackquizanalytics'), 'band' => null];
         }
         if ($gradestatus->gradepercent === null) {
-            return get_string('gradestatusnogradeyet', 'local_stackquizanalytics');
+            return ['text' => get_string('gradestatusnogradeyet', 'local_stackquizanalytics'), 'band' => null];
         }
         $stringkey = $gradestatus->atrisk ? 'gradestatusatrisk' : 'gradestatuspassing';
-        return get_string($stringkey, 'local_stackquizanalytics', (object) [
+        $text = get_string($stringkey, 'local_stackquizanalytics', (object) [
             'grade' => $gradestatus->gradepercent,
             'gradepass' => $gradestatus->gradepasspercent,
         ]);
+        return ['text' => $text, 'band' => $gradestatus->atrisk ? 'watch' : 'good'];
     }
 
     /**
-     * Plain-text "Current status" cell for one Model 2 row.
+     * The "Current status" cell for one Model 2 row, plus its color band.
      *
      * @param \stdClass|null $needsreview question_needs_review::compute_for_sample()'s return value
-     * @return string
+     * @return array{text: string, band: ?string}
      */
-    private static function needsreview_text(?\stdClass $needsreview): string {
+    private static function needsreview_cell(?\stdClass $needsreview): array {
         if ($needsreview === null) {
-            return get_string('notenoughdata', 'local_stackquizanalytics');
+            return ['text' => get_string('notenoughdata', 'local_stackquizanalytics'), 'band' => null];
         }
         $stringkey = $needsreview->needsreview ? 'needsreviewyes' : 'needsreviewno';
-        return get_string($stringkey, 'local_stackquizanalytics', (object) [
+        $text = get_string($stringkey, 'local_stackquizanalytics', (object) [
             'passpercent' => $needsreview->passpercent,
             'thresholdpercent' => $needsreview->thresholdpercent,
         ]);
+        return ['text' => $text, 'band' => $needsreview->needsreview ? 'watch' : 'good'];
     }
 
     /**
-     * Plain-text "Label — sentence" for one Diagnostics row's seed-bias cell.
+     * "Label — sentence" plus its color band for one Diagnostics row's seed-bias cell.
      *
      * @param \stdClass|null $seedbias diagnostics_report's seed-bias summary, or null
-     * @return string
+     * @return array{text: string, band: ?string}
      */
-    private static function seedbias_text(?\stdClass $seedbias): string {
+    private static function seedbias_cell(?\stdClass $seedbias): array {
         if ($seedbias === null) {
-            return get_string('notenoughdata', 'local_stackquizanalytics');
+            return ['text' => get_string('notenoughdata', 'local_stackquizanalytics'), 'band' => null];
         }
         $label = get_string('band_' . $seedbias->band, 'local_stackquizanalytics');
         $sentence = get_string('diagnosticsseedbiassentence', 'local_stackquizanalytics', (object) [
             'etasquared' => format_float($seedbias->anova->etasquared, 3),
             'magnitude' => get_string('etamagnitude_' . $seedbias->magnitude, 'local_stackquizanalytics'),
         ]);
-        return $label . ' — ' . $sentence;
+        return ['text' => $label . ' — ' . $sentence, 'band' => $seedbias->band];
     }
 
     /**
-     * Plain-text "Label — sentence" for one Diagnostics row's branch-coverage cell.
+     * "Label — sentence" plus its color band for one Diagnostics row's branch-coverage cell.
      *
      * @param \stdClass|null $bloatedtree diagnostics_report's branch-coverage summary, or null
-     * @return string
+     * @return array{text: string, band: ?string}
      */
-    private static function bloatedtree_text(?\stdClass $bloatedtree): string {
+    private static function bloatedtree_cell(?\stdClass $bloatedtree): array {
         if ($bloatedtree === null) {
-            return get_string('notenoughdata', 'local_stackquizanalytics');
+            return ['text' => get_string('notenoughdata', 'local_stackquizanalytics'), 'band' => null];
         }
         $label = get_string('band_' . $bloatedtree->band, 'local_stackquizanalytics');
         $sentence = get_string('diagnosticsbloatedtreesentence', 'local_stackquizanalytics', (object) [
             'unreached' => $bloatedtree->unreachedcount,
             'total' => $bloatedtree->totalbranches,
         ]);
-        return $label . ' — ' . $sentence;
+        return ['text' => $label . ' — ' . $sentence, 'band' => $bloatedtree->band];
     }
 }

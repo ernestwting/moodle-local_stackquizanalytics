@@ -24,12 +24,12 @@
  *
  * "Same PRT node" is read here as: the same question-type response variable
  * name (e.g. STACK's 'ans1') appearing in two consecutive steps of the same
- * question_attempt — for STACK's interactive-behaviour question engine, each
+ * question_attempt — for STACK's interactive-behavior question engine, each
  * new step *is* a new try at that PRT's inputs, so consecutive steps holding
  * the same input name are exactly the "attempt n, attempt n+1 on the same
  * node" pair the architecture doc describes. Keys starting with '-' or '_'
  * are excluded, matching question_attempt_step's own convention that those
- * prefixes mark behaviour-internal/private data rather than the student's
+ * prefixes mark behavior-internal/private data rather than the student's
  * actual response.
  *
  * @package local_stackquizanalytics
@@ -95,7 +95,7 @@ class feedback_revision_distance extends \core_analytics\local\indicator\linear 
 
     /**
      * A response-data key counts as a student input (rather than
-     * behaviour-internal bookkeeping) unless it starts with '-' or '_'.
+     * behavior-internal bookkeeping) unless it starts with '-' or '_'.
      *
      * @param string $key
      * @return bool

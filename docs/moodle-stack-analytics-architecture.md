@@ -1,4 +1,4 @@
-# A Two-Model Learning Analytics System for STACK Question Behaviour in Moodle
+# A Two-Model Learning Analytics System for STACK Question Behavior in Moodle
 ### Research Architecture Outline
 
 ---
@@ -24,7 +24,7 @@ These four constraints from `moodledev.io` and `docs.moodle.org` reshape parts o
 
 ---
 
-## 2. Model 1 — Student-Level Performance & Behaviour Model
+## 2. Model 1 — Student-Level Performance & Behavior Model
 
 ### 2.1 Target Definition
 - **Class:** extends `\core_analytics\local\target\binary`
@@ -117,7 +117,7 @@ For each indicator: a construct definition, the raw signal, the normalization to
 Moodle has no built-in "question" or "PRT node" analysable. You'll need:
 - **Analysable:** a per-question (or per-question-per-course-offering) unit — `get_id()`, `get_context()`, `get_start()/get_end()` mapped to the question's active-usage window
 - **Analyser:** extends `\core_analytics\local\analyser\by_course` (per the dev docs' guidance — course-scoped processing avoids the memory blowup of a site-wide question analyser), aggregating over `mdl_question_attempts` + `mdl_question_attempt_steps` joined to `mdl_qtype_stack_prts`
-- Sample origin: the question usage id / question id pairing (you'll define the exact grain — likely *question-in-course*, not *question globally*, since difficulty and seed behaviour can differ by cohort)
+- Sample origin: the question usage id / question id pairing (you'll define the exact grain — likely *question-in-course*, not *question globally*, since difficulty and seed behavior can differ by cohort)
 
 ### 3.3 Target: "Question/PRT Needs Review"
 - **Proxy label problem:** you need historical ground truth. Two realistic options — (1) *questions a teacher later edited* (STACK version history) as a positive label, or (2) *questions below an empirically-set pass-rate threshold* as a heuristic label. Option (2) is simpler but risks circularity (you're partly predicting the indicator you built it from) — discuss this explicitly as a validity threat in your methodology.
@@ -161,7 +161,7 @@ Here `unreached_ratio = 1/7 ≈ 0.14`. Node 7 (red) is a strong pruning candidat
 - Model sequential failures as a **first-order Markov chain** over question/concept nodes; transition probability `P(fail_j | fail_i)` estimated from attempt sequences, visualized as a directed weighted graph. This is unsupervised sequence mining — good material for the report's "future work" or a secondary offline Python analysis (pandas/networkx) outside the live Moodle ML pipeline.
 
 ### 3.5 Time-Splitting Method
-`single_range` or `no_splitting` — PRT/question quality doesn't have the same within-course temporal structure that student risk does; you want cumulative behaviour across all historical attempts, refreshed periodically (e.g., after each semester), which matches how Moodle's own examples describe static, assumption-light models like "No teaching."
+`single_range` or `no_splitting` — PRT/question quality doesn't have the same within-course temporal structure that student risk does; you want cumulative behavior across all historical attempts, refreshed periodically (e.g., after each semester), which matches how Moodle's own examples describe static, assumption-light models like "No teaching."
 
 ---
 
@@ -199,7 +199,7 @@ This is the same lifecycle for both models — the only difference is *what* cou
 3. System architecture (Sections 1–2 above)
 4. Model 1 design & indicator formalization
 5. Model 2 design & the target/indicator/diagnostic triage (this triage *is* a contribution — most papers don't separate these cleanly)
-6. Data & ethics (FERPA/GDPR-style considerations, since this touches student behavioural inference — see Section 8)
+6. Data & ethics (FERPA/GDPR-style considerations, since this touches student behavioral inference — see Section 8)
 7. Evaluation methodology (F1, ROC, IRT model fit statistics, ANOVA results)
 8. Limitations (proxy-label validity, binary-only backend constraint, cold-start for new courses)
 9. Future work (custom regression backend, unsupervised concept mapping at scale)

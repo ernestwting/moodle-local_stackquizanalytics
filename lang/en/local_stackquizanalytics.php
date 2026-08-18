@@ -42,6 +42,7 @@ $string['privacy:metadata'] = 'The STACK Quiz & Model Analytics plugin does not 
 // unified pluginname/capability (its own 'pluginname' and
 // 'quizanalytics:view') were dropped here.
 $string['anonymizemode'] = 'Anonymize student data';
+$string['anonymizedstudent'] = 'Student {$a}';
 $string['cachedef_questionanalysis'] = 'The Question Analytics result for one quiz.';
 $string['cachedef_quizanalysiscoursewide'] = 'The course-wide Quiz Analysis result for one course.';
 $string['cachedef_solutionprocess'] = 'The Solution Process Visualization result for one quiz/question/part/student selection.';
@@ -98,9 +99,9 @@ $string['selectquestion']       = 'Question';
 $string['selectstudent']        = 'Student drill-down';
 $string['selectstudentnone']    = 'None';
 $string['servererror']          = 'Analytics could not be computed for this quiz. Contact your Moodle administrator.';
-$string['viewquestionanalytics'] = 'Question analytics';
+$string['viewquestionanalytics'] = 'Question Analytics';
 $string['viewselectlabel']      = 'View:';
-$string['viewsolutionprocess']  = 'Solution process visualization';
+$string['viewsolutionprocess']  = 'Solution Process Visualization';
 
 // Model & Diagnostics Analytics section (models.php, modelspdf.php —
 // ported from the standalone local_stackanalytics plugin this merges).
@@ -126,7 +127,7 @@ $string['dashboardtitle'] = 'STACK Analytics Dashboard';
 $string['courseselectorlabel'] = 'Course:';
 $string['quizselectorlabel'] = 'Quiz:';
 $string['viewselectorlabel'] = 'View:';
-$string['allquizzes'] = 'All quizzes';
+$string['allquizzes'] = 'All Quizzes';
 $string['seedbiasheading'] = 'Seed bias (one-way ANOVA across random seeds)';
 $string['bloatedtreeheading'] = 'PRT branch coverage';
 $string['seedgroups'] = 'Distinct seeds observed';
@@ -145,8 +146,8 @@ $string['coverage_low_traffic'] = 'Low traffic — review before pruning';
 $string['coverage_adequate'] = 'Adequately traversed';
 $string['unknownquestion'] = 'Unknown question';
 $string['unknownquiz'] = 'Unknown quiz';
-$string['model1heading'] = 'Model 1: Student Risk & Behaviour';
-$string['model1intro'] = 'Predicts which students are at risk of not passing the course, from five behavioural signals in their STACK question activity. It\'s recomputed at points through the course, so a warning can fire before the course ends rather than only at the final grade.';
+$string['model1heading'] = 'Model 1: Student Risk & Behavior';
+$string['model1intro'] = 'Predicts which students are at risk of not passing the course, from five behavioral signals in their STACK question activity. It\'s recomputed at points through the course, so a warning can fire before the course ends rather than only at the final grade.';
 $string['aboutthismodel'] = 'About this model';
 $string['model1aboutbody'] = 'What\'s actually predicted (the "target") is simple: will this student\'s final grade fall below the course\'s own pass grade? The five indicators below are what a trained model would use as evidence for that prediction — today, before any model is trained, this page just shows each indicator\'s current reading directly.';
 $string['model1aboutfooter'] = 'This model ships disabled, so nothing here is a trained AI prediction yet — only live readings of each signal. An administrator can enable and train it under Site Administration > Analytics > Models, after which trained predictions appear in Moodle\'s own Insights report.';
@@ -194,14 +195,13 @@ $string['conceptdependencynote'] = 'Concept-dependency mapping (finding which qu
 $string['diagnosticsnoquestions'] = 'No STACK questions to show for this selection.';
 $string['diagnosticsseedbiassentence'] = 'η²={$a->etasquared} ({$a->magnitude})';
 $string['diagnosticsbloatedtreesentence'] = '{$a->unreached} of {$a->total} branch(es) never reached';
-$string['pageintro'] = '<strong>Model 1</strong> looks at each student\'s behaviour, to flag who might be at risk of not passing. <strong>Model 2</strong> looks at each question\'s marking logic (its PRT), to flag ones that might be worth a teacher\'s review. <strong>Diagnostics Dashboard</strong> is a set of statistical reports that don\'t fit either model — not predictions, just direct calculations from the same attempt data. Use the "View:" selector below to switch between them.';
-$string['pageintrolivedata'] = 'Both models ship disabled by default, so everything below is a live reading of each signal today, not a trained AI prediction. An administrator can enable and train a model under Site Administration > Analytics > Models — once trained, real predictions appear alongside this page in Moodle\'s own Insights report.';
-$string['responsibleusecallout'] = 'A few things worth keeping in mind when reading the flags below: they\'re statistical patterns, not proof of anything — an "anomalous" response time is a prompt to check in with a student, not evidence of misconduct on its own. Small courses will show noisier, less reliable readings simply from having fewer data points to work from. And every number here is about what a student did in this course, not who they are.';
+$string['pageintro'] = '<strong>Model 1</strong> looks at each student\'s behavior and flags who might be at risk of not passing. <strong>Model 2</strong> looks at each question\'s marking logic and flags ones that might be worth a teacher\'s review. The <strong>Diagnostics Dashboard</strong> is a set of statistical reports that don\'t fit either model. These are not predictions, just direct calculations from the same attempt data. Use the "View:" selector below to switch between them. Both models are disabled by default, so everything below is a live reading of each signal today, not a trained AI prediction. An administrator can enable and train a model under Site Administration, Analytics, Models. Once trained, real predictions appear alongside this page in Moodle\'s own Insights report.';
+$string['responsibleusecallout'] = 'A few things worth keeping in mind when reading the flags below. These are statistical patterns, not proof of anything. An anomalous response time is a prompt to check in with a student, not evidence of misconduct on its own. Small courses will show noisier and less reliable readings simply because they have fewer data points to work from. Every number here describes what a student did in this course, not who they are.';
 $string['pdfsectionslabel'] = 'Include in the PDF:';
 $string['pdfnorows'] = 'Nothing to show for this section — no data yet, or nothing matched the current filters.';
 $string['pdffooternote'] = 'STACK Analytics Dashboard — live indicator readings, not a trained AI prediction';
 $string['questionneedsreviewthreshold'] = 'Question-needs-review pass-rate threshold';
-$string['questionneedsreviewthreshold_desc'] = 'A question is labelled "needs review" (Model 2\'s proxy label) when its empirical pass rate falls below this value (0.0-1.0). See the architecture doc\'s §3.3 circularity caveat before lowering this to chase a particular result.';
+$string['questionneedsreviewthreshold_desc'] = 'A question is labeled "needs review" (Model 2\'s proxy label) when its empirical pass rate falls below this value (0.0-1.0). See the architecture doc\'s §3.3 circularity caveat before lowering this to chase a particular result.';
 $string['lowtrafficfloor'] = 'Bloated-tree "low traffic" floor';
 $string['lowtrafficfloor_desc'] = 'On the Diagnostics Dashboard, a PRT branch with at least one but fewer than this many observed traversals is reported as "low traffic" (needs a human look) rather than "never reached" (a pruning candidate).';
 $string['helpseekinglookback'] = 'Help-seeking lookback window (seconds)';

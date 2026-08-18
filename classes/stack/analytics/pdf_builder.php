@@ -116,11 +116,23 @@ class pdf_builder {
     }
 
     /**
+     * Background/text colors for a cell's 'good'/'watch' band, matching the
+     * on-screen dashboard's badge-success/badge-warning colors so a reader
+     * sees the same green/yellow signal in the PDF as on the page. 'neutral'
+     * and cells with no band (plain name/question columns, "not enough
+     * data" text) get no special color, just the normal row background.
+     */
+    const BAND_COLORS = [
+        'good' => ['bg' => '#d4edda', 'text' => '#155724'],
+        'watch' => ['bg' => '#fff3cd', 'text' => '#856404'],
+    ];
+
+    /**
      * Renders one section's table as an HTML table via TCPDF's writeHTML().
      *
      * @param stack_pdf $pdf
      * @param string[] $columns
-     * @param array[] $rows
+     * @param array[] $rows each cell either a plain string, or {text, band} from pdf_content.php
      */
     private static function render_table(stack_pdf $pdf, array $columns, array $rows): void {
         $pdf->SetFont('freesans', '', 7);
@@ -135,11 +147,19 @@ class pdf_builder {
         }
         $html .= '</tr></thead><tbody>';
         foreach ($rows as $rowindex => $row) {
-            $bg = ($rowindex % 2 === 1) ? '#f8fafc' : '#ffffff';
-            $html .= '<tr style="background-color:' . $bg . ';">';
+            $rowbg = ($rowindex % 2 === 1) ? '#f8fafc' : '#ffffff';
+            $html .= '<tr style="background-color:' . $rowbg . ';">';
             foreach ($row as $i => $value) {
-                $html .= '<td width="' . ($widths[$i] ?? 20) . 'mm"><span style="font-size:7pt;">'
-                    . nl2br(htmlspecialchars((string) $value, ENT_QUOTES)) . '</span></td>';
+                if (is_array($value)) {
+                    $text = $value['text'];
+                    $colors = self::BAND_COLORS[$value['band']] ?? null;
+                } else {
+                    $text = (string) $value;
+                    $colors = null;
+                }
+                $cellstyle = $colors ? 'background-color:' . $colors['bg'] . ';color:' . $colors['text'] . ';' : '';
+                $html .= '<td width="' . ($widths[$i] ?? 20) . 'mm" style="' . $cellstyle . '">'
+                    . '<span style="font-size:7pt;">' . nl2br(htmlspecialchars($text, ENT_QUOTES)) . '</span></td>';
             }
             $html .= '</tr>';
         }

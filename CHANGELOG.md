@@ -7,6 +7,56 @@ This plugin merges two previously-separate, independently-installed
 plugins — `local_quizanalytics` and `local_stackanalytics` — into one. Each
 phase below corresponds to one commit in this repository's history.
 
+## [2.0.0] — Post-merge polish
+
+The first round of feedback after the 21-phase merge landed, ahead of
+submitting this as the new major version of `local_quizanalytics` on the
+Moodle Plugins directory rather than a separate listing.
+
+- **Wording fixes.** "Question analytics"/"Solution process visualization"
+  in Quiz Analytics's "View:" selector and "All quizzes" in Model &
+  Diagnostics's quiz selector now match the title-case convention used
+  everywhere else in the plugin.
+- **Simpler intro text.** Model & Diagnostics Analytics's blue and yellow
+  info boxes at the top of the page (`pageintro`, `responsibleusecallout`)
+  rewritten as plain sentences — the two blue boxes combined into one, and
+  every em dash/hyphen-as-punctuation/semicolon in them replaced with
+  ordinary sentence breaks.
+- **American spelling throughout.** "Behaviour"/"behavioural" →
+  "behavior"/"behavioral", "labelled" → "labeled", "optimised" →
+  "optimized", "Initialise" → "Initialize", across every lang string,
+  docblock, and doc file. Left untouched: "analyser"/"analysable"/"analyse"
+  and `summarise_response()`, which are Moodle core's and qtype_stack's own
+  API vocabulary, not this plugin's wording.
+- **Model & Diagnostics PDF now shows the same colors as the dashboard.**
+  `pdf_content.php`'s cell builders return `{text, band}` instead of plain
+  strings; `pdf_builder.php` colors each cell's background/text to match
+  the on-screen badge-success (green) / badge-warning (yellow) palette for
+  'good'/'watch' bands. Previously every PDF cell was plain black-on-white
+  regardless of band.
+- **Descriptive PDF filenames everywhere.** All four PDF export entry
+  points (`pdf.php`'s three kinds, `modelspdf.php`) now name the download
+  after the course, the specific quiz/section scope, and the download
+  date (e.g. `mycourse-question-analytics-2026-08-18.pdf`,
+  `mycourse-model-diagnostics-model1-model2-2026-08-18.pdf`) instead of a
+  bare `{shortname}-quiz-analysis.pdf`/`{shortname}-stack-analytics.pdf`,
+  so a teacher who downloads several reports over time can tell them apart
+  in their downloads folder without opening each one.
+- **Anonymize toggle for Model 1.** A new "Anonymize student data" checkbox
+  on the Model 1 view replaces every student's name with a stable
+  "Student N" pseudonym (`dashboard_renderer::pseudonym()`, numbered by
+  `model1_report::build()`'s deterministic row order), on-screen and in
+  the PDF export alike. Shares its user preference
+  (`local_stackquizanalytics_anonymize`) and lang string
+  (`anonymizemode`) with Quiz Analytics's existing anonymize toggle, so
+  it's one teacher preference across both sections rather than two
+  separate switches.
+- **Repository renamed** from `moodle_analytics` (this merge's working name)
+  to `moodle-local_stackquizanalytics`, matching the
+  `moodle-{plugintype}_{pluginname}` convention both source plugins'
+  repositories already followed — the naming-convention gap flagged in
+  Phase 20 is now resolved.
+
 ## [1.0.0] — Merge phases 1–21
 
 **Phase 1 — Skeleton.** Bare installable no-op plugin: `version.php`
@@ -138,7 +188,7 @@ with real course data in Phases 7-11.
 `local_quizanalytics`'s wider test matrix (PHP 8.1-8.3 × pgsql/mariadb)
 with `local_stackanalytics`'s `qtype_stack` handling (Maxima installation,
 the `QTYPE_STACK_TEST_CONFIG_PLATFORM` override that skips qtype_stack's
-own optimised-Maxima-image build during PHPUnit init). Code Checker and
+own optimized-Maxima-image build during PHPUnit init). Code Checker and
 PHPDoc Checker stay `continue-on-error` pending Phase 20's cleanup.
 
 **Phase 18 — Docs.** `README.md`, `INSTALL.md`, `MARKETPLACE_LISTING.md`,
