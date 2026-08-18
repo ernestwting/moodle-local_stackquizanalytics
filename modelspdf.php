@@ -68,19 +68,9 @@ if (empty($payload)) {
 
 $pdfbytes = pdf_builder::build($course->fullname, $payload);
 
-// Names the file after exactly what's in it — which sections, which quiz if
-// the report was scoped to one, and the download date — so a teacher who
-// downloads several of these over time can tell them apart without opening
-// each one.
-$quizsuffix = '';
-if ($quizid !== 0) {
-    $quizname = $DB->get_field('quiz', 'name', ['id' => $quizid]);
-    if ($quizname) {
-        $quizsuffix = '-' . $quizname;
-    }
-}
-$filename = clean_filename(
-    $course->shortname . $quizsuffix . '-model-diagnostics-' . implode('-', $sections) . '-' . date('Y-m-d') . '.pdf'
-);
+// Short and to the point: course, report type, download date — which
+// sections/quiz the report was scoped to is already in the PDF's own
+// content, not worth spelling out in the filename too.
+$filename = clean_filename($course->shortname . ' - Model Analytics - ' . date('Y-m-d') . '.pdf');
 
 send_file($pdfbytes, $filename, 0, 0, true, true, 'application/pdf');

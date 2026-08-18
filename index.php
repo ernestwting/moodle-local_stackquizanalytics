@@ -43,6 +43,7 @@ require_once($CFG->dirroot . '/local/stackquizanalytics/classes/quiz/cache_helpe
 require_once($CFG->dirroot . '/local/stackquizanalytics/classes/section_selector.php');
 
 use local_stackquizanalytics\quiz\output\sections_output_helper;
+use local_stackquizanalytics\stack\local\stack_course_helper;
 
 $courseid = required_param('id', PARAM_INT);
 $quizid   = optional_param('quizid', 0, PARAM_INT);
@@ -64,6 +65,31 @@ $stackquizzes = local_stackquizanalytics_quiz_data_fetcher::get_course_stack_qui
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('pluginname', 'local_stackquizanalytics'));
 echo local_stackquizanalytics_section_selector::render($courseid, 'quiz');
+
+// The course selector: same single_select pattern and shared
+// courseselectorlabel string models.php's own course selector uses, so a
+// teacher with STACK activity in more than one course can jump between
+// them from either section. Defaults to whichever course the "Analytics"
+// link was opened from — $courseid comes straight from the required id
+// param, and single_select's own $selected argument (passed as $courseid
+// below) is what pre-selects that course in the dropdown, not any
+// alphabetical/first-in-list default.
+$viewablecourses = stack_course_helper::get_viewable_courses();
+if (count($viewablecourses) > 1) {
+    $courseoptions = [];
+    foreach ($viewablecourses as $viewablecourse) {
+        $courseoptions[$viewablecourse->id] = format_string($viewablecourse->fullname);
+    }
+    $courseselector = new single_select(
+        new moodle_url('/local/stackquizanalytics/index.php'),
+        'id',
+        $courseoptions,
+        $courseid,
+        null
+    );
+    $courseselector->label = get_string('courseselectorlabel', 'local_stackquizanalytics');
+    echo html_writer::div($OUTPUT->render($courseselector), 'mb-3');
+}
 
 if (empty($stackquizzes)) {
     echo $OUTPUT->notification(get_string('nostackquizzes', 'local_stackquizanalytics'), 'notifymessage');

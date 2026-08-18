@@ -411,17 +411,37 @@ class stack_attempt_reader {
     }
 
     /**
-     * Every step of every attempt at one specific question within one
-     * specific quiz, across all students — the Model 2 (slot-scoped)
-     * counterpart to get_attempt_step_sequences(), used by
-     * feedback_ineffectiveness to look at consecutive-step fraction
-     * transitions.
+     * Each student's own sequence of finished quiz attempts at one specific
+     * question within one specific quiz, ordered oldest-first — the "did
+     * trying the whole quiz again help" signal feedback_ineffectiveness
+     * needs.
+     *
+     * Originally this read *steps within a single question_attempts row*
+     * instead (STACK's "interactive with multiple tries" behaviour records
+     * one step per try, each with its own graded fraction, matching the
+     * architecture doc's literal "attempt n, attempt n+1" framing). That
+     * breaks down completely under deferred feedback — Moodle's most common
+     * quiz behaviour, and the one this plugin's own test course uses —
+     * where a question_attempts row has exactly one real grade (recorded on
+     * its *last* step only; every earlier step is 'todo'/'complete' with a
+     * null fraction, question-engine bookkeeping rather than a separate
+     * graded try). Confirmed directly against this plugin's own test data:
+     * every single question_attempts row had a null-then-null-then-graded
+     * step shape, so the old query's "did the fraction improve between
+     * consecutive steps" comparison never found a single real transition —
+     * feedback_ineffectiveness returned null for literally every question
+     * in the course, not because there wasn't enough data, but because the
+     * signal it was looking for structurally doesn't exist under deferred
+     * feedback. Under deferred feedback the real retry signal is a student
+     * re-attempting the *quiz itself* after seeing their graded result, so
+     * this reads across {quiz_attempts} rows (one per attempt number) for
+     * the same student instead of across steps within one.
      *
      * @param int $quizid
      * @param int[] $questionids see get_slot_finished_fractions()'s docblock for why this is a list, not one id
-     * @return array keyed by question_attempts.id, each value an ordered array of stdClass{fraction}
+     * @return array userid => float[] one fraction per finished attempt, ordered oldest attempt first
      */
-    public static function get_slot_step_sequences(int $quizid, array $questionids): array {
+    public static function get_slot_attempts_by_user(int $quizid, array $questionids): array {
         global $DB;
 
         if (empty($questionids)) {
@@ -430,21 +450,28 @@ class stack_attempt_reader {
         [$insql, $params] = $DB->get_in_or_equal($questionids, SQL_PARAMS_NAMED);
         $params['quizid'] = $quizid;
 
-        $sql = "SELECT qas.id AS stepid, qa.id AS qaid, qas.sequencenumber, qas.fraction
+        $sql = "SELECT quiza.id AS quizattemptid, quiza.userid, quiza.attempt, finalstep.fraction
                   FROM {quiz_attempts} quiza
                   JOIN {question_attempts} qa ON qa.questionusageid = quiza.uniqueid
                                               AND qa.questionid $insql
-                  JOIN {question_attempt_steps} qas ON qas.questionattemptid = qa.id
+                  JOIN {question_attempt_steps} finalstep ON finalstep.questionattemptid = qa.id
+                                                          AND finalstep.sequencenumber = (
+                                                              SELECT MAX(s2.sequencenumber)
+                                                                FROM {question_attempt_steps} s2
+                                                               WHERE s2.questionattemptid = qa.id
+                                                          )
                  WHERE quiza.quiz = :quizid
-              ORDER BY qa.id, qas.sequencenumber";
+                   AND quiza.state = 'finished'
+                   AND finalstep.fraction IS NOT NULL
+              ORDER BY quiza.userid, quiza.attempt";
 
         $rows = $DB->get_records_sql($sql, $params);
 
-        $byattempt = [];
+        $byuser = [];
         foreach ($rows as $row) {
-            $byattempt[$row->qaid][] = $row;
+            $byuser[(int) $row->userid][] = (float) $row->fraction;
         }
-        return $byattempt;
+        return $byuser;
     }
 
     /**

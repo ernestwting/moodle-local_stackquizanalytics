@@ -37,6 +37,23 @@
  * refinement for future work, not silently pretended away — see the
  * project's CHANGELOG for this phase.
  *
+ * "Try n" here means one of a student's own *quiz attempts* (a
+ * {quiz_attempts} row), not a step within a single attempt — this was
+ * originally read the other way (consecutive steps of one
+ * {question_attempts} row), matching how STACK's "interactive with
+ * multiple tries" behaviour would record it, but that reading returns no
+ * signal at all under deferred feedback (Moodle's most common quiz
+ * behaviour): a question_attempts row only carries one real graded
+ * fraction there, on its last step, with every earlier step recording
+ * 'todo'/'complete' bookkeeping rather than a separately-graded try.
+ * Confirmed directly against this plugin's own test course, whose quizzes
+ * all use deferred feedback: every attempt had exactly that null-then-
+ * graded step shape, so the old within-attempt reading found zero
+ * transitions to measure on any question. Reading across a student's own
+ * repeated quiz attempts instead works under any behaviour, and matches
+ * what a student re-attempting a deferred-feedback quiz actually
+ * experiences: submit, see the graded result, try the whole quiz again.
+ *
  * Normalize: clip(log_odds_ratio / 3, -1, 1), matching the doc's "effect
  * size clipped to a reasonable range" instruction and the same clip width
  * used by question_difficulty_irt's logit scale.
@@ -139,8 +156,8 @@ class feedback_ineffectiveness extends \core_analytics\local\indicator\linear {
         $slot = $slots[$sampleid];
 
         $questionids = stack_course_helper::get_all_question_ids_for_entry((int) $slot->questionbankentryid);
-        $attempts = stack_attempt_reader::get_slot_step_sequences((int) $slot->quizid, $questionids);
-        if (empty($attempts)) {
+        $byuser = stack_attempt_reader::get_slot_attempts_by_user((int) $slot->quizid, $questionids);
+        if (empty($byuser)) {
             return null;
         }
 
@@ -149,30 +166,30 @@ class feedback_ineffectiveness extends \core_analytics\local\indicator\linear {
         $firstcorrect = 0;
         $firsttotal = 0;
 
-        foreach ($attempts as $steps) {
-            if (empty($steps)) {
+        foreach ($byuser as $fractions) {
+            if (empty($fractions)) {
                 continue;
             }
             $firsttotal++;
-            if (($steps[0]->fraction ?? null) !== null && (float) $steps[0]->fraction >= 1.0) {
+            if ($fractions[0] >= 1.0) {
                 $firstcorrect++;
             }
 
-            for ($i = 1; $i < count($steps); $i++) {
-                $before = $steps[$i - 1]->fraction;
-                $after = $steps[$i]->fraction;
-                if ($before === null || (float) $before >= 1.0) {
-                    continue; // Only interested in transitions following an incorrect try.
+            for ($i = 1; $i < count($fractions); $i++) {
+                if ($fractions[$i - 1] >= 1.0) {
+                    continue; // Already correct on the previous attempt — nothing to "retry" from.
                 }
                 $incorrecttries++;
-                if ($after !== null && (float) $after >= 1.0) {
+                if ($fractions[$i] >= 1.0) {
                     $improved++;
                 }
             }
         }
 
         if ($incorrecttries === 0 || $firsttotal === 0) {
-            return null; // Not enough data yet: either everyone got it right first try, or no repeat tries exist.
+            // Not enough data yet: either everyone got it right on their
+            // first attempt, or nobody re-attempted the quiz.
+            return null;
         }
 
         $improverate = $improved / $incorrecttries;
