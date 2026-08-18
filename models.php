@@ -64,7 +64,7 @@ $PAGE->set_title($course->shortname . ': ' . get_string('dashboardtitle', 'local
 $PAGE->set_heading($course->fullname);
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('dashboardtitle', 'local_stackquizanalytics'));
+echo $OUTPUT->heading(get_string('pagemaintitle', 'local_stackquizanalytics'));
 echo local_stackquizanalytics_section_selector::render($courseid, 'models');
 
 // Collapsed by default (native <details>, no JS needed) — the full text was
@@ -221,15 +221,21 @@ if ($view === 'model1') {
         echo dashboard_renderer::render_model2_table(model2_report::build($courseid, $quizid !== 0 ? $quizid : null));
     } else {
         echo $OUTPUT->heading(get_string('diagnosticsheading', 'local_stackquizanalytics'), 3);
-        echo html_writer::tag('p', get_string('diagnosticsintro', 'local_stackquizanalytics'));
 
+        $diagnosticsintrobody = html_writer::tag('p', get_string('diagnosticsintro', 'local_stackquizanalytics'));
         if (!concept_dependency_report::is_available()) {
-            echo html_writer::tag(
+            $diagnosticsintrobody .= html_writer::tag(
                 'p',
                 get_string('conceptdependencynote', 'local_stackquizanalytics'),
-                ['class' => 'text-muted small mb-3']
+                ['class' => 'text-muted small mb-0']
             );
         }
+        echo html_writer::tag(
+            'details',
+            html_writer::tag('summary', get_string('diagnosticsintrosummary', 'local_stackquizanalytics'))
+                . html_writer::div($diagnosticsintrobody, 'mt-2'),
+            ['class' => 'mb-3']
+        );
 
         echo dashboard_renderer::render_diagnostics_section(diagnostics_report::build($courseid, $quizid !== 0 ? $quizid : null));
     }

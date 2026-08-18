@@ -63,7 +63,7 @@ $PAGE->set_heading($course->fullname);
 $stackquizzes = local_stackquizanalytics_quiz_data_fetcher::get_course_stack_quizzes($course->id);
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('pluginname', 'local_stackquizanalytics'));
+echo $OUTPUT->heading(get_string('pagemaintitle', 'local_stackquizanalytics'));
 echo local_stackquizanalytics_section_selector::render($courseid, 'quiz');
 
 // The course selector: same single_select pattern and shared
@@ -88,7 +88,7 @@ if (count($viewablecourses) > 1) {
         null
     );
     $courseselector->label = get_string('courseselectorlabel', 'local_stackquizanalytics');
-    echo html_writer::div($OUTPUT->render($courseselector), 'mb-3');
+    echo html_writer::div($OUTPUT->render($courseselector), 'd-inline-block mr-4 mb-3');
 }
 
 if (empty($stackquizzes)) {
@@ -114,7 +114,7 @@ $quizselector = new single_select(
     null
 );
 $quizselector->label = get_string('quizselectlabel', 'local_stackquizanalytics');
-echo html_writer::div($OUTPUT->render($quizselector), 'mb-4');
+echo html_writer::div($OUTPUT->render($quizselector), 'd-inline-block mb-4');
 
 $colorblind = sections_output_helper::resolve_colorblind_mode();
 $anonymize = sections_output_helper::resolve_anonymize_mode();

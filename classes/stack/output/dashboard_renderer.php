@@ -188,13 +188,17 @@ class dashboard_renderer {
             )
         );
 
+        $lastquizname = null;
         foreach ($report->rows as $row) {
-            $questioncell = \html_writer::tag('strong', s($row->questionname)) . \html_writer::tag('div', get_string(
-                'quizlabel',
-                'local_stackquizanalytics',
-                s($row->quizname)
-            ), ['class' => 'small text-muted']);
-            $tablerow = [$questioncell, self::render_needs_review($row->needsreview, $row->attemptcount)];
+            if ($row->quizname !== $lastquizname) {
+                $table->data[] = self::quiz_group_row($row->quizname, count($table->head));
+                $lastquizname = $row->quizname;
+            }
+
+            $tablerow = [
+                \html_writer::tag('strong', s($row->questionname)),
+                self::render_needs_review($row->needsreview, $row->attemptcount),
+            ];
             foreach (self::MODEL2_INDICATORS as $indicatorkey => $stringsuffix) {
                 $tablerow[] = self::render_indicator_cell(
                     $row->indicators[$indicatorkey],
@@ -210,6 +214,29 @@ class dashboard_renderer {
             $html .= self::truncated_notice(count($report->rows), $report->total);
         }
         return $html;
+    }
+
+    /**
+     * A full-width divider row naming which quiz the rows immediately below
+     * it belong to — inserted once per quiz, right before that quiz's first
+     * question, whenever a Model 2/Diagnostics table spans more than one
+     * quiz ("All Quizzes" view). Without this, one quiz's questions run
+     * straight into the next quiz's with nothing marking the boundary.
+     *
+     * @param string $quizname
+     * @param int $columncount how many columns the table has, so the divider spans the full width
+     * @return \html_table_row
+     */
+    private static function quiz_group_row(string $quizname, int $columncount): \html_table_row {
+        $cell = new \html_table_cell(\html_writer::tag(
+            'strong',
+            get_string('quizlabel', 'local_stackquizanalytics', s($quizname))
+        ));
+        $cell->colspan = $columncount;
+        $cell->attributes['class'] = 'bg-light';
+
+        $row = new \html_table_row([$cell]);
+        return $row;
     }
 
     /**
@@ -345,12 +372,19 @@ class dashboard_renderer {
         }
 
         $html = '';
+        $lastquizname = null;
         foreach ($report->rows as $row) {
+            if ($row->quizname !== $lastquizname) {
+                $html .= \html_writer::tag(
+                    'div',
+                    get_string('quizlabel', 'local_stackquizanalytics', s($row->quizname)),
+                    ['class' => 'bg-light rounded px-2 py-1 mt-3 mb-2 font-weight-bold']
+                );
+                $lastquizname = $row->quizname;
+            }
+
             $summary = \html_writer::tag('summary', implode(' ', [
                 \html_writer::tag('strong', s($row->questionname)),
-                \html_writer::tag('span', get_string('quizlabel', 'local_stackquizanalytics', s($row->quizname)), [
-                    'class' => 'text-muted small',
-                ]),
                 self::render_seed_bias_badge($row->seedbias),
                 self::render_bloated_tree_badge($row->bloatedtree),
             ]));

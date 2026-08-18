@@ -32,6 +32,12 @@ defined('MOODLE_INTERNAL') || die();
 $string['pluginname'] = 'STACK Quiz & Model Analytics';
 $string['stackquizanalytics:view'] = 'View STACK quiz analytics, models, and diagnostics';
 $string['sectionselectorlabel'] = 'Section:';
+// The on-screen H1 heading every section's own page shows, deliberately
+// shorter and section-agnostic (unlike 'pluginname', used for the plugin's
+// own admin-facing/nav-link name, and 'dashboardtitle', used for the
+// Model & Diagnostics PDF's own title) — previously each section showed a
+// different heading text switching depending which one you were on.
+$string['pagemaintitle'] = 'STACK Analytics';
 $string['sectionquiz'] = 'Quiz Analytics';
 $string['sectionmodels'] = 'Model & Diagnostics Analytics';
 $string['privacy:metadata'] = 'The STACK Quiz & Model Analytics plugin does not store any personal data of its own. It reads finished quiz attempts, question responses, grades, and log events directly from Moodle\'s own database (mod_quiz, the question engine, grade_grades, and logstore_standard_log) at request/calculation time, all of which are already covered by their own privacy providers.';
@@ -192,6 +198,7 @@ $string['model2sentence_unreachednoderatio'] = '{$a->unreachedcount} of {$a->tot
 $string['model2desc_feedbackineffectiveness'] = 'Whether students who get this wrong tend to improve on their next try more than they would on a fresh question — a rough read on whether the feedback is actually helping.';
 $string['model2sentence_feedbackineffectiveness'] = '{$a->improvepercent}% improve after a wrong try, vs. a {$a->baselinepercent}% first-try baseline.';
 $string['diagnosticsheading'] = 'Diagnostics Dashboard';
+$string['diagnosticsintrosummary'] = 'What Seed Bias and PRT Branch Coverage mean';
 $string['diagnosticsintro'] = 'Two checks per STACK question, listed below with the quiz it belongs to. Every time a student attempts a STACK question, Moodle picks a random "seed" that changes its numbers (e.g. different coefficients) while keeping the same structure — <strong>Seed bias</strong> checks whether some of those seed variants are unfairly harder or easier than others, so a low grade isn\'t just "you got the harder version". Each STACK question also grades answers through a PRT (its step-by-step marking/feedback logic, made of "branches" for different right/wrong paths) — <strong>PRT branch coverage</strong> checks whether some of those branches have ever actually been triggered by a real student answer; a branch that\'s never reached is either working feedback nobody\'s needed yet, or dead logic worth simplifying. A "Worth a look" badge is a prompt to open that question and check it makes sense for how you designed it, not proof something is broken. Click a question below to see the full numbers behind its badges.';
 $string['conceptdependencynote'] = 'Concept-dependency mapping (finding which questions\' failures tend to predict failures on others) isn\'t implemented in this plugin yet — the architecture doc frames it as offline sequence-mining work outside a live dashboard page, not something to half-build here. Noted so it doesn\'t just silently not appear.';
 $string['diagnosticsnoquestions'] = 'No STACK questions to show for this selection.';
