@@ -32,15 +32,15 @@
  * prefixes mark behavior-internal/private data rather than the student's
  * actual response.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackquizanalytics\stack\analytics\indicator;
+namespace local_stackanalytics\stack\analytics\indicator;
 
-use local_stackquizanalytics\stack\local\stack_attempt_reader;
-use local_stackquizanalytics\stack\local\stack_course_helper;
+use local_stackanalytics\stack\local\stack_attempt_reader;
+use local_stackanalytics\stack\local\stack_course_helper;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -55,7 +55,7 @@ class feedback_revision_distance extends \core_analytics\local\indicator\linear 
      * @return \lang_string
      */
     public static function get_name(): \lang_string {
-        return new \lang_string('indicator:feedbackrevisiondistance', 'local_stackquizanalytics');
+        return new \lang_string('indicator:feedbackrevisiondistance', 'local_stackanalytics');
     }
 
     /**

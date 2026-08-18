@@ -20,12 +20,12 @@
  * (dashboard_renderer::render_pdf_form()), re-derived server-side from the
  * same report-builder classes modelanalytics.php uses, respecting the same
  * quiz filter. A separate entry point from modelanalytics.php, gated by the
- * same local/stackquizanalytics:view capability.
+ * same local/stackanalytics:view capability.
  *
  * Renamed from modelspdf.php when Diagnostics split into its own section —
  * its own PDF export is diagnosticsanalyticspdf.php now.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -33,15 +33,15 @@
 require_once(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/filelib.php');
 
-use local_stackquizanalytics\stack\analytics\pdf_content;
-use local_stackquizanalytics\stack\analytics\pdf_builder;
+use local_stackanalytics\stack\analytics\pdf_content;
+use local_stackanalytics\stack\analytics\pdf_builder;
 
 $courseid = required_param('id', PARAM_INT);
 $course = $DB->get_record('course', ['id' => $courseid], '*', MUST_EXIST);
 
 require_login($course);
 $context = context_course::instance($course->id);
-require_capability('local/stackquizanalytics:view', $context);
+require_capability('local/stackanalytics:view', $context);
 
 // Building both sections' worth of indicators for a large course can run
 // long — each indicator is its own set of DB queries per sample, with no
@@ -61,7 +61,7 @@ if (in_array('model2', $sections, true)) {
 }
 
 if (empty($payload)) {
-    throw new \moodle_exception('pdfnosections', 'local_stackquizanalytics');
+    throw new \moodle_exception('pdfnosections', 'local_stackanalytics');
 }
 
 $pdfbytes = pdf_builder::build($course->fullname, $payload);

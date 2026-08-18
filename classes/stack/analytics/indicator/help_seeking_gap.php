@@ -26,15 +26,15 @@
  * P_student / P_baseline is capped at 2 before being rescaled from [0, 2] to
  * [-1, 1], so "exactly at the course baseline" maps to 0.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackquizanalytics\stack\analytics\indicator;
+namespace local_stackanalytics\stack\analytics\indicator;
 
-use local_stackquizanalytics\stack\local\stack_attempt_reader;
-use local_stackquizanalytics\stack\local\stack_course_helper;
+use local_stackanalytics\stack\local\stack_attempt_reader;
+use local_stackanalytics\stack\local\stack_course_helper;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -46,7 +46,7 @@ class help_seeking_gap extends \core_analytics\local\indicator\linear {
     /**
      * How long after a failure a resource access still counts as "seeking
      * help for it". Default used when the
-     * local_stackquizanalytics/helpseekinglookback admin setting (Phase 6) is unset.
+     * local_stackanalytics/helpseekinglookback admin setting (Phase 6) is unset.
      */
     const LOOKBACK_SECONDS = HOURSECS;
 
@@ -56,7 +56,7 @@ class help_seeking_gap extends \core_analytics\local\indicator\linear {
      * @return \lang_string
      */
     public static function get_name(): \lang_string {
-        return new \lang_string('indicator:helpseekinggap', 'local_stackquizanalytics');
+        return new \lang_string('indicator:helpseekinggap', 'local_stackanalytics');
     }
 
     /**
@@ -65,7 +65,7 @@ class help_seeking_gap extends \core_analytics\local\indicator\linear {
      * @return int the admin-configured lookback in seconds, or LOOKBACK_SECONDS if unset
      */
     public static function get_lookback_seconds(): int {
-        $configured = get_config('local_stackquizanalytics', 'helpseekinglookback');
+        $configured = get_config('local_stackanalytics', 'helpseekinglookback');
         return $configured !== false && $configured !== '' ? (int) $configured : self::LOOKBACK_SECONDS;
     }
 

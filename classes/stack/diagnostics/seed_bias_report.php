@@ -36,12 +36,12 @@
  * dashboard's exploratory purpose — a precise p-value is better computed
  * with an actual stats package if the paper's evaluation needs one.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackquizanalytics\stack\diagnostics;
+namespace local_stackanalytics\stack\diagnostics;
 
 defined('MOODLE_INTERNAL') || die();
 

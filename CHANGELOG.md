@@ -1,11 +1,56 @@
 # Changelog
 
-All notable changes to `local_stackquizanalytics` are documented here.
+All notable changes to `local_stackanalytics` are documented here.
 Version numbers match `version.php`'s `$plugin->release`.
 
 This plugin merges two previously-separate, independently-installed
-plugins — `local_quizanalytics` and `local_stackanalytics` — into one. Each
-phase below corresponds to one commit in this repository's history.
+plugins — `local_quizanalytics` and the original standalone
+`local_stackanalytics` — into one. Each phase below corresponds to one
+commit in this repository's history. Entries before [2.2.0] refer to the
+plugin by its merge-time component name, `local_stackquizanalytics` —
+accurate to what the code was actually called at each point in time; see
+[2.2.0] for why and when that changed to the current `local_stackanalytics`.
+
+## [2.2.0] — Renamed component to `local_stackanalytics`
+
+This plugin's Marketplace listing replaces the original, standalone
+`local_stackanalytics`'s own rather than sitting alongside it (see
+[1.0.0]/"Pre-merge history" below) — but the Moodle Plugins directory
+upload was rejected with "the frankenstyle component name in the uploaded
+plugin does not match," since the component had stayed
+`local_stackquizanalytics` (this merge's own working name) through v2.1.0.
+Renamed the frankenstyle component to `local_stackanalytics` throughout so
+it uploads as a new version of that existing listing:
+
+- `version.php`'s `$plugin->component`.
+- Every `classes/` namespace (`local_stackquizanalytics\...` →
+  `local_stackanalytics\...`).
+- The capability id (`db/access.php`,
+  `local/stackquizanalytics:view` → `local/stackanalytics:view`) and every
+  `require_capability()`/`has_capability()` call site.
+- Every legacy global-namespace class prefix
+  (`local_stackquizanalytics_quiz_*`, `local_stackquizanalytics_section_selector`
+  → `local_stackanalytics_quiz_*`, `local_stackanalytics_section_selector`)
+  and the two `lib.php` navigation-hook function names.
+- `lang/en/local_stackquizanalytics.php` → `lang/en/local_stackanalytics.php`.
+- Cache area and Analytics API component identifiers (`db/caches.php`,
+  `db/analytics.php`), and the shared user-preference keys
+  (`local_stackquizanalytics_anonymize`/`_colorblind` →
+  `local_stackanalytics_anonymize`/`_colorblind`).
+- Every hardcoded `/local/stackquizanalytics/...` asset/page URL across
+  every entry point and `js/vendor-shared/sections-renderer.js`.
+- `classes/privacy/provider.php`'s component references.
+- Docs (`README.md`, `INSTALL.md`, `MARKETPLACE_LISTING.md`) updated to
+  the new component/path throughout.
+
+The plugin's display name (`pluginname`, "STACK Quiz & Model Analytics")
+is unchanged — that's a marketing name independent of the frankenstyle
+id, not part of what the Marketplace validator checks. Also unresolved:
+the GitHub repository itself is still named
+`moodle-local_stackquizanalytics`, not yet renamed to match
+(`MARKETPLACE_LISTING.md`'s Repository/Issue tracker/Documentation URLs
+still point at the current, real repo name pending that — see the
+`<!-- TODO -->` comment there).
 
 ## [2.1.0] — Split into four sections
 

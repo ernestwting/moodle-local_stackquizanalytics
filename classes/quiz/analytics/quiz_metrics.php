@@ -17,12 +17,12 @@
 /**
  * PHP port of analytics-service/analytics/quiz_metrics.py.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackquizanalytics\quiz\analytics;
+namespace local_stackanalytics\quiz\analytics;
 
 /**
  * Course-wide (cross-quiz) engagement, scatter, and metric-trend charts, and the quiz stats/attempt-list tables.

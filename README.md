@@ -1,6 +1,6 @@
 # STACK Quiz & Model Analytics for Moodle
 
-[![Moodle Plugin CI](https://github.com/ernestwting/moodle-local_stackquizanalytics/actions/workflows/moodle-ci.yml/badge.svg)](https://github.com/ernestwting/moodle-local_stackquizanalytics/actions/workflows/moodle-ci.yml)
+[![Moodle Plugin CI](https://github.com/ernestwting/moodle-local_stackanalytics/actions/workflows/moodle-ci.yml/badge.svg)](https://github.com/ernestwting/moodle-local_stackanalytics/actions/workflows/moodle-ci.yml)
 
 One installable Moodle plugin covering four sections of analytics for STACK
 (Maxima CAS) quizzes, in two families: course-wide/per-quiz STACK response
@@ -15,7 +15,7 @@ had to install, find, and use independently.
 Maxima response parsing, statistics, indicator math, PDF export) runs in
 plain PHP, in-process — there is no separate service to deploy, configure, or
 keep running, and nothing here ever sends data anywhere outside the Moodle
-server itself. Installing `local_stackquizanalytics` is the only step.
+server itself. Installing `local_stackanalytics` is the only step.
 
 ## Requirements
 

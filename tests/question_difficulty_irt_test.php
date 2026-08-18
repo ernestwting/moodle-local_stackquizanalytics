@@ -14,16 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace local_stackquizanalytics;
+namespace local_stackanalytics;
 
-use local_stackquizanalytics\stack\analytics\indicator\question_difficulty_irt;
+use local_stackanalytics\stack\analytics\indicator\question_difficulty_irt;
 
 defined('MOODLE_INTERNAL') || die();
 
 /**
  * Unit tests for question_difficulty_irt's pure logit-difficulty math.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */

@@ -24,7 +24,7 @@
  * to know which analytics class computes which view; this is the one
  * place that mapping lives.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -32,7 +32,7 @@
 /**
  * Routes each on-screen/PDF view to the right classes/analytics/ entry point.
  */
-class local_stackquizanalytics_quiz_api_client {
+class local_stackanalytics_quiz_api_client {
     /**
      * Question Analytics for a single quiz, for the per-quiz drill-down view.
      *
@@ -53,7 +53,7 @@ class local_stackquizanalytics_quiz_api_client {
         bool $anonymize = false
     ): ?array {
         try {
-            return \local_stackquizanalytics\quiz\analytics\question_analysis::build_analysis(
+            return \local_stackanalytics\quiz\analytics\question_analysis::build_analysis(
                 $records,
                 $quizname,
                 $colorblindmode,
@@ -61,7 +61,7 @@ class local_stackquizanalytics_quiz_api_client {
             );
         } catch (\Throwable $e) {
             debugging(
-                'local_stackquizanalytics (quiz): error building question analytics: ' . $e->getMessage(),
+                'local_stackanalytics (quiz): error building question analytics: ' . $e->getMessage(),
                 DEBUG_DEVELOPER
             );
             return null;
@@ -88,18 +88,18 @@ class local_stackquizanalytics_quiz_api_client {
         bool $anonymize = false
     ): ?array {
         try {
-            return \local_stackquizanalytics\quiz\analytics\course_analysis::build_analysis(
+            return \local_stackanalytics\quiz\analytics\course_analysis::build_analysis(
                 $coursename,
                 $quizzes,
                 $colorblindmode,
                 null,
                 null,
-                $gradetype ?? \local_stackquizanalytics\quiz\analytics\course_analysis::DEFAULT_GRADE_TYPE,
+                $gradetype ?? \local_stackanalytics\quiz\analytics\course_analysis::DEFAULT_GRADE_TYPE,
                 $anonymize
             );
         } catch (\Throwable $e) {
             debugging(
-                'local_stackquizanalytics (quiz): error building course analysis: ' . $e->getMessage(),
+                'local_stackanalytics (quiz): error building course analysis: ' . $e->getMessage(),
                 DEBUG_DEVELOPER
             );
             return null;
@@ -117,14 +117,14 @@ class local_stackquizanalytics_quiz_api_client {
      */
     public function solution_process_meta(string $quizname, array $records, bool $anonymize = false): ?array {
         try {
-            return \local_stackquizanalytics\quiz\analytics\solution_process_analysis::build_meta(
+            return \local_stackanalytics\quiz\analytics\solution_process_analysis::build_meta(
                 $records,
                 $quizname,
                 $anonymize
             );
         } catch (\Throwable $e) {
             debugging(
-                'local_stackquizanalytics (quiz): error building solution process meta: ' . $e->getMessage(),
+                'local_stackanalytics (quiz): error building solution process meta: ' . $e->getMessage(),
                 DEBUG_DEVELOPER
             );
             return null;
@@ -154,7 +154,7 @@ class local_stackquizanalytics_quiz_api_client {
         bool $anonymize = false
     ): ?array {
         try {
-            return \local_stackquizanalytics\quiz\analytics\solution_process_analysis::build_analysis(
+            return \local_stackanalytics\quiz\analytics\solution_process_analysis::build_analysis(
                 $records,
                 $quizname,
                 $question,
@@ -165,7 +165,7 @@ class local_stackquizanalytics_quiz_api_client {
             );
         } catch (\Throwable $e) {
             debugging(
-                'local_stackquizanalytics (quiz): error building solution process analysis: ' . $e->getMessage(),
+                'local_stackanalytics (quiz): error building solution process analysis: ' . $e->getMessage(),
                 DEBUG_DEVELOPER
             );
             return null;
@@ -182,7 +182,7 @@ class local_stackquizanalytics_quiz_api_client {
      * @return array<string, string> section id => localized checkbox label
      */
     public function report_sections(string $kind): array {
-        return \local_stackquizanalytics\quiz\analytics\pdf_sections::labels($kind);
+        return \local_stackanalytics\quiz\analytics\pdf_sections::labels($kind);
     }
 
     /**
@@ -207,17 +207,17 @@ class local_stackquizanalytics_quiz_api_client {
         bool $anonymize = false
     ): ?string {
         try {
-            $ids = $selectedsections ?? \local_stackquizanalytics\quiz\analytics\pdf_sections::ids('question');
-            $content = \local_stackquizanalytics\quiz\analytics\pdf_content::build_question_content(
+            $ids = $selectedsections ?? \local_stackanalytics\quiz\analytics\pdf_sections::ids('question');
+            $content = \local_stackanalytics\quiz\analytics\pdf_content::build_question_content(
                 $records,
                 $quizname,
                 $ids,
                 $colorblindmode,
                 $anonymize
             );
-            return \local_stackquizanalytics\quiz\analytics\pdf_builder::build($content, $chartimages);
+            return \local_stackanalytics\quiz\analytics\pdf_builder::build($content, $chartimages);
         } catch (\Throwable $e) {
-            debugging('local_stackquizanalytics (quiz): error building question PDF: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            debugging('local_stackanalytics (quiz): error building question PDF: ' . $e->getMessage(), DEBUG_DEVELOPER);
             return null;
         }
     }
@@ -246,8 +246,8 @@ class local_stackquizanalytics_quiz_api_client {
         bool $anonymize = false
     ): ?string {
         try {
-            $ids = $selectedsections ?? \local_stackquizanalytics\quiz\analytics\pdf_sections::ids('solutionprocess');
-            $content = \local_stackquizanalytics\quiz\analytics\pdf_content::build_solutionprocess_content(
+            $ids = $selectedsections ?? \local_stackanalytics\quiz\analytics\pdf_sections::ids('solutionprocess');
+            $content = \local_stackanalytics\quiz\analytics\pdf_content::build_solutionprocess_content(
                 $records,
                 $quizname,
                 $question,
@@ -256,10 +256,10 @@ class local_stackquizanalytics_quiz_api_client {
                 $colorblindmode,
                 $anonymize
             );
-            return \local_stackquizanalytics\quiz\analytics\pdf_builder::build($content, $chartimages);
+            return \local_stackanalytics\quiz\analytics\pdf_builder::build($content, $chartimages);
         } catch (\Throwable $e) {
             debugging(
-                'local_stackquizanalytics (quiz): error building solution process PDF: ' . $e->getMessage(),
+                'local_stackanalytics (quiz): error building solution process PDF: ' . $e->getMessage(),
                 DEBUG_DEVELOPER
             );
             return null;
@@ -286,18 +286,18 @@ class local_stackquizanalytics_quiz_api_client {
         bool $anonymize = false
     ): ?string {
         try {
-            $ids = $selectedsections ?? \local_stackquizanalytics\quiz\analytics\pdf_sections::ids('quiz');
-            $content = \local_stackquizanalytics\quiz\analytics\pdf_content::build_quiz_content(
+            $ids = $selectedsections ?? \local_stackanalytics\quiz\analytics\pdf_sections::ids('quiz');
+            $content = \local_stackanalytics\quiz\analytics\pdf_content::build_quiz_content(
                 $coursename,
                 $quizzes,
                 $ids,
                 $colorblindmode,
-                \local_stackquizanalytics\quiz\analytics\course_analysis::DEFAULT_GRADE_TYPE,
+                \local_stackanalytics\quiz\analytics\course_analysis::DEFAULT_GRADE_TYPE,
                 $anonymize
             );
-            return \local_stackquizanalytics\quiz\analytics\pdf_builder::build($content, $chartimages);
+            return \local_stackanalytics\quiz\analytics\pdf_builder::build($content, $chartimages);
         } catch (\Throwable $e) {
-            debugging('local_stackquizanalytics (quiz): error building quiz PDF: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            debugging('local_stackanalytics (quiz): error building quiz PDF: ' . $e->getMessage(), DEBUG_DEVELOPER);
             return null;
         }
     }

@@ -34,7 +34,7 @@
  * chance to train/evaluate the model. Site Administration > Analytics >
  * Models is where it gets enabled once that review is done.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -43,24 +43,24 @@ defined('MOODLE_INTERNAL') || die();
 
 $models = [
     [
-        'target' => '\local_stackquizanalytics\stack\analytics\target\student_at_risk',
+        'target' => '\local_stackanalytics\stack\analytics\target\student_at_risk',
         'indicators' => [
-            '\local_stackquizanalytics\stack\analytics\indicator\grade_trajectory',
-            '\local_stackquizanalytics\stack\analytics\indicator\response_latency_anomaly',
-            '\local_stackquizanalytics\stack\analytics\indicator\disengagement_entropy',
-            '\local_stackquizanalytics\stack\analytics\indicator\help_seeking_gap',
-            '\local_stackquizanalytics\stack\analytics\indicator\feedback_revision_distance',
+            '\local_stackanalytics\stack\analytics\indicator\grade_trajectory',
+            '\local_stackanalytics\stack\analytics\indicator\response_latency_anomaly',
+            '\local_stackanalytics\stack\analytics\indicator\disengagement_entropy',
+            '\local_stackanalytics\stack\analytics\indicator\help_seeking_gap',
+            '\local_stackanalytics\stack\analytics\indicator\feedback_revision_distance',
         ],
         'timesplitting' => '\core\analytics\time_splitting\quarters_accum',
         'enabled' => false,
     ],
     [
-        'target' => '\local_stackquizanalytics\stack\analytics\target\question_needs_review',
+        'target' => '\local_stackanalytics\stack\analytics\target\question_needs_review',
         'indicators' => [
-            '\local_stackquizanalytics\stack\analytics\indicator\question_difficulty_irt',
-            '\local_stackquizanalytics\stack\analytics\indicator\syntax_error_rate',
-            '\local_stackquizanalytics\stack\analytics\indicator\unreached_node_ratio',
-            '\local_stackquizanalytics\stack\analytics\indicator\feedback_ineffectiveness',
+            '\local_stackanalytics\stack\analytics\indicator\question_difficulty_irt',
+            '\local_stackanalytics\stack\analytics\indicator\syntax_error_rate',
+            '\local_stackanalytics\stack\analytics\indicator\unreached_node_ratio',
+            '\local_stackanalytics\stack\analytics\indicator\feedback_ineffectiveness',
         ],
         'timesplitting' => '\core\analytics\time_splitting\single_range',
         'enabled' => false,

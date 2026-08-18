@@ -25,24 +25,24 @@
  *
  * Reached from the "Analytics" link this plugin adds to each STACK quiz's
  * own settings menu (lib.php's
- * local_stackquizanalytics_extend_settings_navigation(), which links
+ * local_stackanalytics_extend_settings_navigation(), which links
  * straight here with &quizid= already set), from the "Section:" selector
  * at the top of every page in this plugin, or directly via
- * /local/stackquizanalytics/questionanalytics.php?id=<courseid>.
+ * /local/stackanalytics/questionanalytics.php?id=<courseid>.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_once(__DIR__ . '/../../config.php');
-require_once($CFG->dirroot . '/local/stackquizanalytics/classes/quiz/data_fetcher.php');
-require_once($CFG->dirroot . '/local/stackquizanalytics/classes/quiz/api_client.php');
-require_once($CFG->dirroot . '/local/stackquizanalytics/classes/quiz/cache_helper.php');
-require_once($CFG->dirroot . '/local/stackquizanalytics/classes/section_selector.php');
+require_once($CFG->dirroot . '/local/stackanalytics/classes/quiz/data_fetcher.php');
+require_once($CFG->dirroot . '/local/stackanalytics/classes/quiz/api_client.php');
+require_once($CFG->dirroot . '/local/stackanalytics/classes/quiz/cache_helper.php');
+require_once($CFG->dirroot . '/local/stackanalytics/classes/section_selector.php');
 
-use local_stackquizanalytics\quiz\output\sections_output_helper;
-use local_stackquizanalytics\stack\local\stack_course_helper;
+use local_stackanalytics\quiz\output\sections_output_helper;
+use local_stackanalytics\stack\local\stack_course_helper;
 
 $courseid = required_param('id', PARAM_INT);
 $quizid   = optional_param('quizid', 0, PARAM_INT);
@@ -51,19 +51,19 @@ $course = $DB->get_record('course', ['id' => $courseid], '*', MUST_EXIST);
 
 require_login($course);
 $context = context_course::instance($course->id);
-require_capability('local/stackquizanalytics:view', $context);
+require_capability('local/stackanalytics:view', $context);
 
-$PAGE->set_url('/local/stackquizanalytics/questionanalytics.php', ['id' => $courseid, 'quizid' => $quizid]);
+$PAGE->set_url('/local/stackanalytics/questionanalytics.php', ['id' => $courseid, 'quizid' => $quizid]);
 $PAGE->set_pagelayout('report');
 $PAGE->set_context($context);
-$PAGE->set_title($course->shortname . ': ' . get_string('pagetitle', 'local_stackquizanalytics'));
+$PAGE->set_title($course->shortname . ': ' . get_string('pagetitle', 'local_stackanalytics'));
 $PAGE->set_heading($course->fullname);
 
-$stackquizzes = local_stackquizanalytics_quiz_data_fetcher::get_course_stack_quizzes($course->id);
+$stackquizzes = local_stackanalytics_quiz_data_fetcher::get_course_stack_quizzes($course->id);
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('pagemaintitle', 'local_stackquizanalytics'));
-echo local_stackquizanalytics_section_selector::render($courseid, 'question');
+echo $OUTPUT->heading(get_string('pagemaintitle', 'local_stackanalytics'));
+echo local_stackanalytics_section_selector::render($courseid, 'question');
 
 // The course selector: same single_select pattern and shared
 // courseselectorlabel string every other section's own course selector
@@ -76,18 +76,18 @@ if (count($viewablecourses) > 1) {
         $courseoptions[$viewablecourse->id] = format_string($viewablecourse->fullname);
     }
     $courseselector = new single_select(
-        new moodle_url('/local/stackquizanalytics/questionanalytics.php'),
+        new moodle_url('/local/stackanalytics/questionanalytics.php'),
         'id',
         $courseoptions,
         $courseid,
         null
     );
-    $courseselector->label = get_string('courseselectorlabel', 'local_stackquizanalytics');
+    $courseselector->label = get_string('courseselectorlabel', 'local_stackanalytics');
     echo html_writer::div($OUTPUT->render($courseselector), 'd-inline-block mr-4 mb-3');
 }
 
 if (empty($stackquizzes)) {
-    echo $OUTPUT->notification(get_string('nostackquizzes', 'local_stackquizanalytics'), 'notifymessage');
+    echo $OUTPUT->notification(get_string('nostackquizzes', 'local_stackanalytics'), 'notifymessage');
     echo $OUTPUT->footer();
     exit;
 }
@@ -106,20 +106,20 @@ foreach ($stackquizzes as $quiz) {
 }
 
 $quizselector = new single_select(
-    new moodle_url('/local/stackquizanalytics/questionanalytics.php', ['id' => $courseid]),
+    new moodle_url('/local/stackanalytics/questionanalytics.php', ['id' => $courseid]),
     'quizid',
     $selectoptions,
     $quizid,
     null
 );
-$quizselector->label = get_string('quizselectlabel', 'local_stackquizanalytics');
+$quizselector->label = get_string('quizselectlabel', 'local_stackanalytics');
 echo html_writer::div($OUTPUT->render($quizselector), 'd-inline-block mb-4');
 
 $colorblind = sections_output_helper::resolve_colorblind_mode();
 $anonymize = sections_output_helper::resolve_anonymize_mode();
 echo sections_output_helper::render_options_toggles($colorblind, $anonymize);
 
-$client = new local_stackquizanalytics_quiz_api_client();
+$client = new local_stackanalytics_quiz_api_client();
 
 $selectedquiz = $stackquizzes[$quizid];
 
@@ -129,16 +129,16 @@ echo $OUTPUT->heading($selectedquiz->name, 3, 'main mt-4 mb-3');
 // per-attempt DB fetch entirely. $records is fetched lazily (at most once)
 // since either view below might independently need it on its own cache
 // miss.
-$stats = local_stackquizanalytics_quiz_cache_helper::stats_for_quiz($selectedquiz);
+$stats = local_stackanalytics_quiz_cache_helper::stats_for_quiz($selectedquiz);
 if ($stats->count === 0) {
-    echo $OUTPUT->notification(get_string('noattempts', 'local_stackquizanalytics'), 'notifymessage');
+    echo $OUTPUT->notification(get_string('noattempts', 'local_stackanalytics'), 'notifymessage');
     echo $OUTPUT->footer();
     exit;
 }
 
 $records = null;
 $fetchrecords = function () use (&$records, $selectedquiz, $course): array {
-    return $records ??= local_stackquizanalytics_quiz_data_fetcher::get_response_records_for_quiz($selectedquiz, $course);
+    return $records ??= local_stackanalytics_quiz_data_fetcher::get_response_records_for_quiz($selectedquiz, $course);
 };
 
 // The "View:" sub-selector — only the selected view's data is ever
@@ -152,8 +152,8 @@ $PAGE->url->param('view', $view);
 echo sections_output_helper::render_view_selector_form($view);
 
 if ($view === 'question') {
-    $qacache = cache::make('local_stackquizanalytics', 'questionanalysis');
-    $qakey = local_stackquizanalytics_quiz_cache_helper::build_key(
+    $qacache = cache::make('local_stackanalytics', 'questionanalysis');
+    $qakey = local_stackanalytics_quiz_cache_helper::build_key(
         $selectedquiz->id,
         $stats->fingerprint,
         $colorblind,
@@ -168,7 +168,7 @@ if ($view === 'question') {
     }
 
     if ($result === null) {
-        echo $OUTPUT->notification(get_string('servererror', 'local_stackquizanalytics'), 'notifyproblem');
+        echo $OUTPUT->notification(get_string('servererror', 'local_stackanalytics'), 'notifyproblem');
         echo $OUTPUT->footer();
         exit;
     }
@@ -176,9 +176,9 @@ if ($view === 'question') {
     echo sections_output_helper::render_containers('qa');
     echo sections_output_helper::render_vendor_and_payload('qa', $result);
 
-    echo $OUTPUT->heading(get_string('generatepdfheading', 'local_stackquizanalytics'), 3, 'main mt-4 mb-3');
+    echo $OUTPUT->heading(get_string('generatepdfheading', 'local_stackanalytics'), 3, 'main mt-4 mb-3');
     echo sections_output_helper::render_pdf_form(
-        new moodle_url('/local/stackquizanalytics/questionanalyticspdf.php'),
+        new moodle_url('/local/stackanalytics/questionanalyticspdf.php'),
         [
             'id' => $courseid,
             'kind' => 'question',
@@ -187,14 +187,14 @@ if ($view === 'question') {
             'anonymize' => $anonymize ? 1 : 0,
         ],
         $client->report_sections('question'),
-        get_string('downloadpdfbutton', 'local_stackquizanalytics'),
+        get_string('downloadpdfbutton', 'local_stackanalytics'),
         'qa-pdf',
         'qa'
     );
 } else {
     // Solution Process Visualization.
-    $metacache = cache::make('local_stackquizanalytics', 'solutionprocessmeta');
-    $metakey = local_stackquizanalytics_quiz_cache_helper::build_key($selectedquiz->id, $stats->fingerprint, $anonymize);
+    $metacache = cache::make('local_stackanalytics', 'solutionprocessmeta');
+    $metakey = local_stackanalytics_quiz_cache_helper::build_key($selectedquiz->id, $stats->fingerprint, $anonymize);
     $meta = $metacache->get($metakey);
     if ($meta === false) {
         $meta = $client->solution_process_meta($selectedquiz->name, $fetchrecords(), $anonymize);
@@ -204,12 +204,12 @@ if ($view === 'question') {
     }
 
     if ($meta === null) {
-        echo $OUTPUT->notification(get_string('servererror', 'local_stackquizanalytics'), 'notifyproblem');
+        echo $OUTPUT->notification(get_string('servererror', 'local_stackanalytics'), 'notifyproblem');
         echo $OUTPUT->footer();
         exit;
     }
     if (empty($meta['questions'])) {
-        echo $OUTPUT->notification(get_string('nostackquestions', 'local_stackquizanalytics'), 'notifymessage');
+        echo $OUTPUT->notification(get_string('nostackquestions', 'local_stackanalytics'), 'notifymessage');
         echo $OUTPUT->footer();
         exit;
     }
@@ -264,8 +264,8 @@ if ($view === 'question') {
         $spvstudentid
     );
 
-    $resultcache = cache::make('local_stackquizanalytics', 'solutionprocess');
-    $resultkey = local_stackquizanalytics_quiz_cache_helper::build_key(
+    $resultcache = cache::make('local_stackanalytics', 'solutionprocess');
+    $resultkey = local_stackanalytics_quiz_cache_helper::build_key(
         $selectedquiz->id,
         $stats->fingerprint,
         $spvquestion,
@@ -291,7 +291,7 @@ if ($view === 'question') {
     }
 
     if ($result === null) {
-        echo $OUTPUT->notification(get_string('servererror', 'local_stackquizanalytics'), 'notifyproblem');
+        echo $OUTPUT->notification(get_string('servererror', 'local_stackanalytics'), 'notifyproblem');
         echo $OUTPUT->footer();
         exit;
     }
@@ -299,9 +299,9 @@ if ($view === 'question') {
     echo sections_output_helper::render_containers('spv');
     echo sections_output_helper::render_vendor_and_payload('spv', $result);
 
-    echo $OUTPUT->heading(get_string('generatepdfheading', 'local_stackquizanalytics'), 3, 'main mt-4 mb-3');
+    echo $OUTPUT->heading(get_string('generatepdfheading', 'local_stackanalytics'), 3, 'main mt-4 mb-3');
     echo sections_output_helper::render_pdf_form(
-        new moodle_url('/local/stackquizanalytics/questionanalyticspdf.php'),
+        new moodle_url('/local/stackanalytics/questionanalyticspdf.php'),
         [
             'id'          => $courseid,
             'kind'        => 'solutionprocess',
@@ -312,7 +312,7 @@ if ($view === 'question') {
             'anonymize'   => $anonymize ? 1 : 0,
         ],
         $client->report_sections('solutionprocess'),
-        get_string('downloadpdfbutton', 'local_stackquizanalytics'),
+        get_string('downloadpdfbutton', 'local_stackanalytics'),
         'spv-pdf',
         'spv'
     );

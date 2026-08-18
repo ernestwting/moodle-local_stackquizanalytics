@@ -17,12 +17,12 @@
 /**
  * PHP port of analytics-service/analytics/expression_tree.py.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackquizanalytics\quiz\analytics;
+namespace local_stackanalytics\quiz\analytics;
 
 /**
  * Tokenizes and parses Maxima-style CAS expression strings into expr_node trees, with memoization.

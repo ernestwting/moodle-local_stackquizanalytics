@@ -34,12 +34,12 @@
  * - No auto-generated table of contents / PDF outline bookmarks — a
  *   navigation nicety, not core report content.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackquizanalytics\quiz\analytics;
+namespace local_stackanalytics\quiz\analytics;
 
 /**
  * Renders a pdf_content.php payload to PDF bytes via TCPDF (see quizanalytics_tcpdf.php
@@ -66,7 +66,7 @@ class pdf_builder {
      */
     public static function build(array $content, array $chartimages): string {
         $pdf = new quizanalytics_tcpdf('P', 'mm', 'LETTER', true, 'UTF-8', false);
-        $pdf->SetCreator('local_stackquizanalytics');
+        $pdf->SetCreator('local_stackanalytics');
         $pdf->SetAuthor('Moodle STACK Analytics Hub');
         $pdf->SetTitle($content['title']);
         $pdf->setPrintHeader(true);
@@ -92,7 +92,7 @@ class pdf_builder {
         if (empty($content['sections'])) {
             $pdf->SetFont('dejavusans', 'I', 10);
             $pdf->SetTextColor(0x64, 0x74, 0x8b);
-            $pdf->MultiCell(0, 6, get_string('pdfnosections', 'local_stackquizanalytics'), 0, 'L');
+            $pdf->MultiCell(0, 6, get_string('pdfnosections', 'local_stackanalytics'), 0, 'L');
         }
 
         foreach ($content['sections'] as $i => $section) {
@@ -198,7 +198,7 @@ class pdf_builder {
             $pdf->SetFont('dejavusans', 'I', 8);
             $pdf->SetTextColor(0x64, 0x74, 0x8b);
             $shown = count($table['rows']);
-            $pdf->MultiCell(0, 5, get_string('pdftruncatedrows', 'local_stackquizanalytics', (object) [
+            $pdf->MultiCell(0, 5, get_string('pdftruncatedrows', 'local_stackanalytics', (object) [
                 'shown' => $shown,
                 'total' => $table['truncated_from'],
             ]), 0, 'L');
@@ -282,7 +282,7 @@ class pdf_builder {
             $pdf->SetFont('dejavusans', 'I', 9);
             $pdf->SetTextColor(0xb4, 0x54, 0x54);
             $label = $chart['title'] ?: $chart['id'];
-            $pdf->MultiCell(0, 5, get_string('pdfchartunavailable', 'local_stackquizanalytics', $label), 0, 'L');
+            $pdf->MultiCell(0, 5, get_string('pdfchartunavailable', 'local_stackanalytics', $label), 0, 'L');
             return;
         }
 

@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * All database access for the Quiz Analytics half of local_stackquizanalytics:
+ * All database access for the Quiz Analytics half of local_stackanalytics:
  * detecting which quizzes in a
  * course (or a specific quiz) contain qtype_stack questions, and reading
  * finished attempts + responses straight out of the database — reconstructing
@@ -23,7 +23,7 @@
  * (matching what analytics/parser.py::build_response_rows already expects),
  * so the analytics engine itself needs no changes, only its input source.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -36,7 +36,7 @@ require_once($CFG->dirroot . '/question/engine/lib.php');
 /**
  * Fetches quiz/course attempt records from Moodle's own DB tables for the analytics package to consume.
  */
-class local_stackquizanalytics_quiz_data_fetcher {
+class local_stackanalytics_quiz_data_fetcher {
     /**
      * Cheap existence check: does this course contain at least one quiz with
      * at least one qtype_stack question in one of its slots?
@@ -78,7 +78,7 @@ class local_stackquizanalytics_quiz_data_fetcher {
      * Same matching rule as course_has_stack_quiz(), narrowed to one quiz —
      * used to gate the Analytics link this plugin adds to a quiz's own
      * settings/administration menu (see lib.php's
-     * local_stackquizanalytics_extend_settings_navigation()), which runs on every
+     * local_stackanalytics_extend_settings_navigation()), which runs on every
      * quiz page view so needs to stay just as cheap.
      *
      * @param int $quizid
@@ -264,7 +264,7 @@ class local_stackquizanalytics_quiz_data_fetcher {
                 return $rendered;
             }
         } catch (\Throwable $e) {
-            debugging('local_stackquizanalytics (quiz): could not render CAS question text for a STACK question: ' .
+            debugging('local_stackanalytics (quiz): could not render CAS question text for a STACK question: ' .
                 $e->getMessage(), DEBUG_DEVELOPER);
         }
 
@@ -273,7 +273,7 @@ class local_stackquizanalytics_quiz_data_fetcher {
 
     /**
      * Response records for every STACK quiz in the course, grouped by quiz
-     * name — the shape local_stackquizanalytics_quiz_api_client::analyze_course()
+     * name — the shape local_stackanalytics_quiz_api_client::analyze_course()
      * expects.
      *
      * @param stdClass $course

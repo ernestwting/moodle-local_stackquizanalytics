@@ -17,12 +17,12 @@
 /**
  * PHP port of analytics-service/analytics/response_analysis.py.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackquizanalytics\quiz\analytics;
+namespace local_stackanalytics\quiz\analytics;
 
 /**
  * Response outcome percentages and repeated-wrong-answer breakdowns per question.

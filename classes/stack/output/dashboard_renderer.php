@@ -26,12 +26,12 @@
  * one-line sentence built from that indicator's real-world facts — never the
  * bare [-1, 1] value a machine-learning model would actually consume.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackquizanalytics\stack\output;
+namespace local_stackanalytics\stack\output;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -76,15 +76,15 @@ class dashboard_renderer {
         foreach (self::MODEL1_INDICATORS as $indicatorkey => $stringsuffix) {
             $items .= \html_writer::tag('li', \html_writer::tag(
                 'strong',
-                get_string('indicator:' . $stringsuffix, 'local_stackquizanalytics') . ': '
-            ) . get_string('model1desc_' . $stringsuffix, 'local_stackquizanalytics'));
+                get_string('indicator:' . $stringsuffix, 'local_stackanalytics') . ': '
+            ) . get_string('model1desc_' . $stringsuffix, 'local_stackanalytics'));
         }
 
-        $body = \html_writer::tag('p', get_string('model1aboutbody', 'local_stackquizanalytics'))
+        $body = \html_writer::tag('p', get_string('model1aboutbody', 'local_stackanalytics'))
             . \html_writer::tag('ul', $items)
-            . \html_writer::tag('p', get_string('model1aboutfooter', 'local_stackquizanalytics'), ['class' => 'text-muted small']);
+            . \html_writer::tag('p', get_string('model1aboutfooter', 'local_stackanalytics'), ['class' => 'text-muted small']);
 
-        return self::about_panel(get_string('target:studentatrisk', 'local_stackquizanalytics'), $body);
+        return self::about_panel(get_string('target:studentatrisk', 'local_stackanalytics'), $body);
     }
 
     /**
@@ -96,17 +96,17 @@ class dashboard_renderer {
      */
     public static function render_model1_table(\stdClass $report, bool $anonymize = false): string {
         if (empty($report->rows)) {
-            return \html_writer::tag('p', get_string('model1nostudents', 'local_stackquizanalytics'), ['class' => 'text-muted']);
+            return \html_writer::tag('p', get_string('model1nostudents', 'local_stackanalytics'), ['class' => 'text-muted']);
         }
 
         $table = new \html_table();
         $table->head = array_merge(
             [
-                get_string('columnstudent', 'local_stackquizanalytics'),
-                get_string('columncurrentstatus', 'local_stackquizanalytics'),
+                get_string('columnstudent', 'local_stackanalytics'),
+                get_string('columncurrentstatus', 'local_stackanalytics'),
             ],
             array_map(
-                fn($stringsuffix) => get_string('indicator:' . $stringsuffix, 'local_stackquizanalytics'),
+                fn($stringsuffix) => get_string('indicator:' . $stringsuffix, 'local_stackanalytics'),
                 array_values(self::MODEL1_INDICATORS)
             )
         );
@@ -140,7 +140,7 @@ class dashboard_renderer {
      * @return string
      */
     public static function pseudonym(int $rowindex): string {
-        return get_string('anonymizedstudent', 'local_stackquizanalytics', $rowindex + 1);
+        return get_string('anonymizedstudent', 'local_stackanalytics', $rowindex + 1);
     }
 
     /**
@@ -154,15 +154,15 @@ class dashboard_renderer {
         foreach (self::MODEL2_INDICATORS as $indicatorkey => $stringsuffix) {
             $items .= \html_writer::tag('li', \html_writer::tag(
                 'strong',
-                get_string('indicator:' . $stringsuffix, 'local_stackquizanalytics') . ': '
-            ) . get_string('model2desc_' . $stringsuffix, 'local_stackquizanalytics'));
+                get_string('indicator:' . $stringsuffix, 'local_stackanalytics') . ': '
+            ) . get_string('model2desc_' . $stringsuffix, 'local_stackanalytics'));
         }
 
-        $body = \html_writer::tag('p', get_string('model2aboutbody', 'local_stackquizanalytics'))
+        $body = \html_writer::tag('p', get_string('model2aboutbody', 'local_stackanalytics'))
             . \html_writer::tag('ul', $items)
-            . \html_writer::tag('p', get_string('model1aboutfooter', 'local_stackquizanalytics'), ['class' => 'text-muted small']);
+            . \html_writer::tag('p', get_string('model1aboutfooter', 'local_stackanalytics'), ['class' => 'text-muted small']);
 
-        return self::about_panel(get_string('target:questionneedsreview', 'local_stackquizanalytics'), $body);
+        return self::about_panel(get_string('target:questionneedsreview', 'local_stackanalytics'), $body);
     }
 
     /**
@@ -173,17 +173,17 @@ class dashboard_renderer {
      */
     public static function render_model2_table(\stdClass $report): string {
         if (empty($report->rows)) {
-            return \html_writer::tag('p', get_string('model2noquestions', 'local_stackquizanalytics'), ['class' => 'text-muted']);
+            return \html_writer::tag('p', get_string('model2noquestions', 'local_stackanalytics'), ['class' => 'text-muted']);
         }
 
         $table = new \html_table();
         $table->head = array_merge(
             [
-                get_string('columnquestion', 'local_stackquizanalytics'),
-                get_string('columncurrentstatus', 'local_stackquizanalytics'),
+                get_string('columnquestion', 'local_stackanalytics'),
+                get_string('columncurrentstatus', 'local_stackanalytics'),
             ],
             array_map(
-                fn($stringsuffix) => get_string('indicator:' . $stringsuffix, 'local_stackquizanalytics'),
+                fn($stringsuffix) => get_string('indicator:' . $stringsuffix, 'local_stackanalytics'),
                 array_values(self::MODEL2_INDICATORS)
             )
         );
@@ -230,7 +230,7 @@ class dashboard_renderer {
     private static function quiz_group_row(string $quizname, int $columncount): \html_table_row {
         $cell = new \html_table_cell(\html_writer::tag(
             'strong',
-            get_string('quizlabel', 'local_stackquizanalytics', s($quizname))
+            get_string('quizlabel', 'local_stackanalytics', s($quizname))
         ));
         $cell->colspan = $columncount;
         $cell->attributes['class'] = 'bg-light';
@@ -259,7 +259,7 @@ class dashboard_renderer {
 
         $stringkey = $needsreview->needsreview ? 'needsreviewyes' : 'needsreviewno';
         $badgeclass = $needsreview->needsreview ? 'badge-warning' : 'badge-success';
-        $label = get_string($stringkey, 'local_stackquizanalytics', (object) [
+        $label = get_string($stringkey, 'local_stackanalytics', (object) [
             'passpercent' => $needsreview->passpercent,
             'thresholdpercent' => $needsreview->thresholdpercent,
         ]);
@@ -276,21 +276,21 @@ class dashboard_renderer {
         if ($gradestatus->gradepasspercent === null) {
             return \html_writer::tag(
                 'span',
-                get_string('gradestatusnothreshold', 'local_stackquizanalytics'),
+                get_string('gradestatusnothreshold', 'local_stackanalytics'),
                 ['class' => 'text-muted small']
             );
         }
         if ($gradestatus->gradepercent === null) {
             return \html_writer::tag(
                 'span',
-                get_string('gradestatusnogradeyet', 'local_stackquizanalytics'),
+                get_string('gradestatusnogradeyet', 'local_stackanalytics'),
                 ['class' => 'text-muted small']
             );
         }
 
         $stringkey = $gradestatus->atrisk ? 'gradestatusatrisk' : 'gradestatuspassing';
         $badgeclass = $gradestatus->atrisk ? 'badge-warning' : 'badge-success';
-        $label = get_string($stringkey, 'local_stackquizanalytics', (object) [
+        $label = get_string($stringkey, 'local_stackanalytics', (object) [
             'grade' => $gradestatus->gradepercent,
             'gradepass' => $gradestatus->gradepasspercent,
         ]);
@@ -322,10 +322,10 @@ class dashboard_renderer {
         $badgeclass = self::BAND_CLASSES[$result->band] ?? self::BAND_CLASSES['neutral'];
         $badge = \html_writer::tag(
             'span',
-            get_string('band_' . $result->band, 'local_stackquizanalytics'),
+            get_string('band_' . $result->band, 'local_stackanalytics'),
             ['class' => 'badge ' . $badgeclass]
         );
-        $sentence = get_string($sentencestringkey, 'local_stackquizanalytics', (object) $result->summary);
+        $sentence = get_string($sentencestringkey, 'local_stackanalytics', (object) $result->summary);
 
         return $badge . \html_writer::tag('div', $sentence, ['class' => 'small text-muted mt-1']);
     }
@@ -345,12 +345,12 @@ class dashboard_renderer {
      */
     public static function not_enough_data_text(?int $attemptcount): string {
         if ($attemptcount === null) {
-            return get_string('notenoughdata', 'local_stackquizanalytics');
+            return get_string('notenoughdata', 'local_stackanalytics');
         }
         if ($attemptcount === 0) {
-            return get_string('noattemptsyet', 'local_stackquizanalytics');
+            return get_string('noattemptsyet', 'local_stackanalytics');
         }
-        return get_string('notenoughdatacount', 'local_stackquizanalytics', $attemptcount);
+        return get_string('notenoughdatacount', 'local_stackanalytics', $attemptcount);
     }
 
     /**
@@ -366,7 +366,7 @@ class dashboard_renderer {
         if (empty($report->rows)) {
             return \html_writer::tag(
                 'p',
-                get_string('diagnosticsnoquestions', 'local_stackquizanalytics'),
+                get_string('diagnosticsnoquestions', 'local_stackanalytics'),
                 ['class' => 'text-muted']
             );
         }
@@ -377,7 +377,7 @@ class dashboard_renderer {
             if ($row->quizname !== $lastquizname) {
                 $html .= \html_writer::tag(
                     'div',
-                    get_string('quizlabel', 'local_stackquizanalytics', s($row->quizname)),
+                    get_string('quizlabel', 'local_stackanalytics', s($row->quizname)),
                     ['class' => 'bg-light rounded px-2 py-1 mt-3 mb-2 font-weight-bold']
                 );
                 $lastquizname = $row->quizname;
@@ -411,14 +411,14 @@ class dashboard_renderer {
         if ($seedbias === null) {
             return \html_writer::tag(
                 'span',
-                get_string('notenoughdata', 'local_stackquizanalytics'),
+                get_string('notenoughdata', 'local_stackanalytics'),
                 ['class' => 'text-muted small']
             );
         }
         $badgeclass = self::BAND_CLASSES[$seedbias->band] ?? self::BAND_CLASSES['neutral'];
-        return \html_writer::tag('span', get_string('diagnosticsseedbiassentence', 'local_stackquizanalytics', (object) [
+        return \html_writer::tag('span', get_string('diagnosticsseedbiassentence', 'local_stackanalytics', (object) [
             'etasquared' => format_float($seedbias->anova->etasquared, 3),
-            'magnitude' => get_string('etamagnitude_' . $seedbias->magnitude, 'local_stackquizanalytics'),
+            'magnitude' => get_string('etamagnitude_' . $seedbias->magnitude, 'local_stackanalytics'),
         ]), ['class' => 'badge ' . $badgeclass]);
     }
 
@@ -432,12 +432,12 @@ class dashboard_renderer {
         if ($bloatedtree === null) {
             return \html_writer::tag(
                 'span',
-                get_string('notenoughdata', 'local_stackquizanalytics'),
+                get_string('notenoughdata', 'local_stackanalytics'),
                 ['class' => 'text-muted small']
             );
         }
         $badgeclass = self::BAND_CLASSES[$bloatedtree->band] ?? self::BAND_CLASSES['neutral'];
-        return \html_writer::tag('span', get_string('diagnosticsbloatedtreesentence', 'local_stackquizanalytics', (object) [
+        return \html_writer::tag('span', get_string('diagnosticsbloatedtreesentence', 'local_stackanalytics', (object) [
             'unreached' => $bloatedtree->unreachedcount,
             'total' => $bloatedtree->totalbranches,
         ]), ['class' => 'badge ' . $badgeclass]);
@@ -450,11 +450,11 @@ class dashboard_renderer {
      * @return string
      */
     private static function render_seed_bias_detail(?\stdClass $seedbias): string {
-        $heading = \html_writer::tag('h6', get_string('seedbiasheading', 'local_stackquizanalytics'));
+        $heading = \html_writer::tag('h6', get_string('seedbiasheading', 'local_stackanalytics'));
         if ($seedbias === null) {
             return $heading . \html_writer::tag(
                 'p',
-                get_string('notenoughdata', 'local_stackquizanalytics'),
+                get_string('notenoughdata', 'local_stackanalytics'),
                 ['class' => 'text-muted small']
             );
         }
@@ -462,11 +462,11 @@ class dashboard_renderer {
         $anova = $seedbias->anova;
         $table = new \html_table();
         $table->data = [
-            [get_string('seedgroups', 'local_stackquizanalytics'), $anova->ngroups],
-            ['F', $anova->f !== null ? format_float($anova->f, 3) : get_string('notavailable', 'local_stackquizanalytics')],
+            [get_string('seedgroups', 'local_stackanalytics'), $anova->ngroups],
+            ['F', $anova->f !== null ? format_float($anova->f, 3) : get_string('notavailable', 'local_stackanalytics')],
             ['η²', format_float($anova->etasquared, 3) . ' (' . get_string(
                 'etamagnitude_' . $seedbias->magnitude,
-                'local_stackquizanalytics'
+                'local_stackanalytics'
             ) . ')'],
         ];
         return $heading . \html_writer::table($table);
@@ -479,28 +479,28 @@ class dashboard_renderer {
      * @return string
      */
     private static function render_bloated_tree_detail(?\stdClass $bloatedtree): string {
-        $heading = \html_writer::tag('h6', get_string('bloatedtreeheading', 'local_stackquizanalytics'));
+        $heading = \html_writer::tag('h6', get_string('bloatedtreeheading', 'local_stackanalytics'));
         if ($bloatedtree === null) {
             return $heading . \html_writer::tag(
                 'p',
-                get_string('notenoughdata', 'local_stackquizanalytics'),
+                get_string('notenoughdata', 'local_stackanalytics'),
                 ['class' => 'text-muted small']
             );
         }
 
         $table = new \html_table();
         $table->head = [
-            get_string('node', 'local_stackquizanalytics'),
-            get_string('branch', 'local_stackquizanalytics'),
-            get_string('traversals', 'local_stackquizanalytics'),
-            get_string('coverage', 'local_stackquizanalytics'),
+            get_string('node', 'local_stackanalytics'),
+            get_string('branch', 'local_stackanalytics'),
+            get_string('traversals', 'local_stackanalytics'),
+            get_string('coverage', 'local_stackanalytics'),
         ];
         foreach ($bloatedtree->branches as $branch) {
             $table->data[] = [
                 s($branch->nodename),
                 s($branch->branch),
                 $branch->count,
-                get_string('coverage_' . $branch->classification, 'local_stackquizanalytics'),
+                get_string('coverage_' . $branch->classification, 'local_stackanalytics'),
             ];
         }
         return $heading . \html_writer::table($table);
@@ -545,7 +545,7 @@ class dashboard_renderer {
             'type' => 'hidden', 'name' => 'anonymize', 'value' => $anonymize ? '1' : '0',
         ]);
 
-        $html .= \html_writer::tag('p', get_string('pdfsectionslabel', 'local_stackquizanalytics'), ['class' => 'mb-1']);
+        $html .= \html_writer::tag('p', get_string('pdfsectionslabel', 'local_stackanalytics'), ['class' => 'mb-1']);
         foreach ($sectionheadings as $sectionid => $headingstringkey) {
             $checkboxid = 'stackanalytics-pdf-' . $sectionid;
             $html .= \html_writer::empty_tag('input', [
@@ -553,7 +553,7 @@ class dashboard_renderer {
                 'id' => $checkboxid, 'checked' => 'checked',
             ]);
             $html .= ' ' . \html_writer::label(
-                get_string($headingstringkey, 'local_stackquizanalytics'),
+                get_string($headingstringkey, 'local_stackanalytics'),
                 $checkboxid,
                 true,
                 ['class' => 'mr-3']
@@ -562,7 +562,7 @@ class dashboard_renderer {
 
         $html .= \html_writer::empty_tag('input', [
             'type' => 'submit',
-            'value' => get_string('downloadpdfbutton', 'local_stackquizanalytics'),
+            'value' => get_string('downloadpdfbutton', 'local_stackanalytics'),
             'class' => 'btn btn-primary d-block mt-2',
         ]);
         $html .= \html_writer::end_tag('form');
@@ -580,7 +580,7 @@ class dashboard_renderer {
     private static function about_panel(string $title, string $bodyhtml): string {
         return \html_writer::tag(
             'details',
-            \html_writer::tag('summary', get_string('aboutthismodel', 'local_stackquizanalytics') . ': ' . $title)
+            \html_writer::tag('summary', get_string('aboutthismodel', 'local_stackanalytics') . ': ' . $title)
                 . \html_writer::div($bodyhtml, 'mt-2'),
             ['class' => 'mb-3']
         );
@@ -594,7 +594,7 @@ class dashboard_renderer {
      * @return string
      */
     private static function truncated_notice(int $shown, int $total): string {
-        return \html_writer::tag('p', get_string('truncatednotice', 'local_stackquizanalytics', (object) [
+        return \html_writer::tag('p', get_string('truncatednotice', 'local_stackanalytics', (object) [
             'shown' => $shown,
             'total' => $total,
         ]), ['class' => 'text-muted small']);

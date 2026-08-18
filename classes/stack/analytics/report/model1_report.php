@@ -28,18 +28,18 @@
  * context (or a parent context), one row per student even if they hold more
  * than one enrolment.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackquizanalytics\stack\analytics\report;
+namespace local_stackanalytics\stack\analytics\report;
 
-use local_stackquizanalytics\stack\analytics\indicator\grade_trajectory;
-use local_stackquizanalytics\stack\analytics\indicator\response_latency_anomaly;
-use local_stackquizanalytics\stack\analytics\indicator\disengagement_entropy;
-use local_stackquizanalytics\stack\analytics\indicator\help_seeking_gap;
-use local_stackquizanalytics\stack\analytics\indicator\feedback_revision_distance;
+use local_stackanalytics\stack\analytics\indicator\grade_trajectory;
+use local_stackanalytics\stack\analytics\indicator\response_latency_anomaly;
+use local_stackanalytics\stack\analytics\indicator\disengagement_entropy;
+use local_stackanalytics\stack\analytics\indicator\help_seeking_gap;
+use local_stackanalytics\stack\analytics\indicator\feedback_revision_distance;
 
 defined('MOODLE_INTERNAL') || die();
 

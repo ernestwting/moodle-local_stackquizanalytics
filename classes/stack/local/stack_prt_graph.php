@@ -53,12 +53,12 @@
  * a real edge case, not a hypothetical one, and is worth a mention in the
  * paper's limitations section alongside the other proxy-label caveats.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackquizanalytics\stack\local;
+namespace local_stackanalytics\stack\local;
 
 defined('MOODLE_INTERNAL') || die();
 

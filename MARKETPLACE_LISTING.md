@@ -9,7 +9,7 @@ STACK Quiz & Model Analytics
 
 ## Component / Frankenstyle name
 
-`local_stackquizanalytics`
+`local_stackanalytics`
 
 ## Short description (1–2 sentences)
 
@@ -156,6 +156,11 @@ if not.
 ## Repository
 
 https://github.com/ernestwting/moodle-local_stackquizanalytics
+
+<!-- TODO before submitting: rename this GitHub repo to
+     moodle-local_stackanalytics to match the plugin's renamed frankenstyle
+     component (see CHANGELOG.md's rename entry), then update this URL and
+     the two below. -->
 
 ## Issue tracker
 

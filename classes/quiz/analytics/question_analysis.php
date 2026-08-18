@@ -23,12 +23,12 @@
  * they're not ported at all — see this port's own commit history for the
  * confirmation of that before committing to skipping them).
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackquizanalytics\quiz\analytics;
+namespace local_stackanalytics\quiz\analytics;
 
 /**
  * Assembles the full Question Analytics {summary, sections, questions, audit} payload for one quiz.
@@ -39,7 +39,7 @@ class question_analysis {
      * student performance matrix, and question metrics sections, plus per-question drill-down.
      *
      * @param array[] $records as returned by
-     *        local_stackquizanalytics_quiz_data_fetcher::get_response_records_for_quiz()
+     *        local_stackanalytics_quiz_data_fetcher::get_response_records_for_quiz()
      * @param string $quizname
      * @param bool $colorblindmode
      * @param bool $anonymize

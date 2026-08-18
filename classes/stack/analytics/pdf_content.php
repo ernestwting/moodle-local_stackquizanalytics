@@ -29,17 +29,17 @@
  * shows — the same "condensed for readability" reasoning that drove that
  * on-screen redesign applies at least as much to a printed report.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackquizanalytics\stack\analytics;
+namespace local_stackanalytics\stack\analytics;
 
-use local_stackquizanalytics\stack\analytics\report\model1_report;
-use local_stackquizanalytics\stack\analytics\report\model2_report;
-use local_stackquizanalytics\stack\analytics\report\diagnostics_report;
-use local_stackquizanalytics\stack\output\dashboard_renderer;
+use local_stackanalytics\stack\analytics\report\model1_report;
+use local_stackanalytics\stack\analytics\report\model2_report;
+use local_stackanalytics\stack\analytics\report\diagnostics_report;
+use local_stackanalytics\stack\output\dashboard_renderer;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -76,11 +76,11 @@ class pdf_content {
 
         $columns = array_merge(
             [
-                get_string('columnstudent', 'local_stackquizanalytics'),
-                get_string('columncurrentstatus', 'local_stackquizanalytics'),
+                get_string('columnstudent', 'local_stackanalytics'),
+                get_string('columncurrentstatus', 'local_stackanalytics'),
             ],
             array_map(
-                fn($stringsuffix) => get_string('indicator:' . $stringsuffix, 'local_stackquizanalytics'),
+                fn($stringsuffix) => get_string('indicator:' . $stringsuffix, 'local_stackanalytics'),
                 array_values(self::MODEL1_INDICATORS)
             )
         );
@@ -96,7 +96,7 @@ class pdf_content {
         }
 
         return [
-            'title' => get_string('model1heading', 'local_stackquizanalytics'),
+            'title' => get_string('model1heading', 'local_stackanalytics'),
             'columns' => $columns,
             'rows' => $rows,
             'shown' => count($rows),
@@ -117,11 +117,11 @@ class pdf_content {
 
         $columns = array_merge(
             [
-                get_string('columnquestion', 'local_stackquizanalytics'),
-                get_string('columncurrentstatus', 'local_stackquizanalytics'),
+                get_string('columnquestion', 'local_stackanalytics'),
+                get_string('columncurrentstatus', 'local_stackanalytics'),
             ],
             array_map(
-                fn($stringsuffix) => get_string('indicator:' . $stringsuffix, 'local_stackquizanalytics'),
+                fn($stringsuffix) => get_string('indicator:' . $stringsuffix, 'local_stackanalytics'),
                 array_values(self::MODEL2_INDICATORS)
             )
         );
@@ -143,7 +143,7 @@ class pdf_content {
         }
 
         return [
-            'title' => get_string('model2heading', 'local_stackquizanalytics'),
+            'title' => get_string('model2heading', 'local_stackanalytics'),
             'columns' => $columns,
             'rows' => $rows,
             'shown' => count($rows),
@@ -163,9 +163,9 @@ class pdf_content {
         $report = diagnostics_report::build($courseid, $quizid);
 
         $columns = [
-            get_string('columnquestion', 'local_stackquizanalytics'),
-            get_string('seedbiasheading', 'local_stackquizanalytics'),
-            get_string('bloatedtreeheading', 'local_stackquizanalytics'),
+            get_string('columnquestion', 'local_stackanalytics'),
+            get_string('seedbiasheading', 'local_stackanalytics'),
+            get_string('bloatedtreeheading', 'local_stackanalytics'),
         ];
 
         $rows = [];
@@ -178,7 +178,7 @@ class pdf_content {
         }
 
         return [
-            'title' => get_string('diagnosticsheading', 'local_stackquizanalytics'),
+            'title' => get_string('diagnosticsheading', 'local_stackanalytics'),
             'columns' => $columns,
             'rows' => $rows,
             'shown' => count($rows),
@@ -199,8 +199,8 @@ class pdf_content {
         if ($result === null) {
             return ['text' => dashboard_renderer::not_enough_data_text($attemptcount), 'band' => null];
         }
-        $label = get_string('band_' . $result->band, 'local_stackquizanalytics');
-        $sentence = get_string($sentencestringkey, 'local_stackquizanalytics', (object) $result->summary);
+        $label = get_string('band_' . $result->band, 'local_stackanalytics');
+        $sentence = get_string($sentencestringkey, 'local_stackanalytics', (object) $result->summary);
         return ['text' => $label . ' — ' . $sentence, 'band' => $result->band];
     }
 
@@ -212,13 +212,13 @@ class pdf_content {
      */
     private static function gradestatus_cell(\stdClass $gradestatus): array {
         if ($gradestatus->gradepasspercent === null) {
-            return ['text' => get_string('gradestatusnothreshold', 'local_stackquizanalytics'), 'band' => null];
+            return ['text' => get_string('gradestatusnothreshold', 'local_stackanalytics'), 'band' => null];
         }
         if ($gradestatus->gradepercent === null) {
-            return ['text' => get_string('gradestatusnogradeyet', 'local_stackquizanalytics'), 'band' => null];
+            return ['text' => get_string('gradestatusnogradeyet', 'local_stackanalytics'), 'band' => null];
         }
         $stringkey = $gradestatus->atrisk ? 'gradestatusatrisk' : 'gradestatuspassing';
-        $text = get_string($stringkey, 'local_stackquizanalytics', (object) [
+        $text = get_string($stringkey, 'local_stackanalytics', (object) [
             'grade' => $gradestatus->gradepercent,
             'gradepass' => $gradestatus->gradepasspercent,
         ]);
@@ -237,7 +237,7 @@ class pdf_content {
             return ['text' => dashboard_renderer::not_enough_data_text($attemptcount), 'band' => null];
         }
         $stringkey = $needsreview->needsreview ? 'needsreviewyes' : 'needsreviewno';
-        $text = get_string($stringkey, 'local_stackquizanalytics', (object) [
+        $text = get_string($stringkey, 'local_stackanalytics', (object) [
             'passpercent' => $needsreview->passpercent,
             'thresholdpercent' => $needsreview->thresholdpercent,
         ]);
@@ -252,12 +252,12 @@ class pdf_content {
      */
     private static function seedbias_cell(?\stdClass $seedbias): array {
         if ($seedbias === null) {
-            return ['text' => get_string('notenoughdata', 'local_stackquizanalytics'), 'band' => null];
+            return ['text' => get_string('notenoughdata', 'local_stackanalytics'), 'band' => null];
         }
-        $label = get_string('band_' . $seedbias->band, 'local_stackquizanalytics');
-        $sentence = get_string('diagnosticsseedbiassentence', 'local_stackquizanalytics', (object) [
+        $label = get_string('band_' . $seedbias->band, 'local_stackanalytics');
+        $sentence = get_string('diagnosticsseedbiassentence', 'local_stackanalytics', (object) [
             'etasquared' => format_float($seedbias->anova->etasquared, 3),
-            'magnitude' => get_string('etamagnitude_' . $seedbias->magnitude, 'local_stackquizanalytics'),
+            'magnitude' => get_string('etamagnitude_' . $seedbias->magnitude, 'local_stackanalytics'),
         ]);
         return ['text' => $label . ' — ' . $sentence, 'band' => $seedbias->band];
     }
@@ -270,10 +270,10 @@ class pdf_content {
      */
     private static function bloatedtree_cell(?\stdClass $bloatedtree): array {
         if ($bloatedtree === null) {
-            return ['text' => get_string('notenoughdata', 'local_stackquizanalytics'), 'band' => null];
+            return ['text' => get_string('notenoughdata', 'local_stackanalytics'), 'band' => null];
         }
-        $label = get_string('band_' . $bloatedtree->band, 'local_stackquizanalytics');
-        $sentence = get_string('diagnosticsbloatedtreesentence', 'local_stackquizanalytics', (object) [
+        $label = get_string('band_' . $bloatedtree->band, 'local_stackanalytics');
+        $sentence = get_string('diagnosticsbloatedtreesentence', 'local_stackanalytics', (object) [
             'unreached' => $bloatedtree->unreachedcount,
             'total' => $bloatedtree->totalbranches,
         ]);

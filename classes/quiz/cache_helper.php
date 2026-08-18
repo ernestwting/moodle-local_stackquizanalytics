@@ -28,7 +28,7 @@
  * calls question_engine::load_questions_usage_by_activity() once per
  * attempt, which is the actual expensive step).
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -36,7 +36,7 @@
 /**
  * Builds a cheap fingerprint of a set of quizzes' attempts to key the analysis result cache by.
  */
-class local_stackquizanalytics_quiz_cache_helper {
+class local_stackanalytics_quiz_cache_helper {
     /**
      * Cheap per-quiz-set fingerprint (attempt count + latest timefinish + grade sum) used as a cache key.
      *

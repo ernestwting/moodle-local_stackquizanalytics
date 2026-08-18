@@ -20,12 +20,12 @@
  * to resolve a Model 1 sample id (a user_enrolments.id) back to a user/course
  * pair.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackquizanalytics\stack\local;
+namespace local_stackanalytics\stack\local;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -74,7 +74,7 @@ class stack_course_helper {
      * @return \stdClass[] each with ->id, ->shortname, ->fullname, sorted by fullname
      */
     public static function get_viewable_courses(): array {
-        $courses = get_user_capability_course('local/stackquizanalytics:view', null, true, 'shortname,fullname', 'fullname');
+        $courses = get_user_capability_course('local/stackanalytics:view', null, true, 'shortname,fullname', 'fullname');
         if ($courses === false) {
             return [];
         }

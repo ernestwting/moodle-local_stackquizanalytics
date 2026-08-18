@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace local_stackquizanalytics;
+namespace local_stackanalytics;
 
-use local_stackquizanalytics\stack\analytics\indicator\unreached_node_ratio;
-use local_stackquizanalytics\stack\local\stack_prt_graph;
+use local_stackanalytics\stack\analytics\indicator\unreached_node_ratio;
+use local_stackanalytics\stack\local\stack_prt_graph;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -25,7 +25,7 @@ defined('MOODLE_INTERNAL') || die();
  * Unit tests for stack_prt_graph's pure coverage math and
  * unreached_node_ratio's normalization.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */

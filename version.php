@@ -17,17 +17,17 @@
 /**
  * Version details for the STACK Quiz & Model Analytics plugin.
  *
- * @package    local_stackquizanalytics
+ * @package    local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_stackquizanalytics'; // Must match the folder this unzips into:
-                                                  // local/stackquizanalytics on a Moodle install.
+$plugin->component = 'local_stackanalytics'; // Must match the folder this unzips into:
+                                                  // local/stackanalytics on a Moodle install.
                                                   // This repo's own root IS that folder's contents
-                                                  // (no local/stackquizanalytics/ nesting in the repo
+                                                  // (no local/stackanalytics/ nesting in the repo
                                                   // itself), matching the two standalone plugins this
                                                   // merges — local_quizanalytics and local_stackanalytics
                                                   // — so a plain "Download ZIP" of the repo has
@@ -35,13 +35,13 @@ $plugin->component = 'local_stackquizanalytics'; // Must match the folder this u
                                                   // top-level wrapper folder, which is what the Moodle
                                                   // plugin uploader requires to detect the frankenstyle
                                                   // component, plugin type, and required core version.
-$plugin->version   = 2026081902;                 // YYYYMMDDXX — bump this every time you push an update.
+$plugin->version   = 2026081903;                 // YYYYMMDDXX — bump this every time you push an update.
 $plugin->requires  = 2022041900;                 // Moodle 4.0.0 — matches both source plugins' own
                                                   // requirement (the analyser/target/indicator base
                                                   // classes local_stackanalytics used are present since
                                                   // Moodle 3.4 and stable through 4.x/5.x).
 $plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '2.1.0';
+$plugin->release   = '2.2.0';
 
 // This plugin is the merger of two previously-standalone plugins:
 // local_quizanalytics (course-wide/question/solution-process STACK response

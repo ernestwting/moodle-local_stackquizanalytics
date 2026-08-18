@@ -23,27 +23,27 @@
  * different kind of report.
  *
  * Reached from the course's secondary navigation "Analytics" entry (see
- * lib.php's local_stackquizanalytics_extend_navigation_course()), the
+ * lib.php's local_stackanalytics_extend_navigation_course()), the
  * "Section:" selector at the top of every page in this plugin, or directly
- * via /local/stackquizanalytics/index.php?id=<courseid>. Kept as
+ * via /local/stackanalytics/index.php?id=<courseid>. Kept as
  * index.php (rather than a more specifically-named file, like the other
  * three sections) since this is the plugin's own default landing page —
  * both the course-nav link above and a bare
- * /local/stackquizanalytics/ visit land here.
+ * /local/stackanalytics/ visit land here.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_once(__DIR__ . '/../../config.php');
-require_once($CFG->dirroot . '/local/stackquizanalytics/classes/quiz/data_fetcher.php');
-require_once($CFG->dirroot . '/local/stackquizanalytics/classes/quiz/api_client.php');
-require_once($CFG->dirroot . '/local/stackquizanalytics/classes/quiz/cache_helper.php');
-require_once($CFG->dirroot . '/local/stackquizanalytics/classes/section_selector.php');
+require_once($CFG->dirroot . '/local/stackanalytics/classes/quiz/data_fetcher.php');
+require_once($CFG->dirroot . '/local/stackanalytics/classes/quiz/api_client.php');
+require_once($CFG->dirroot . '/local/stackanalytics/classes/quiz/cache_helper.php');
+require_once($CFG->dirroot . '/local/stackanalytics/classes/section_selector.php');
 
-use local_stackquizanalytics\quiz\output\sections_output_helper;
-use local_stackquizanalytics\stack\local\stack_course_helper;
+use local_stackanalytics\quiz\output\sections_output_helper;
+use local_stackanalytics\stack\local\stack_course_helper;
 
 $courseid = required_param('id', PARAM_INT);
 
@@ -51,19 +51,19 @@ $course = $DB->get_record('course', ['id' => $courseid], '*', MUST_EXIST);
 
 require_login($course);
 $context = context_course::instance($course->id);
-require_capability('local/stackquizanalytics:view', $context);
+require_capability('local/stackanalytics:view', $context);
 
-$PAGE->set_url('/local/stackquizanalytics/index.php', ['id' => $courseid]);
+$PAGE->set_url('/local/stackanalytics/index.php', ['id' => $courseid]);
 $PAGE->set_pagelayout('report');
 $PAGE->set_context($context);
-$PAGE->set_title($course->shortname . ': ' . get_string('pagetitle', 'local_stackquizanalytics'));
+$PAGE->set_title($course->shortname . ': ' . get_string('pagetitle', 'local_stackanalytics'));
 $PAGE->set_heading($course->fullname);
 
-$stackquizzes = local_stackquizanalytics_quiz_data_fetcher::get_course_stack_quizzes($course->id);
+$stackquizzes = local_stackanalytics_quiz_data_fetcher::get_course_stack_quizzes($course->id);
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('pagemaintitle', 'local_stackquizanalytics'));
-echo local_stackquizanalytics_section_selector::render($courseid, 'quiz');
+echo $OUTPUT->heading(get_string('pagemaintitle', 'local_stackanalytics'));
+echo local_stackanalytics_section_selector::render($courseid, 'quiz');
 
 // The course selector: same single_select pattern and shared
 // courseselectorlabel string every other section's own course selector
@@ -80,18 +80,18 @@ if (count($viewablecourses) > 1) {
         $courseoptions[$viewablecourse->id] = format_string($viewablecourse->fullname);
     }
     $courseselector = new single_select(
-        new moodle_url('/local/stackquizanalytics/index.php'),
+        new moodle_url('/local/stackanalytics/index.php'),
         'id',
         $courseoptions,
         $courseid,
         null
     );
-    $courseselector->label = get_string('courseselectorlabel', 'local_stackquizanalytics');
+    $courseselector->label = get_string('courseselectorlabel', 'local_stackanalytics');
     echo html_writer::div($OUTPUT->render($courseselector), 'd-inline-block mr-4 mb-3');
 }
 
 if (empty($stackquizzes)) {
-    echo $OUTPUT->notification(get_string('nostackquizzes', 'local_stackquizanalytics'), 'notifymessage');
+    echo $OUTPUT->notification(get_string('nostackquizzes', 'local_stackanalytics'), 'notifymessage');
     echo $OUTPUT->footer();
     exit;
 }
@@ -100,29 +100,29 @@ $colorblind = sections_output_helper::resolve_colorblind_mode();
 $anonymize = sections_output_helper::resolve_anonymize_mode();
 echo sections_output_helper::render_options_toggles($colorblind, $anonymize);
 
-$client = new local_stackquizanalytics_quiz_api_client();
+$client = new local_stackanalytics_quiz_api_client();
 
-echo $OUTPUT->heading(get_string('coursewideheading', 'local_stackquizanalytics'), 3, 'main mb-3');
+echo $OUTPUT->heading(get_string('coursewideheading', 'local_stackanalytics'), 3, 'main mb-3');
 
 // Combines every STACK quiz's attempts into one computation — the one
 // path in this plugin whose cost genuinely scales with the whole course
 // rather than a single quiz, so it's the one raising PHP's own execution
 // time limit (see settings.php).
-core_php_time_limit::raise((int) get_config('local_stackquizanalytics', 'computetimelimit'));
+core_php_time_limit::raise((int) get_config('local_stackanalytics', 'computetimelimit'));
 
 // Cheap fingerprint across every STACK quiz in the course at once (the
 // course-wide result depends on all of their attempts together) — the
 // empty-course check below uses this instead of the expensive per-quiz
 // fetch, and $byquiz itself is fetched lazily only on a cache miss.
-$coursestats = local_stackquizanalytics_quiz_cache_helper::stats_for_quizzes($stackquizzes);
+$coursestats = local_stackanalytics_quiz_cache_helper::stats_for_quizzes($stackquizzes);
 if ($coursestats->count === 0) {
-    echo $OUTPUT->notification(get_string('nocourseattempts', 'local_stackquizanalytics'), 'notifymessage');
+    echo $OUTPUT->notification(get_string('nocourseattempts', 'local_stackanalytics'), 'notifymessage');
     echo $OUTPUT->footer();
     exit;
 }
 
 $fetchbyquiz = function () use ($course, $stackquizzes): array {
-    $byquiz = local_stackquizanalytics_quiz_data_fetcher::get_course_response_records($course, $stackquizzes);
+    $byquiz = local_stackanalytics_quiz_data_fetcher::get_course_response_records($course, $stackquizzes);
     return array_filter($byquiz, fn($records) => !empty($records));
 };
 
@@ -130,18 +130,18 @@ $fetchbyquiz = function () use ($course, $stackquizzes): array {
 // GET-reload radio group, same convention as everywhere else in this
 // plugin.
 $gradetypeoptions = [
-    'Highest Grade' => get_string('gradetypehighest', 'local_stackquizanalytics'),
-    \local_stackquizanalytics\quiz\analytics\course_analysis::DEFAULT_GRADE_TYPE
-        => get_string('gradetypeaverage', 'local_stackquizanalytics'),
-    'Minimum Grade' => get_string('gradetypeminimum', 'local_stackquizanalytics'),
+    'Highest Grade' => get_string('gradetypehighest', 'local_stackanalytics'),
+    \local_stackanalytics\quiz\analytics\course_analysis::DEFAULT_GRADE_TYPE
+        => get_string('gradetypeaverage', 'local_stackanalytics'),
+    'Minimum Grade' => get_string('gradetypeminimum', 'local_stackanalytics'),
 ];
 $gradetype = optional_param(
     'gradetype',
-    \local_stackquizanalytics\quiz\analytics\course_analysis::DEFAULT_GRADE_TYPE,
+    \local_stackanalytics\quiz\analytics\course_analysis::DEFAULT_GRADE_TYPE,
     PARAM_RAW
 );
 if (!array_key_exists($gradetype, $gradetypeoptions)) {
-    $gradetype = \local_stackquizanalytics\quiz\analytics\course_analysis::DEFAULT_GRADE_TYPE;
+    $gradetype = \local_stackanalytics\quiz\analytics\course_analysis::DEFAULT_GRADE_TYPE;
 }
 $PAGE->url->param('gradetype', $gradetype);
 
@@ -152,7 +152,7 @@ foreach ($PAGE->url->params() as $name => $value) {
     }
     echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => $name, 'value' => $value]);
 }
-echo html_writer::tag('span', get_string('gradetypelabel', 'local_stackquizanalytics') . ' ');
+echo html_writer::tag('span', get_string('gradetypelabel', 'local_stackanalytics') . ' ');
 foreach ($gradetypeoptions as $value => $label) {
     $radioid = 'qw-gradetype-' . preg_replace('/[^a-z]/', '', strtolower($value));
     echo html_writer::empty_tag('input', array_merge([
@@ -161,12 +161,12 @@ foreach ($gradetypeoptions as $value => $label) {
     echo html_writer::label($label, $radioid, true, ['class' => 'mr-2 ml-1']);
 }
 echo ' ' . html_writer::empty_tag('input', [
-    'type' => 'submit', 'value' => get_string('gobutton', 'local_stackquizanalytics'), 'class' => 'btn btn-secondary btn-sm',
+    'type' => 'submit', 'value' => get_string('gobutton', 'local_stackanalytics'), 'class' => 'btn btn-secondary btn-sm',
 ]);
 echo html_writer::end_tag('form');
 
-$qwcache = cache::make('local_stackquizanalytics', 'quizanalysiscoursewide');
-$qwkey = local_stackquizanalytics_quiz_cache_helper::build_key(
+$qwcache = cache::make('local_stackanalytics', 'quizanalysiscoursewide');
+$qwkey = local_stackanalytics_quiz_cache_helper::build_key(
     $courseid,
     $coursestats->fingerprint,
     $gradetype,
@@ -182,7 +182,7 @@ if ($result === false) {
 }
 
 if ($result === null) {
-    echo $OUTPUT->notification(get_string('servererror', 'local_stackquizanalytics'), 'notifyproblem');
+    echo $OUTPUT->notification(get_string('servererror', 'local_stackanalytics'), 'notifyproblem');
     echo $OUTPUT->footer();
     exit;
 }
@@ -190,12 +190,12 @@ if ($result === null) {
 echo sections_output_helper::render_containers('qw');
 echo sections_output_helper::render_vendor_and_payload('qw', $result);
 
-echo $OUTPUT->heading(get_string('generatepdfheading', 'local_stackquizanalytics'), 3, 'main mt-4 mb-3');
+echo $OUTPUT->heading(get_string('generatepdfheading', 'local_stackanalytics'), 3, 'main mt-4 mb-3');
 echo sections_output_helper::render_pdf_form(
-    new moodle_url('/local/stackquizanalytics/quizanalyticspdf.php'),
+    new moodle_url('/local/stackanalytics/quizanalyticspdf.php'),
     ['id' => $courseid, 'colorblind' => $colorblind ? 1 : 0, 'anonymize' => $anonymize ? 1 : 0],
     $client->report_sections('quiz'),
-    get_string('downloadpdfbutton', 'local_stackquizanalytics'),
+    get_string('downloadpdfbutton', 'local_stackanalytics'),
     'qw-pdf',
     'qw'
 );

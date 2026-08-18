@@ -20,12 +20,12 @@
  * groupby) those modules lean on repeatedly. Deliberately minimal: only what's
  * actually used, not a general-purpose DataFrame reimplementation.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackquizanalytics\quiz\analytics;
+namespace local_stackanalytics\quiz\analytics;
 
 /**
  * Minimal array-of-rows helpers (unique+sort, groupby) standing in for the pandas operations the ported modules need.

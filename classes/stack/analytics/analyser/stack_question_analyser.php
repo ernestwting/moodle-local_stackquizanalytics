@@ -48,14 +48,14 @@
  * carries that meaning (a question added to a category can appear in
  * multiple quizzes/courses; a quiz_slots row cannot).
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackquizanalytics\stack\analytics\analyser;
+namespace local_stackanalytics\stack\analytics\analyser;
 
-use local_stackquizanalytics\stack\local\stack_course_helper;
+use local_stackanalytics\stack\local\stack_course_helper;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -156,7 +156,7 @@ class stack_question_analyser extends \core_analytics\local\analyser\by_course {
         $quizname = $DB->get_field('quiz', 'name', ['id' => $slot->quizid]);
 
         $description = format_string($questionname) . ' (' . format_string($quizname) . ')';
-        $icon = new \pix_icon('i/report', get_string('pluginname', 'local_stackquizanalytics'));
+        $icon = new \pix_icon('i/report', get_string('pluginname', 'local_stackanalytics'));
 
         return [$description, $icon];
     }

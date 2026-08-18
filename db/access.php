@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Capabilities for local_stackquizanalytics.
+ * Capabilities for local_stackanalytics.
  *
  * One capability for the whole merged plugin — both source plugins
  * (local_quizanalytics's local/quizanalytics:view, local_stackanalytics's
@@ -24,7 +24,7 @@
  * exact same archetypes, so merging them into one check is a like-for-like
  * simplification, not a scope change.
  *
- * @package    local_stackquizanalytics
+ * @package    local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -33,7 +33,7 @@ defined('MOODLE_INTERNAL') || die();
 
 $capabilities = [
 
-    'local/stackquizanalytics:view' => [
+    'local/stackanalytics:view' => [
         'riskbitmask'  => RISK_PERSONAL, // Shows individual students' response data, grades, and
                                           // behavioral indicators across the whole course.
         'captype'      => 'read',

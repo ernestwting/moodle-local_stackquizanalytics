@@ -31,12 +31,12 @@
  * Analytics) but are built directly from $result['summary']-equivalent
  * data and $result['questions'] respectively — see pdf_content.php.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackquizanalytics\quiz\analytics;
+namespace local_stackanalytics\quiz\analytics;
 
 /**
  * Checkbox id <-> lang-string-key maps for the "which sections to include" PDF export forms.
@@ -44,7 +44,7 @@ namespace local_stackquizanalytics\quiz\analytics;
  * The array keys are the stable section ids posted back as each checkbox's
  * `value` (see sections_output_helper::render_pdf_form()) — never shown to
  * the user and never translated. The array values are lang string keys in
- * lang/en/local_stackquizanalytics.php, resolved through get_string() to build
+ * lang/en/local_stackanalytics.php, resolved through get_string() to build
  * the localized checkbox label the user actually sees.
  */
 class pdf_sections {
@@ -108,7 +108,7 @@ class pdf_sections {
     public static function labels(string $kind): array {
         $labels = [];
         foreach (self::map_for($kind) as $id => $stringkey) {
-            $labels[$id] = get_string($stringkey, 'local_stackquizanalytics');
+            $labels[$id] = get_string($stringkey, 'local_stackanalytics');
         }
         return $labels;
     }

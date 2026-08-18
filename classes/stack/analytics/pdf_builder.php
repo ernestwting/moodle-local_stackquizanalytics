@@ -20,12 +20,12 @@
  * docblock). Landscape A4: Model 1/2 tables run to seven columns
  * (name + status + 4-5 indicators), which portrait width can't hold legibly.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackquizanalytics\stack\analytics;
+namespace local_stackanalytics\stack\analytics;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -45,9 +45,9 @@ class pdf_builder {
      */
     public static function build(string $coursename, array $sections): string {
         $pdf = new stack_pdf('L', 'mm', 'A4', true, 'UTF-8');
-        $pdf->SetCreator('local_stackquizanalytics');
+        $pdf->SetCreator('local_stackanalytics');
         $pdf->SetAuthor('STACK Analytics Dashboard');
-        $pdf->SetTitle($coursename . ' - ' . get_string('dashboardtitle', 'local_stackquizanalytics'));
+        $pdf->SetTitle($coursename . ' - ' . get_string('dashboardtitle', 'local_stackanalytics'));
         $pdf->setPrintHeader(true);
         $pdf->setPrintFooter(true);
         $pdf->SetMargins(12, 20, 12);
@@ -59,7 +59,7 @@ class pdf_builder {
 
         $pdf->SetFont('freesans', 'B', 16);
         $pdf->SetTextColor(0x1e, 0x3c, 0x72);
-        $pdf->MultiCell(0, 8, $coursename . ' — ' . get_string('dashboardtitle', 'local_stackquizanalytics'), 0, 'L');
+        $pdf->MultiCell(0, 8, $coursename . ' — ' . get_string('dashboardtitle', 'local_stackanalytics'), 0, 'L');
         $pdf->Ln(4);
 
         foreach ($sections as $i => $section) {
@@ -97,7 +97,7 @@ class pdf_builder {
         if (empty($section['rows'])) {
             $pdf->SetFont('freesans', 'I', 9);
             $pdf->SetTextColor(0x64, 0x74, 0x8b);
-            $pdf->MultiCell(0, 5, get_string('pdfnorows', 'local_stackquizanalytics'), 0, 'L');
+            $pdf->MultiCell(0, 5, get_string('pdfnorows', 'local_stackanalytics'), 0, 'L');
             $pdf->Ln(5);
             return;
         }
@@ -107,7 +107,7 @@ class pdf_builder {
         if ($section['truncated']) {
             $pdf->SetFont('freesans', 'I', 8);
             $pdf->SetTextColor(0x64, 0x74, 0x8b);
-            $pdf->MultiCell(0, 5, get_string('truncatednotice', 'local_stackquizanalytics', (object) [
+            $pdf->MultiCell(0, 5, get_string('truncatednotice', 'local_stackanalytics', (object) [
                 'shown' => $section['shown'],
                 'total' => $section['total'],
             ]), 0, 'L');

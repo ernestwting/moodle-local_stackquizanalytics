@@ -22,19 +22,19 @@
  * compute_for_sample() readings — see model1_report.php's docblock for why
  * these are direct reads rather than trained-model predictions.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackquizanalytics\stack\analytics\report;
+namespace local_stackanalytics\stack\analytics\report;
 
-use local_stackquizanalytics\stack\local\stack_course_helper;
-use local_stackquizanalytics\stack\analytics\target\question_needs_review;
-use local_stackquizanalytics\stack\analytics\indicator\question_difficulty_irt;
-use local_stackquizanalytics\stack\analytics\indicator\syntax_error_rate;
-use local_stackquizanalytics\stack\analytics\indicator\unreached_node_ratio;
-use local_stackquizanalytics\stack\analytics\indicator\feedback_ineffectiveness;
+use local_stackanalytics\stack\local\stack_course_helper;
+use local_stackanalytics\stack\analytics\target\question_needs_review;
+use local_stackanalytics\stack\analytics\indicator\question_difficulty_irt;
+use local_stackanalytics\stack\analytics\indicator\syntax_error_rate;
+use local_stackanalytics\stack\analytics\indicator\unreached_node_ratio;
+use local_stackanalytics\stack\analytics\indicator\feedback_ineffectiveness;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -87,8 +87,8 @@ class model2_report {
         foreach ($slots as $slot) {
             $rows[] = (object) [
                 'slotid' => (int) $slot->id,
-                'questionname' => $questionnames[$slot->questionid] ?? get_string('unknownquestion', 'local_stackquizanalytics'),
-                'quizname' => $quiznames[$slot->quizid] ?? get_string('unknownquiz', 'local_stackquizanalytics'),
+                'questionname' => $questionnames[$slot->questionid] ?? get_string('unknownquestion', 'local_stackanalytics'),
+                'quizname' => $quiznames[$slot->quizid] ?? get_string('unknownquiz', 'local_stackanalytics'),
                 'attemptcount' => stack_course_helper::get_attempt_count((int) $slot->quizid, (int) $slot->questionbankentryid),
                 'needsreview' => question_needs_review::compute_for_sample((int) $slot->id),
                 'indicators' => [

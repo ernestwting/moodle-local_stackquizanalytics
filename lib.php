@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Library functions for local_stackquizanalytics.
+ * Library functions for local_stackanalytics.
  *
  * HOW THIS GETS THE "Analytics" TAB ONTO THE SECONDARY NAV BAR
  * -------------------------------------------------------------
@@ -25,7 +25,7 @@
  *   1. public/lib/classes/navigation/settings_navigation.php calls
  *      get_plugins_with_function('extend_navigation_course', 'lib.php') for
  *      every installed plugin, so a lib.php function named exactly
- *      local_stackquizanalytics_extend_navigation_course($navigation,
+ *      local_stackanalytics_extend_navigation_course($navigation,
  *      $course, $context) gets called automatically with $navigation set to
  *      the course's "courseadmin" node.
  *
@@ -39,7 +39,7 @@
  * click away from every other section
  * (classes/section_selector.php::SECTION_PAGES).
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -55,14 +55,14 @@ defined('MOODLE_INTERNAL') || die();
  * @param stdClass $course
  * @param context_course $context
  */
-function local_stackquizanalytics_extend_navigation_course($navigation, $course, $context) {
+function local_stackanalytics_extend_navigation_course($navigation, $course, $context) {
     global $CFG;
 
-    if (!has_capability('local/stackquizanalytics:view', $context)) {
+    if (!has_capability('local/stackanalytics:view', $context)) {
         return;
     }
 
-    require_once($CFG->dirroot . '/local/stackquizanalytics/classes/quiz/data_fetcher.php');
+    require_once($CFG->dirroot . '/local/stackanalytics/classes/quiz/data_fetcher.php');
 
     // The one genuinely expensive-ish check here: does this course have any
     // STACK quiz at all? Gate on it so the tab never clutters courses that
@@ -70,17 +70,17 @@ function local_stackquizanalytics_extend_navigation_course($navigation, $course,
     // plugins' own "does this course have STACK content" checks resolve to
     // the same underlying quiz_slots-joined-to-a-STACK-question query, so
     // one gate covers both sections.
-    if (!local_stackquizanalytics_quiz_data_fetcher::course_has_stack_quiz($course->id)) {
+    if (!local_stackanalytics_quiz_data_fetcher::course_has_stack_quiz($course->id)) {
         return;
     }
 
-    $url = new moodle_url('/local/stackquizanalytics/index.php', ['id' => $course->id]);
+    $url = new moodle_url('/local/stackanalytics/index.php', ['id' => $course->id]);
     $navigation->add(
-        get_string('pluginname', 'local_stackquizanalytics'),
+        get_string('pluginname', 'local_stackanalytics'),
         $url,
         navigation_node::TYPE_SETTING,
         null,
-        'stackquizanalyticscourse',
+        'stackanalyticscourse',
         new pix_icon('i/report', '')
     );
 }
@@ -109,7 +109,7 @@ function local_stackquizanalytics_extend_navigation_course($navigation, $course,
  * @param \settings_navigation $settingsnav
  * @param \context $context the current page's context
  */
-function local_stackquizanalytics_extend_settings_navigation($settingsnav, $context) {
+function local_stackanalytics_extend_settings_navigation($settingsnav, $context) {
     global $CFG;
 
     if ($context->contextlevel != CONTEXT_MODULE) {
@@ -122,16 +122,16 @@ function local_stackquizanalytics_extend_settings_navigation($settingsnav, $cont
     }
 
     $coursecontext = context_course::instance($cm->course);
-    if (!has_capability('local/stackquizanalytics:view', $coursecontext)) {
+    if (!has_capability('local/stackanalytics:view', $coursecontext)) {
         return;
     }
 
-    require_once($CFG->dirroot . '/local/stackquizanalytics/classes/quiz/data_fetcher.php');
-    if (!local_stackquizanalytics_quiz_data_fetcher::quiz_has_stack_question($cm->instance)) {
+    require_once($CFG->dirroot . '/local/stackanalytics/classes/quiz/data_fetcher.php');
+    if (!local_stackanalytics_quiz_data_fetcher::quiz_has_stack_question($cm->instance)) {
         return;
     }
 
-    $url = new moodle_url('/local/stackquizanalytics/questionanalytics.php', [
+    $url = new moodle_url('/local/stackanalytics/questionanalytics.php', [
         'id'     => $cm->course,
         'quizid' => $cm->instance,
     ]);
@@ -139,11 +139,11 @@ function local_stackquizanalytics_extend_settings_navigation($settingsnav, $cont
     $modulenode = $settingsnav->find('modulesettings', navigation_node::TYPE_SETTING);
     $parent = $modulenode ?: $settingsnav;
     $parent->add(
-        get_string('pluginname', 'local_stackquizanalytics'),
+        get_string('pluginname', 'local_stackanalytics'),
         $url,
         navigation_node::TYPE_SETTING,
         null,
-        'stackquizanalyticsquiz',
+        'stackanalyticsquiz',
         new pix_icon('i/report', '')
     );
 }

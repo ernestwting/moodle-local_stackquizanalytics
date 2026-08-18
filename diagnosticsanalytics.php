@@ -27,44 +27,44 @@
  *
  * Reached from the "Section:" selector at the top of every page in this
  * plugin, or directly via
- * /local/stackquizanalytics/diagnosticsanalytics.php?id=<courseid>.
+ * /local/stackanalytics/diagnosticsanalytics.php?id=<courseid>.
  *
- * @package local_stackquizanalytics
+ * @package local_stackanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_once(__DIR__ . '/../../config.php');
-require_once($CFG->dirroot . '/local/stackquizanalytics/classes/section_selector.php');
+require_once($CFG->dirroot . '/local/stackanalytics/classes/section_selector.php');
 
-use local_stackquizanalytics\stack\local\stack_course_helper;
-use local_stackquizanalytics\stack\diagnostics\concept_dependency_report;
-use local_stackquizanalytics\stack\analytics\report\diagnostics_report;
-use local_stackquizanalytics\stack\output\dashboard_renderer;
+use local_stackanalytics\stack\local\stack_course_helper;
+use local_stackanalytics\stack\diagnostics\concept_dependency_report;
+use local_stackanalytics\stack\analytics\report\diagnostics_report;
+use local_stackanalytics\stack\output\dashboard_renderer;
 
 $courseid = required_param('id', PARAM_INT);
 $course = $DB->get_record('course', ['id' => $courseid], '*', MUST_EXIST);
 
 require_login($course);
 $context = context_course::instance($course->id);
-require_capability('local/stackquizanalytics:view', $context);
+require_capability('local/stackanalytics:view', $context);
 
-$PAGE->set_url('/local/stackquizanalytics/diagnosticsanalytics.php', ['id' => $courseid]);
+$PAGE->set_url('/local/stackanalytics/diagnosticsanalytics.php', ['id' => $courseid]);
 $PAGE->set_pagelayout('report');
 $PAGE->set_context($context);
-$PAGE->set_title($course->shortname . ': ' . get_string('dashboardtitle', 'local_stackquizanalytics'));
+$PAGE->set_title($course->shortname . ': ' . get_string('dashboardtitle', 'local_stackanalytics'));
 $PAGE->set_heading($course->fullname);
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('pagemaintitle', 'local_stackquizanalytics'));
-echo local_stackquizanalytics_section_selector::render($courseid, 'diagnostics');
+echo $OUTPUT->heading(get_string('pagemaintitle', 'local_stackanalytics'));
+echo local_stackanalytics_section_selector::render($courseid, 'diagnostics');
 
 // Collapsed by default (native <details>, no JS needed) — mirrors the same
 // top-of-page intro box every other section shows.
 echo html_writer::tag(
     'details',
-    html_writer::tag('summary', get_string('diagnosticspageintrosummary', 'local_stackquizanalytics'))
-        . html_writer::div(get_string('diagnosticspageintro', 'local_stackquizanalytics'), 'mt-2'),
+    html_writer::tag('summary', get_string('diagnosticspageintrosummary', 'local_stackanalytics'))
+        . html_writer::div(get_string('diagnosticspageintro', 'local_stackanalytics'), 'mt-2'),
     ['class' => 'alert alert-info']
 );
 
@@ -75,28 +75,28 @@ if (count($viewablecourses) > 1) {
         $courseoptions[$viewablecourse->id] = format_string($viewablecourse->fullname);
     }
     $courseselector = new single_select(
-        new moodle_url('/local/stackquizanalytics/diagnosticsanalytics.php'),
+        new moodle_url('/local/stackanalytics/diagnosticsanalytics.php'),
         'id',
         $courseoptions,
         $courseid,
         null
     );
-    $courseselector->label = get_string('courseselectorlabel', 'local_stackquizanalytics');
+    $courseselector->label = get_string('courseselectorlabel', 'local_stackanalytics');
     echo html_writer::div($OUTPUT->render($courseselector), 'd-inline-block mr-4 mb-3');
 }
 
 $slots = stack_course_helper::get_course_stack_slots($courseid);
 
 if (empty($slots)) {
-    echo $OUTPUT->notification(get_string('errornostackactivity', 'local_stackquizanalytics'), 'notifymessage');
+    echo $OUTPUT->notification(get_string('errornostackactivity', 'local_stackanalytics'), 'notifymessage');
     echo $OUTPUT->footer();
     exit;
 }
 
 echo html_writer::tag(
     'details',
-    html_writer::tag('summary', get_string('responsibleusesummary', 'local_stackquizanalytics'))
-        . html_writer::div(get_string('responsibleusecallout', 'local_stackquizanalytics'), 'mt-2'),
+    html_writer::tag('summary', get_string('responsibleusesummary', 'local_stackanalytics'))
+        . html_writer::div(get_string('responsibleusecallout', 'local_stackanalytics'), 'mt-2'),
     ['class' => 'alert alert-warning mt-2']
 );
 
@@ -108,10 +108,10 @@ $quizid = optional_param('quizid', 0, PARAM_INT);
 // separate on/off switch per page.
 $anonymizeparam = optional_param('anonymize', null, PARAM_INT);
 if ($anonymizeparam !== null) {
-    set_user_preference('local_stackquizanalytics_anonymize', (bool) $anonymizeparam);
+    set_user_preference('local_stackanalytics_anonymize', (bool) $anonymizeparam);
     $anonymize = (bool) $anonymizeparam;
 } else {
-    $anonymize = (bool) get_user_preferences('local_stackquizanalytics_anonymize', false);
+    $anonymize = (bool) get_user_preferences('local_stackanalytics_anonymize', false);
 }
 
 $quiznames = $DB->get_records_menu('quiz', ['course' => $courseid], '', 'id, name');
@@ -125,39 +125,39 @@ if (count($slotsperquiz) > 1) {
     // than a bare, unfamiliar-looking name.
     $quizoptions = [];
     foreach ($slotsperquiz as $slotquizid => $questioncount) {
-        $quizname = format_string($quiznames[$slotquizid] ?? get_string('unknownquiz', 'local_stackquizanalytics'));
-        $quizoptions[$slotquizid] = get_string('quizoptionlabel', 'local_stackquizanalytics', (object) [
+        $quizname = format_string($quiznames[$slotquizid] ?? get_string('unknownquiz', 'local_stackanalytics'));
+        $quizoptions[$slotquizid] = get_string('quizoptionlabel', 'local_stackanalytics', (object) [
             'name' => $quizname,
             'count' => $questioncount,
         ]);
     }
     asort($quizoptions);
     $quizselector = new single_select(
-        new moodle_url('/local/stackquizanalytics/diagnosticsanalytics.php', ['id' => $courseid]),
+        new moodle_url('/local/stackanalytics/diagnosticsanalytics.php', ['id' => $courseid]),
         'quizid',
         $quizoptions,
         $quizid,
-        [0 => get_string('allquizzes', 'local_stackquizanalytics')]
+        [0 => get_string('allquizzes', 'local_stackanalytics')]
     );
-    $quizselector->label = get_string('quizselectorlabel', 'local_stackquizanalytics');
+    $quizselector->label = get_string('quizselectorlabel', 'local_stackanalytics');
     echo html_writer::div($OUTPUT->render($quizselector), 'd-inline-block mb-3');
 } else {
     $quizid = 0; // Only one quiz in this course — nothing to filter.
 }
 
-echo $OUTPUT->heading(get_string('diagnosticsheading', 'local_stackquizanalytics'), 3);
+echo $OUTPUT->heading(get_string('diagnosticsheading', 'local_stackanalytics'), 3);
 
-$diagnosticsintrobody = html_writer::tag('p', get_string('diagnosticsintro', 'local_stackquizanalytics'));
+$diagnosticsintrobody = html_writer::tag('p', get_string('diagnosticsintro', 'local_stackanalytics'));
 if (!concept_dependency_report::is_available()) {
     $diagnosticsintrobody .= html_writer::tag(
         'p',
-        get_string('conceptdependencynote', 'local_stackquizanalytics'),
+        get_string('conceptdependencynote', 'local_stackanalytics'),
         ['class' => 'text-muted small mb-0']
     );
 }
 echo html_writer::tag(
     'details',
-    html_writer::tag('summary', get_string('diagnosticsintrosummary', 'local_stackquizanalytics'))
+    html_writer::tag('summary', get_string('diagnosticsintrosummary', 'local_stackanalytics'))
         . html_writer::div($diagnosticsintrobody, 'mt-2'),
     ['class' => 'mb-3']
 );
@@ -165,7 +165,7 @@ echo html_writer::tag(
 echo dashboard_renderer::render_diagnostics_section(diagnostics_report::build($courseid, $quizid !== 0 ? $quizid : null));
 
 echo dashboard_renderer::render_pdf_form(
-    new moodle_url('/local/stackquizanalytics/diagnosticsanalyticspdf.php'),
+    new moodle_url('/local/stackanalytics/diagnosticsanalyticspdf.php'),
     $courseid,
     $quizid !== 0 ? $quizid : null,
     $anonymize,
