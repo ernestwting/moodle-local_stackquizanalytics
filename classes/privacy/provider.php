@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Privacy provider for local_stackanalytics, covering both merged
+ * Privacy provider for local_quizanalytics, covering both merged
  * sections — this plugin stores no personal data of its own.
  *
  * Quiz Analytics (classes/quiz/) reads every quiz attempt, question
@@ -44,12 +44,12 @@
  * which queries the analytics_* tables directly with no per-component
  * branching.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackanalytics\privacy;
+namespace local_quizanalytics\privacy;
 
 /**
  * This plugin stores no personal data of its own — see get_reason() and the

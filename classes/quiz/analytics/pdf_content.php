@@ -35,12 +35,12 @@
  * already-rendered on-screen chart via Plotly.toImage(), never
  * re-rasterized server-side) by that id.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackanalytics\quiz\analytics;
+namespace local_quizanalytics\quiz\analytics;
 
 /**
  * Re-derives each PDF kind's section content server-side from the teacher's checkbox selections.
@@ -65,7 +65,7 @@ class pdf_content {
         $selectedids = pdf_sections::selected_ids('question', $selectedsectionids);
         if (empty($selectedids)) {
             return [
-                'title' => get_string('pdftitlequestion', 'local_stackanalytics', $quizname),
+                'title' => get_string('pdftitlequestion', 'local_quizanalytics', $quizname),
                 'subtitle' => '',
                 'sections' => [],
             ];
@@ -88,8 +88,8 @@ class pdf_content {
                     'syntax_error_count' => $r['syntax_error_count'],
                 ], $qmetrics);
                 $sections[] = [
-                    'title' => get_string('pdfsectionsummary', 'local_stackanalytics'),
-                    'caption' => get_string('pdfsectionsummarycaption', 'local_stackanalytics'),
+                    'title' => get_string('pdfsectionsummary', 'local_quizanalytics'),
+                    'caption' => get_string('pdfsectionsummarycaption', 'local_quizanalytics'),
                     'table' => table_helpers::to_table($rows),
                     'charts' => [],
                 ];
@@ -104,7 +104,7 @@ class pdf_content {
                     $firstquestion = $result['questions'][array_key_first($result['questions'])];
                     $table = [
                         'columns' => array_merge(
-                            [get_string('selectquestion', 'local_stackanalytics')],
+                            [get_string('selectquestion', 'local_quizanalytics')],
                             $firstquestion['error_drilldown']['columns']
                         ),
                         'rows' => $rows,
@@ -113,8 +113,8 @@ class pdf_content {
                     $table = ['columns' => [], 'rows' => []];
                 }
                 $sections[] = [
-                    'title' => get_string('pdfsectionquestiondetails', 'local_stackanalytics'),
-                    'caption' => get_string('pdfsectionquestiondetailscaption', 'local_stackanalytics'),
+                    'title' => get_string('pdfsectionquestiondetails', 'local_quizanalytics'),
+                    'caption' => get_string('pdfsectionquestiondetailscaption', 'local_quizanalytics'),
                     'table' => $table,
                     'charts' => [],
                 ];
@@ -124,7 +124,7 @@ class pdf_content {
         }
 
         return [
-            'title' => get_string('pdftitlequestion', 'local_stackanalytics', $quizname),
+            'title' => get_string('pdftitlequestion', 'local_quizanalytics', $quizname),
             'subtitle' => self::format_summary_subtitle($result['summary']),
             'sections' => $sections,
         ];
@@ -148,7 +148,7 @@ class pdf_content {
         $selectedids = pdf_sections::selected_ids('solutionprocess', $selectedsectionids);
         if (empty($selectedids)) {
             return [
-                'title' => get_string('pdftitlesolutionprocess', 'local_stackanalytics', $quizname),
+                'title' => get_string('pdftitlesolutionprocess', 'local_quizanalytics', $quizname),
                 'subtitle' => '',
                 'sections' => [],
             ];
@@ -176,8 +176,8 @@ class pdf_content {
         }
 
         return [
-            'title' => get_string('pdftitlesolutionprocess', 'local_stackanalytics', $quizname),
-            'subtitle' => get_string('pdfsolutionprocesssubtitle', 'local_stackanalytics', (object) [
+            'title' => get_string('pdftitlesolutionprocess', 'local_quizanalytics', $quizname),
+            'subtitle' => get_string('pdfsolutionprocesssubtitle', 'local_quizanalytics', (object) [
                 'question' => $question,
                 'part' => $result['part_index'],
             ]),
@@ -202,7 +202,7 @@ class pdf_content {
         $selectedids = pdf_sections::selected_ids('quiz', $selectedsectionids);
         if (empty($selectedids)) {
             return [
-                'title' => get_string('pdftitlequiz', 'local_stackanalytics', $coursename),
+                'title' => get_string('pdftitlequiz', 'local_quizanalytics', $coursename),
                 'subtitle' => '',
                 'sections' => [],
             ];
@@ -230,8 +230,8 @@ class pdf_content {
         }
 
         return [
-            'title' => get_string('pdftitlequiz', 'local_stackanalytics', $coursename),
-            'subtitle' => get_string('pdfquizsubtitle', 'local_stackanalytics'),
+            'title' => get_string('pdftitlequiz', 'local_quizanalytics', $coursename),
+            'subtitle' => get_string('pdfquizsubtitle', 'local_quizanalytics'),
             'sections' => $sections,
         ];
     }

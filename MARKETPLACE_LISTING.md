@@ -9,7 +9,13 @@ STACK Quiz & Model Analytics
 
 ## Component / Frankenstyle name
 
-`local_stackanalytics`
+`local_quizanalytics`
+
+(Matches plugin id 3995 on the Marketplace — https://marketplace.moodle.com/plugins/3995
+— the listing this replaces. That listing's current display title reads
+"STACK Analytics" rather than "STACK Quiz & Model Analytics" below; worth
+reconciling manually when submitting, since that's a listing-level field
+this doc can't confirm gets overwritten by a version upload alone.)
 
 ## Short description (1–2 sentences)
 
@@ -70,6 +76,21 @@ computation runs in-process in plain PHP, and nothing ever leaves the
 Moodle server.
 
 Requires `qtype_stack` (the STACK question type) to have anything to show.
+
+## Release notes (v2.3.0)
+
+Copy-paste source for the "Plugin versions" tab (Edit plugin page →
+Versions) when uploading this release.
+
+Renamed the plugin's frankenstyle component to `local_quizanalytics` — the
+Marketplace upload was rejected twice with "the frankenstyle component
+name in the uploaded plugin does not match," first because the component
+had stayed at the merge's own working name, then because a first attempt
+at fixing this guessed the wrong target (`local_stackanalytics`) before
+confirming which existing listing (id 3995) this upload actually targets.
+No functional or UI changes in this release — purely an internal rename
+(namespaces, capability, class/function prefixes, lang file, asset paths)
+so the plugin uploads correctly as a new version of that listing.
 
 ## Release notes (v2.1.0)
 
@@ -155,23 +176,30 @@ if not.
 
 ## Repository
 
-https://github.com/ernestwting/moodle-local_stackquizanalytics
+https://github.com/ernestwting/moodle-local_stackanalytics
 
-<!-- TODO before submitting: rename this GitHub repo to
-     moodle-local_stackanalytics to match the plugin's renamed frankenstyle
-     component (see CHANGELOG.md's rename entry), then update this URL and
-     the two below. -->
+<!-- TODO before submitting: this repo is currently named
+     moodle-local_stackanalytics on GitHub (renamed once already this
+     session), but the plugin's frankenstyle component is now
+     local_quizanalytics (see CHANGELOG.md's rename entries) — they no
+     longer match. Renaming the repo again to moodle-local_quizanalytics
+     is blocked: that name is already taken by the original, separate
+     standalone local_quizanalytics plugin's own repo
+     (~/Desktop/moodle-local_quizanalytics on this machine). Resolve that
+     collision first (e.g. archive/rename the old standalone repo, since
+     this plugin replaces its Marketplace listing anyway) before renaming
+     this one to match and updating this URL and the two below. -->
 
 ## Issue tracker
 
-https://github.com/ernestwting/moodle-local_stackquizanalytics/issues
+https://github.com/ernestwting/moodle-local_stackanalytics/issues
 
 (Required field — confirm GitHub Issues is enabled for the repo:
 Settings → General → Features → Issues, on github.com.)
 
 ## Documentation
 
-https://github.com/ernestwting/moodle-local_stackquizanalytics#readme
+https://github.com/ernestwting/moodle-local_stackanalytics#readme
 
 ## License
 

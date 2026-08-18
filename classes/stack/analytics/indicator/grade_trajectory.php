@@ -20,15 +20,15 @@
  * Architecture doc §2.2(a): rolling average of STACK question grades within
  * the time-split window, normalized via 2 * (mean_grade / max_grade) - 1.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackanalytics\stack\analytics\indicator;
+namespace local_quizanalytics\stack\analytics\indicator;
 
-use local_stackanalytics\stack\local\stack_attempt_reader;
-use local_stackanalytics\stack\local\stack_course_helper;
+use local_quizanalytics\stack\local\stack_attempt_reader;
+use local_quizanalytics\stack\local\stack_course_helper;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -42,7 +42,7 @@ class grade_trajectory extends \core_analytics\local\indicator\linear {
      * @return \lang_string
      */
     public static function get_name(): \lang_string {
-        return new \lang_string('indicator:gradetrajectory', 'local_stackanalytics');
+        return new \lang_string('indicator:gradetrajectory', 'local_quizanalytics');
     }
 
     /**

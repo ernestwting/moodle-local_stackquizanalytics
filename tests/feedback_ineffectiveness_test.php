@@ -14,16 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace local_stackanalytics;
+namespace local_quizanalytics;
 
-use local_stackanalytics\stack\analytics\indicator\feedback_ineffectiveness;
+use local_quizanalytics\stack\analytics\indicator\feedback_ineffectiveness;
 
 defined('MOODLE_INTERNAL') || die();
 
 /**
  * Unit tests for feedback_ineffectiveness's pure log-odds math.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */

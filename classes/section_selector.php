@@ -31,7 +31,7 @@
  * — this belongs to neither product specifically, only to the merged
  * plugin's own top-level page structure.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -41,7 +41,7 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * Renders the "Section:" selector shown at the top of every section's own page.
  */
-class local_stackanalytics_section_selector {
+class local_quizanalytics_section_selector {
     /** @var array<string, string> section key => page-level entry point, relative to this plugin's own root. */
     const SECTION_PAGES = [
         'quiz' => 'index.php',
@@ -59,10 +59,10 @@ class local_stackanalytics_section_selector {
      */
     public static function render(int $courseid, string $current): string {
         $options = [
-            'quiz' => get_string('sectionquiz', 'local_stackanalytics'),
-            'question' => get_string('sectionquestion', 'local_stackanalytics'),
-            'models' => get_string('sectionmodels', 'local_stackanalytics'),
-            'diagnostics' => get_string('sectiondiagnostics', 'local_stackanalytics'),
+            'quiz' => get_string('sectionquiz', 'local_quizanalytics'),
+            'question' => get_string('sectionquestion', 'local_quizanalytics'),
+            'models' => get_string('sectionmodels', 'local_quizanalytics'),
+            'diagnostics' => get_string('sectiondiagnostics', 'local_quizanalytics'),
         ];
 
         // Rendered as plain links rather than a form+select — there's no
@@ -72,7 +72,7 @@ class local_stackanalytics_section_selector {
         // choice here.
         $links = [];
         foreach ($options as $section => $label) {
-            $url = new \moodle_url('/local/stackanalytics/' . self::SECTION_PAGES[$section], ['id' => $courseid]);
+            $url = new \moodle_url('/local/quizanalytics/' . self::SECTION_PAGES[$section], ['id' => $courseid]);
             if ($section === $current) {
                 $links[] = \html_writer::tag('strong', $label);
             } else {
@@ -82,7 +82,7 @@ class local_stackanalytics_section_selector {
 
         return \html_writer::tag(
             'p',
-            \html_writer::tag('span', get_string('sectionselectorlabel', 'local_stackanalytics'), ['class' => 'mr-2'])
+            \html_writer::tag('span', get_string('sectionselectorlabel', 'local_quizanalytics'), ['class' => 'mr-2'])
                 . implode(' · ', $links),
             ['class' => 'mb-3']
         );

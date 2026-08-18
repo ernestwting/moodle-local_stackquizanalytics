@@ -20,12 +20,12 @@
  * /solution-process/meta) and app.py::solution_process() (POST
  * /solution-process) routes.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackanalytics\quiz\analytics;
+namespace local_quizanalytics\quiz\analytics;
 
 /**
  * Assembles the Solution Process Visualization {summary, sections} payload for one question/part.

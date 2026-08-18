@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace local_stackanalytics;
+namespace local_quizanalytics;
 
-use local_stackanalytics\stack\analytics\target\student_at_risk;
+use local_quizanalytics\stack\analytics\target\student_at_risk;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -44,7 +44,7 @@ defined('MOODLE_INTERNAL') || die();
  * object — so this exercises the exact same qtype_stack join
  * stack_course_helper uses in production.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -71,7 +71,7 @@ final class student_at_risk_test extends \advanced_testcase {
         $target = new student_at_risk();
 
         $this->assertEquals(
-            get_string('errornostackactivity', 'local_stackanalytics'),
+            get_string('errornostackactivity', 'local_quizanalytics'),
             $target->is_valid_analysable($analysable)
         );
     }

@@ -17,12 +17,12 @@
 /**
  * PHP port of analytics-service/analytics/difficulty.py.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackanalytics\quiz\analytics;
+namespace local_quizanalytics\quiz\analytics;
 
 /**
  * Difficulty, marks statistics, and top/bottom-group discrimination index per question.

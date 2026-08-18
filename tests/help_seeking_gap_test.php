@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace local_stackanalytics;
+namespace local_quizanalytics;
 
-use local_stackanalytics\stack\analytics\indicator\help_seeking_gap;
+use local_quizanalytics\stack\analytics\indicator\help_seeking_gap;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -24,7 +24,7 @@ defined('MOODLE_INTERNAL') || die();
  * Unit tests for the help_seeking_gap indicator's pure conditional-rate and
  * normalization math.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */

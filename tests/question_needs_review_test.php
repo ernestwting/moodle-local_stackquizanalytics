@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace local_stackanalytics;
+namespace local_quizanalytics;
 
-use local_stackanalytics\stack\analytics\target\question_needs_review;
+use local_quizanalytics\stack\analytics\target\question_needs_review;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -35,7 +35,7 @@ defined('MOODLE_INTERNAL') || die();
  * from, left for a future pass rather than risking an unverified attempt
  * simulation here.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -48,7 +48,7 @@ final class question_needs_review_test extends \advanced_testcase {
         $target = new question_needs_review();
 
         $this->assertEquals(
-            get_string('errornostackactivity', 'local_stackanalytics'),
+            get_string('errornostackactivity', 'local_quizanalytics'),
             $target->is_valid_analysable($analysable)
         );
     }
@@ -76,7 +76,7 @@ final class question_needs_review_test extends \advanced_testcase {
     public function test_analyser_class(): void {
         $target = new question_needs_review();
         $this->assertEquals(
-            '\local_stackanalytics\stack\analytics\analyser\stack_question_analyser',
+            '\local_quizanalytics\stack\analytics\analyser\stack_question_analyser',
             $target->get_analyser_class()
         );
     }

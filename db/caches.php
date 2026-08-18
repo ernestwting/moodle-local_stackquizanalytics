@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * MUC cache area definitions for the Quiz Analytics half of local_stackanalytics.
+ * MUC cache area definitions for the Quiz Analytics half of local_quizanalytics.
  *
  * Every area is keyed on a cheap SQL fingerprint of the underlying attempts
  * (see classes/quiz/cache_helper.php), not a fixed TTL alone: a cache entry
@@ -29,7 +29,7 @@
  * simpledata: false, since every area stores a decoded JSON array (the
  * {summary, sections, ...} API response), not a scalar.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */

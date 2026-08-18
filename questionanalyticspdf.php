@@ -20,7 +20,7 @@
  * (?kind=question|solutionprocess&quizid=...).
  *
  * A separate entry point from questionanalytics.php, gated by the same
- * local/stackanalytics:view capability that governs everything else
+ * local/quizanalytics:view capability that governs everything else
  * shown on that page. Re-derives every quiz/course/record from trusted
  * server-side data (course id, quiz id, selection, and section choices) —
  * the one piece of client-posted content this route does use,
@@ -33,15 +33,15 @@
  * per-quiz drill-down — the course-wide ?kind=quiz report this file used
  * to also handle moved to its own quizanalyticspdf.php.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_once(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/filelib.php'); // Send_file() lives here, not autoloaded for a lean entry point like this.
-require_once($CFG->dirroot . '/local/stackanalytics/classes/quiz/data_fetcher.php');
-require_once($CFG->dirroot . '/local/stackanalytics/classes/quiz/api_client.php');
+require_once($CFG->dirroot . '/local/quizanalytics/classes/quiz/data_fetcher.php');
+require_once($CFG->dirroot . '/local/quizanalytics/classes/quiz/api_client.php');
 
 $courseid = required_param('id', PARAM_INT);
 $kind     = required_param('kind', PARAM_ALPHA); // Expected: question or solutionprocess.
@@ -50,13 +50,13 @@ $quizid   = required_param('quizid', PARAM_INT);
 $course = $DB->get_record('course', ['id' => $courseid], '*', MUST_EXIST);
 require_login($course);
 $context = context_course::instance($course->id);
-require_capability('local/stackanalytics:view', $context);
+require_capability('local/quizanalytics:view', $context);
 
 // PDF generation redoes the full analytics computation (re-derived
 // server-side, never trusting the client beyond the chart images — see
 // below) on top of drawing the document itself, so it can run longer than
 // a normal page load — see settings.php.
-core_php_time_limit::raise((int) get_config('local_stackanalytics', 'computetimelimit'));
+core_php_time_limit::raise((int) get_config('local_quizanalytics', 'computetimelimit'));
 
 $colorblind = (bool) optional_param('colorblind', 0, PARAM_INT);
 $anonymize = (bool) optional_param('anonymize', 0, PARAM_INT);
@@ -81,13 +81,13 @@ if ($rawchartimages !== '') {
     }
 }
 
-$client = new local_stackanalytics_quiz_api_client();
+$client = new local_quizanalytics_quiz_api_client();
 
 if ($kind !== 'question' && $kind !== 'solutionprocess') {
     throw new \moodle_exception('invalidparameter', 'debug');
 }
 
-$stackquizzes = local_stackanalytics_quiz_data_fetcher::get_course_stack_quizzes($course->id);
+$stackquizzes = local_quizanalytics_quiz_data_fetcher::get_course_stack_quizzes($course->id);
 $selectedquiz = null;
 foreach ($stackquizzes as $quiz) {
     if ((int) $quiz->id === $quizid) {
@@ -96,12 +96,12 @@ foreach ($stackquizzes as $quiz) {
     }
 }
 if (!$selectedquiz) {
-    throw new \moodle_exception('nostackquizzes', 'local_stackanalytics');
+    throw new \moodle_exception('nostackquizzes', 'local_quizanalytics');
 }
 
-$records = local_stackanalytics_quiz_data_fetcher::get_response_records_for_quiz($selectedquiz, $course);
+$records = local_quizanalytics_quiz_data_fetcher::get_response_records_for_quiz($selectedquiz, $course);
 if (empty($records)) {
-    throw new \moodle_exception('noattempts', 'local_stackanalytics');
+    throw new \moodle_exception('noattempts', 'local_quizanalytics');
 }
 
 if ($kind === 'question') {
@@ -119,13 +119,13 @@ if ($kind === 'question') {
 } else {
     $meta = $client->solution_process_meta($selectedquiz->name, $records, $anonymize);
     if ($meta === null || empty($meta['questions'])) {
-        throw new \moodle_exception('servererror', 'local_stackanalytics');
+        throw new \moodle_exception('servererror', 'local_quizanalytics');
     }
 
     $questionnames = array_column($meta['questions'], 'name');
     $spvquestion = required_param('spvquestion', PARAM_RAW);
     if (!in_array($spvquestion, $questionnames, true)) {
-        throw new \moodle_exception('servererror', 'local_stackanalytics'); // Stale/tampered selection — fail closed.
+        throw new \moodle_exception('servererror', 'local_quizanalytics'); // Stale/tampered selection — fail closed.
     }
 
     $partsforquestion = 1;
@@ -156,7 +156,7 @@ if ($kind === 'question') {
 }
 
 if ($pdf === null) {
-    throw new \moodle_exception('pdferror', 'local_stackanalytics');
+    throw new \moodle_exception('pdferror', 'local_quizanalytics');
 }
 
 send_file($pdf, $filename, 0, 0, true, true, 'application/pdf');

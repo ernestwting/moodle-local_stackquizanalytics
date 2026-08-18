@@ -23,12 +23,12 @@
  * and the visual properties this codebase's own chart functions actually rely
  * on (colors, titles, axis labels, pinned ranges, chart height).
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackanalytics\quiz\analytics;
+namespace local_quizanalytics\quiz\analytics;
 
 /**
  * Chart-building helpers shared across the ported analytics modules: palettes, label formatting, figure assembly.

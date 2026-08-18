@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace local_stackanalytics;
+namespace local_quizanalytics;
 
-use local_stackanalytics\stack\analytics\analyser\stack_question_analyser;
-use local_stackanalytics\stack\analytics\target\question_needs_review;
+use local_quizanalytics\stack\analytics\analyser\stack_question_analyser;
+use local_quizanalytics\stack\analytics\target\question_needs_review;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -37,7 +37,7 @@ defined('MOODLE_INTERNAL') || die();
  * failure ("Method get_stack_question_form_data_test0 does not exist")
  * before switching to 'test1'.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */

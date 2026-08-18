@@ -33,15 +33,15 @@
  * in core operates on a question-as-sample, so this extends
  * \core_analytics\local\target\binary directly.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackanalytics\stack\analytics\target;
+namespace local_quizanalytics\stack\analytics\target;
 
-use local_stackanalytics\stack\local\stack_attempt_reader;
-use local_stackanalytics\stack\local\stack_course_helper;
+use local_quizanalytics\stack\local\stack_attempt_reader;
+use local_quizanalytics\stack\local\stack_course_helper;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -51,7 +51,7 @@ defined('MOODLE_INTERNAL') || die();
 class question_needs_review extends \core_analytics\local\target\binary {
     /**
      * Below this pass rate, a question is labeled "needs review". Default
-     * used when the local_stackanalytics/questionneedsreviewthreshold admin
+     * used when the local_quizanalytics/questionneedsreviewthreshold admin
      * setting (Phase 6) is unset.
      */
     const DEFAULT_PASSRATE_THRESHOLD = 0.5;
@@ -62,7 +62,7 @@ class question_needs_review extends \core_analytics\local\target\binary {
      * @return float the admin-configured threshold, or DEFAULT_PASSRATE_THRESHOLD if unset
      */
     public static function get_passrate_threshold(): float {
-        $configured = get_config('local_stackanalytics', 'questionneedsreviewthreshold');
+        $configured = get_config('local_quizanalytics', 'questionneedsreviewthreshold');
         return $configured !== false && $configured !== '' ? (float) $configured : self::DEFAULT_PASSRATE_THRESHOLD;
     }
 
@@ -72,7 +72,7 @@ class question_needs_review extends \core_analytics\local\target\binary {
      * @return \lang_string
      */
     public static function get_name(): \lang_string {
-        return new \lang_string('target:questionneedsreview', 'local_stackanalytics');
+        return new \lang_string('target:questionneedsreview', 'local_quizanalytics');
     }
 
     /**
@@ -81,7 +81,7 @@ class question_needs_review extends \core_analytics\local\target\binary {
      * @return string
      */
     public function get_analyser_class() {
-        return '\local_stackanalytics\stack\analytics\analyser\stack_question_analyser';
+        return '\local_quizanalytics\stack\analytics\analyser\stack_question_analyser';
     }
 
     /**
@@ -107,7 +107,7 @@ class question_needs_review extends \core_analytics\local\target\binary {
      */
     public function is_valid_analysable(\core_analytics\analysable $course, $fortraining = true) {
         if (!stack_course_helper::course_has_stack_activity($course->get_id())) {
-            return get_string('errornostackactivity', 'local_stackanalytics');
+            return get_string('errornostackactivity', 'local_quizanalytics');
         }
         return true;
     }

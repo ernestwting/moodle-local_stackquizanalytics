@@ -14,16 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace local_stackanalytics;
+namespace local_quizanalytics;
 
-use local_stackanalytics\stack\diagnostics\seed_bias_report;
+use local_quizanalytics\stack\diagnostics\seed_bias_report;
 
 defined('MOODLE_INTERNAL') || die();
 
 /**
  * Unit tests for seed_bias_report's pure one-way ANOVA math.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */

@@ -19,12 +19,12 @@
  * Shasha (1989) edit distance between two ordered labeled trees, where
  * insert/delete/rename each cost 1.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackanalytics\quiz\analytics;
+namespace local_quizanalytics\quiz\analytics;
 
 /**
  * Zhang-Shasha tree edit distance between two CAS expression trees.

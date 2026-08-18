@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace local_stackanalytics;
+namespace local_quizanalytics;
 
-use local_stackanalytics\stack\analytics\indicator\response_latency_anomaly;
+use local_quizanalytics\stack\analytics\indicator\response_latency_anomaly;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -24,7 +24,7 @@ defined('MOODLE_INTERNAL') || die();
  * Unit tests for the response_latency_anomaly indicator's pure
  * mean/stddev/z-score/normalization math.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */

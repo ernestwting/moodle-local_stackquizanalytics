@@ -30,47 +30,47 @@
  *
  * Reached from the "Section:" selector at the top of every page in this
  * plugin, or directly via
- * /local/stackanalytics/modelanalytics.php?id=<courseid>.
+ * /local/quizanalytics/modelanalytics.php?id=<courseid>.
  *
  * Renamed from models.php when Diagnostics split into its own section.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_once(__DIR__ . '/../../config.php');
-require_once($CFG->dirroot . '/local/stackanalytics/classes/section_selector.php');
+require_once($CFG->dirroot . '/local/quizanalytics/classes/section_selector.php');
 
-use local_stackanalytics\stack\local\stack_course_helper;
-use local_stackanalytics\stack\analytics\report\model1_report;
-use local_stackanalytics\stack\analytics\report\model2_report;
-use local_stackanalytics\stack\output\dashboard_renderer;
+use local_quizanalytics\stack\local\stack_course_helper;
+use local_quizanalytics\stack\analytics\report\model1_report;
+use local_quizanalytics\stack\analytics\report\model2_report;
+use local_quizanalytics\stack\output\dashboard_renderer;
 
 $courseid = required_param('id', PARAM_INT);
 $course = $DB->get_record('course', ['id' => $courseid], '*', MUST_EXIST);
 
 require_login($course);
 $context = context_course::instance($course->id);
-require_capability('local/stackanalytics:view', $context);
+require_capability('local/quizanalytics:view', $context);
 
-$PAGE->set_url('/local/stackanalytics/modelanalytics.php', ['id' => $courseid]);
+$PAGE->set_url('/local/quizanalytics/modelanalytics.php', ['id' => $courseid]);
 $PAGE->set_pagelayout('report');
 $PAGE->set_context($context);
-$PAGE->set_title($course->shortname . ': ' . get_string('dashboardtitle', 'local_stackanalytics'));
+$PAGE->set_title($course->shortname . ': ' . get_string('dashboardtitle', 'local_quizanalytics'));
 $PAGE->set_heading($course->fullname);
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('pagemaintitle', 'local_stackanalytics'));
-echo local_stackanalytics_section_selector::render($courseid, 'models');
+echo $OUTPUT->heading(get_string('pagemaintitle', 'local_quizanalytics'));
+echo local_quizanalytics_section_selector::render($courseid, 'models');
 
 // Collapsed by default (native <details>, no JS needed) — the full text was
 // taking up too much space above the fold on every page load for something
 // most teachers only need to read once.
 echo html_writer::tag(
     'details',
-    html_writer::tag('summary', get_string('modelpageintrosummary', 'local_stackanalytics'))
-        . html_writer::div(get_string('modelpageintro', 'local_stackanalytics'), 'mt-2'),
+    html_writer::tag('summary', get_string('modelpageintrosummary', 'local_quizanalytics'))
+        . html_writer::div(get_string('modelpageintro', 'local_quizanalytics'), 'mt-2'),
     ['class' => 'alert alert-info']
 );
 
@@ -81,20 +81,20 @@ if (count($viewablecourses) > 1) {
         $courseoptions[$viewablecourse->id] = format_string($viewablecourse->fullname);
     }
     $courseselector = new single_select(
-        new moodle_url('/local/stackanalytics/modelanalytics.php'),
+        new moodle_url('/local/quizanalytics/modelanalytics.php'),
         'id',
         $courseoptions,
         $courseid,
         null
     );
-    $courseselector->label = get_string('courseselectorlabel', 'local_stackanalytics');
+    $courseselector->label = get_string('courseselectorlabel', 'local_quizanalytics');
     echo html_writer::div($OUTPUT->render($courseselector), 'd-inline-block mr-4 mb-3');
 }
 
 $slots = stack_course_helper::get_course_stack_slots($courseid);
 
 if (empty($slots)) {
-    echo $OUTPUT->notification(get_string('errornostackactivity', 'local_stackanalytics'), 'notifymessage');
+    echo $OUTPUT->notification(get_string('errornostackactivity', 'local_quizanalytics'), 'notifymessage');
     echo $OUTPUT->footer();
     exit;
 }
@@ -108,23 +108,23 @@ if (!in_array($view, ['model1', 'model2'], true)) {
     $view = 'model1';
 }
 $viewoptions = [
-    'model1' => get_string('model1heading', 'local_stackanalytics'),
-    'model2' => get_string('model2heading', 'local_stackanalytics'),
+    'model1' => get_string('model1heading', 'local_quizanalytics'),
+    'model2' => get_string('model2heading', 'local_quizanalytics'),
 ];
 $viewselector = new single_select(
-    new moodle_url('/local/stackanalytics/modelanalytics.php', ['id' => $courseid]),
+    new moodle_url('/local/quizanalytics/modelanalytics.php', ['id' => $courseid]),
     'view',
     $viewoptions,
     $view,
     null
 );
-$viewselector->label = get_string('viewselectorlabel', 'local_stackanalytics');
+$viewselector->label = get_string('viewselectorlabel', 'local_quizanalytics');
 echo html_writer::div($OUTPUT->render($viewselector), 'd-inline-block mb-3');
 
 echo html_writer::tag(
     'details',
-    html_writer::tag('summary', get_string('responsibleusesummary', 'local_stackanalytics'))
-        . html_writer::div(get_string('responsibleusecallout', 'local_stackanalytics'), 'mt-2'),
+    html_writer::tag('summary', get_string('responsibleusesummary', 'local_quizanalytics'))
+        . html_writer::div(get_string('responsibleusecallout', 'local_quizanalytics'), 'mt-2'),
     ['class' => 'alert alert-warning mt-2']
 );
 
@@ -139,15 +139,15 @@ $quizid = optional_param('quizid', 0, PARAM_INT);
 // plugin, not a separate on/off switch per page.
 $anonymizeparam = optional_param('anonymize', null, PARAM_INT);
 if ($anonymizeparam !== null) {
-    set_user_preference('local_stackanalytics_anonymize', (bool) $anonymizeparam);
+    set_user_preference('local_quizanalytics_anonymize', (bool) $anonymizeparam);
     $anonymize = (bool) $anonymizeparam;
 } else {
-    $anonymize = (bool) get_user_preferences('local_stackanalytics_anonymize', false);
+    $anonymize = (bool) get_user_preferences('local_quizanalytics_anonymize', false);
 }
 
 if ($view === 'model1') {
-    echo $OUTPUT->heading(get_string('model1heading', 'local_stackanalytics'), 3);
-    echo html_writer::tag('p', get_string('model1intro', 'local_stackanalytics'));
+    echo $OUTPUT->heading(get_string('model1heading', 'local_quizanalytics'), 3);
+    echo html_writer::tag('p', get_string('model1intro', 'local_quizanalytics'));
     echo dashboard_renderer::render_model1_about();
 
     echo html_writer::start_tag('form', [
@@ -169,10 +169,10 @@ if ($view === 'model1') {
         $anonymizeattrs['checked'] = 'checked';
     }
     echo html_writer::empty_tag('input', $anonymizeattrs);
-    echo ' ' . html_writer::label(get_string('anonymizemode', 'local_stackanalytics'), 'ma-anonymize-toggle');
+    echo ' ' . html_writer::label(get_string('anonymizemode', 'local_quizanalytics'), 'ma-anonymize-toggle');
     echo ' ' . html_writer::empty_tag('input', [
         'type' => 'submit',
-        'value' => get_string('gobutton', 'local_stackanalytics'),
+        'value' => get_string('gobutton', 'local_quizanalytics'),
         'class' => 'btn btn-secondary btn-sm ml-2',
     ]);
     echo html_writer::end_tag('form');
@@ -190,34 +190,34 @@ if ($view === 'model1') {
         // content" rather than a bare, unfamiliar-looking name.
         $quizoptions = [];
         foreach ($slotsperquiz as $slotquizid => $questioncount) {
-            $quizname = format_string($quiznames[$slotquizid] ?? get_string('unknownquiz', 'local_stackanalytics'));
-            $quizoptions[$slotquizid] = get_string('quizoptionlabel', 'local_stackanalytics', (object) [
+            $quizname = format_string($quiznames[$slotquizid] ?? get_string('unknownquiz', 'local_quizanalytics'));
+            $quizoptions[$slotquizid] = get_string('quizoptionlabel', 'local_quizanalytics', (object) [
                 'name' => $quizname,
                 'count' => $questioncount,
             ]);
         }
         asort($quizoptions);
         $quizselector = new single_select(
-            new moodle_url('/local/stackanalytics/modelanalytics.php', ['id' => $courseid, 'view' => $view]),
+            new moodle_url('/local/quizanalytics/modelanalytics.php', ['id' => $courseid, 'view' => $view]),
             'quizid',
             $quizoptions,
             $quizid,
-            [0 => get_string('allquizzes', 'local_stackanalytics')]
+            [0 => get_string('allquizzes', 'local_quizanalytics')]
         );
-        $quizselector->label = get_string('quizselectorlabel', 'local_stackanalytics');
+        $quizselector->label = get_string('quizselectorlabel', 'local_quizanalytics');
         echo html_writer::div($OUTPUT->render($quizselector), 'd-inline-block mb-3');
     } else {
         $quizid = 0; // Only one quiz in this course — nothing to filter.
     }
 
-    echo $OUTPUT->heading(get_string('model2heading', 'local_stackanalytics'), 3);
-    echo html_writer::tag('p', get_string('model2intro', 'local_stackanalytics'));
+    echo $OUTPUT->heading(get_string('model2heading', 'local_quizanalytics'), 3);
+    echo html_writer::tag('p', get_string('model2intro', 'local_quizanalytics'));
     echo dashboard_renderer::render_model2_about();
     echo dashboard_renderer::render_model2_table(model2_report::build($courseid, $quizid !== 0 ? $quizid : null));
 }
 
 echo dashboard_renderer::render_pdf_form(
-    new moodle_url('/local/stackanalytics/modelanalyticspdf.php'),
+    new moodle_url('/local/quizanalytics/modelanalyticspdf.php'),
     $courseid,
     $quizid !== 0 ? $quizid : null,
     $anonymize,

@@ -25,14 +25,14 @@
  * from "reached, but rarely" (Figure 5's Node 6 — needs a human judgment
  * call, not an automatic prune) using a configurable traversal-count floor.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackanalytics\stack\diagnostics;
+namespace local_quizanalytics\stack\diagnostics;
 
-use local_stackanalytics\stack\local\stack_prt_graph;
+use local_quizanalytics\stack\local\stack_prt_graph;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -43,7 +43,7 @@ class bloated_tree_report {
     /**
      * Below this many observed traversals (but above zero), a branch is
      * "low-traffic" rather than "unreached". Default used when the
-     * local_stackanalytics/lowtrafficfloor admin setting (Phase 6) is unset.
+     * local_quizanalytics/lowtrafficfloor admin setting (Phase 6) is unset.
      */
     const LOW_TRAFFIC_FLOOR = 2;
 
@@ -53,7 +53,7 @@ class bloated_tree_report {
      * @return int the admin-configured floor, or LOW_TRAFFIC_FLOOR if unset
      */
     public static function get_low_traffic_floor(): int {
-        $configured = get_config('local_stackanalytics', 'lowtrafficfloor');
+        $configured = get_config('local_quizanalytics', 'lowtrafficfloor');
         return $configured !== false && $configured !== '' ? (int) $configured : self::LOW_TRAFFIC_FLOOR;
     }
 

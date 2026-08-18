@@ -24,15 +24,15 @@
  * responsesummary, verified against the real qtype_stack source) and the
  * (nodename, branch) granularity this operates at.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackanalytics\stack\analytics\indicator;
+namespace local_quizanalytics\stack\analytics\indicator;
 
-use local_stackanalytics\stack\local\stack_course_helper;
-use local_stackanalytics\stack\local\stack_prt_graph;
+use local_quizanalytics\stack\local\stack_course_helper;
+use local_quizanalytics\stack\local\stack_prt_graph;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -46,7 +46,7 @@ class unreached_node_ratio extends \core_analytics\local\indicator\linear {
      * @return \lang_string
      */
     public static function get_name(): \lang_string {
-        return new \lang_string('indicator:unreachednoderatio', 'local_stackanalytics');
+        return new \lang_string('indicator:unreachednoderatio', 'local_quizanalytics');
     }
 
     /**

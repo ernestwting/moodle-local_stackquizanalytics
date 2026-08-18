@@ -19,12 +19,12 @@
  * of analytics-service's app.py::analyze_course() (POST /analyze-course)
  * route.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackanalytics\quiz\analytics;
+namespace local_quizanalytics\quiz\analytics;
 
 /**
  * Assembles the Course-Wide Analytics {summary, sections} payload across every STACK quiz in a course.

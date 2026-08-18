@@ -1,6 +1,10 @@
 # STACK Quiz & Model Analytics for Moodle
 
 [![Moodle Plugin CI](https://github.com/ernestwting/moodle-local_stackanalytics/actions/workflows/moodle-ci.yml/badge.svg)](https://github.com/ernestwting/moodle-local_stackanalytics/actions/workflows/moodle-ci.yml)
+<!-- Repo is still named moodle-local_stackanalytics on GitHub even though the plugin's own
+     frankenstyle component is now local_quizanalytics (see CHANGELOG.md) — moodle-local_quizanalytics
+     is already taken by the original, separate standalone plugin this one replaces the listing of,
+     so this repo can't be renamed to match without first resolving that collision. -->
 
 One installable Moodle plugin covering four sections of analytics for STACK
 (Maxima CAS) quizzes, in two families: course-wide/per-quiz STACK response
@@ -15,7 +19,7 @@ had to install, find, and use independently.
 Maxima response parsing, statistics, indicator math, PDF export) runs in
 plain PHP, in-process — there is no separate service to deploy, configure, or
 keep running, and nothing here ever sends data anywhere outside the Moodle
-server itself. Installing `local_stackanalytics` is the only step.
+server itself. Installing `local_quizanalytics` is the only step.
 
 ## Requirements
 
@@ -99,9 +103,12 @@ Plotly.js / KaTeX (client-side rendering) or TCPDF (server-side PDF)
 ## Where this came from
 
 This plugin merges two previously-separate, independently-installed
-plugins — `local_quizanalytics` and `local_stackanalytics` — into one, so a
-teacher installs a single plugin and sees a single "Analytics" entry rather
-than two unrelated ones under a course's "More" menu. Each section's
+plugins — the original, standalone `local_quizanalytics` and
+`local_stackanalytics` — into one, replacing the former's own Moodle
+Plugins directory listing (hence sharing its frankenstyle component name —
+see `CHANGELOG.md`'s rename entry), so a teacher installs a single plugin
+and sees a single "Analytics" entry rather than two unrelated ones under a
+course's "More" menu. Each section's
 computation logic is carried over essentially unchanged from its own
 plugin (only namespaces, the capability, and the navigation/entry points
 changed to make the merge coherent) — both had already been independently

@@ -18,7 +18,7 @@
  * Streams a PDF export of the Diagnostics Analytics dashboard, re-derived
  * server-side from the same report-builder class diagnosticsanalytics.php
  * uses, respecting the same quiz filter. A separate entry point from
- * diagnosticsanalytics.php, gated by the same local/stackanalytics:view
+ * diagnosticsanalytics.php, gated by the same local/quizanalytics:view
  * capability.
  *
  * Split out of modelspdf.php (now modelanalyticspdf.php) when Diagnostics
@@ -27,7 +27,7 @@
  * dashboard_renderer::render_pdf_form()'s same $sectionheadings mechanism
  * as Model Analytics, rather than a bespoke non-form download link.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -35,15 +35,15 @@
 require_once(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/filelib.php');
 
-use local_stackanalytics\stack\analytics\pdf_content;
-use local_stackanalytics\stack\analytics\pdf_builder;
+use local_quizanalytics\stack\analytics\pdf_content;
+use local_quizanalytics\stack\analytics\pdf_builder;
 
 $courseid = required_param('id', PARAM_INT);
 $course = $DB->get_record('course', ['id' => $courseid], '*', MUST_EXIST);
 
 require_login($course);
 $context = context_course::instance($course->id);
-require_capability('local/stackanalytics:view', $context);
+require_capability('local/quizanalytics:view', $context);
 
 // Each diagnostic indicator is its own set of DB queries per sample, with
 // no batching (see diagnostics_report.php's own docblock) — can run long on
@@ -59,7 +59,7 @@ if (in_array('diagnostics', $sections, true)) {
 }
 
 if (empty($payload)) {
-    throw new \moodle_exception('pdfnosections', 'local_stackanalytics');
+    throw new \moodle_exception('pdfnosections', 'local_quizanalytics');
 }
 
 $pdfbytes = pdf_builder::build($course->fullname, $payload);

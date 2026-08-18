@@ -30,12 +30,12 @@
  * -> question_versions -> question join local_quizanalytics's data_fetcher
  * already relies on for the same purpose.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackanalytics\stack\local;
+namespace local_quizanalytics\stack\local;
 
 defined('MOODLE_INTERNAL') || die();
 

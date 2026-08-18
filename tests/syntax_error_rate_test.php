@@ -14,16 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace local_stackanalytics;
+namespace local_quizanalytics;
 
-use local_stackanalytics\stack\analytics\indicator\syntax_error_rate;
+use local_quizanalytics\stack\analytics\indicator\syntax_error_rate;
 
 defined('MOODLE_INTERNAL') || die();
 
 /**
  * Unit tests for syntax_error_rate's pure proportion math.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */

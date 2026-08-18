@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-namespace local_stackanalytics;
+namespace local_quizanalytics;
 
-use local_stackanalytics\stack\analytics\indicator\grade_trajectory;
+use local_quizanalytics\stack\analytics\indicator\grade_trajectory;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -27,7 +27,7 @@ defined('MOODLE_INTERNAL') || die();
  * than through calculate_sample(), which needs a live question-engine
  * fixture — that DB-backed coverage is a Phase 7 addition (see CHANGELOG).
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */

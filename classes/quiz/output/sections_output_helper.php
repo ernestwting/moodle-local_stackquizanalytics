@@ -16,7 +16,7 @@
 
 /**
  * Shared rendering scaffolding for the {summary, sections} JSON contract,
- * used across every view local_stackanalytics renders: course-wide
+ * used across every view local_quizanalytics renders: course-wide
  * comparison, per-quiz Question Analytics, and per-quiz Solution Process
  * Visualization.
  *
@@ -42,12 +42,12 @@
  * ForbiddenGlobalUseSniff, which assumes any "*_renderer" class is a genuine
  * renderer and bans "global $PAGE" there in favor of $this->page.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackanalytics\quiz\output;
+namespace local_quizanalytics\quiz\output;
 
 /**
  * Static HTML-building helpers for the page scaffolding shared across every view.
@@ -86,11 +86,11 @@ class sections_output_helper {
         $html = '';
 
         if ($includevendor) {
-            $plotlyurl = new \moodle_url('/local/stackanalytics/js/vendor/plotly.min.js');
-            $katexcssurl = new \moodle_url('/local/stackanalytics/js/vendor/katex/katex.min.css');
-            $katexjsurl = new \moodle_url('/local/stackanalytics/js/vendor/katex/katex.min.js');
-            $katexautorenderurl = new \moodle_url('/local/stackanalytics/js/vendor/katex/contrib/auto-render.min.js');
-            $sectionsrendererurl = new \moodle_url('/local/stackanalytics/js/vendor-shared/sections-renderer.js');
+            $plotlyurl = new \moodle_url('/local/quizanalytics/js/vendor/plotly.min.js');
+            $katexcssurl = new \moodle_url('/local/quizanalytics/js/vendor/katex/katex.min.css');
+            $katexjsurl = new \moodle_url('/local/quizanalytics/js/vendor/katex/katex.min.js');
+            $katexautorenderurl = new \moodle_url('/local/quizanalytics/js/vendor/katex/contrib/auto-render.min.js');
+            $sectionsrendererurl = new \moodle_url('/local/quizanalytics/js/vendor-shared/sections-renderer.js');
 
             $html .= \html_writer::empty_tag('link', ['rel' => 'stylesheet', 'href' => $katexcssurl->out(false)]);
             $html .= \html_writer::tag('script', '', ['src' => $plotlyurl->out(false)]);
@@ -118,13 +118,13 @@ class sections_output_helper {
     public static function resolve_colorblind_mode(): bool {
         $param = optional_param('colorblind', null, PARAM_INT);
         if ($param !== null) {
-            \set_user_preference('local_stackanalytics_colorblind', (bool) $param);
+            \set_user_preference('local_quizanalytics_colorblind', (bool) $param);
             return (bool) $param;
         }
         // Note: Moodle's getter is the plural get_user_preferences(), despite
         // the setter being the singular set_user_preference() above — a real
         // asymmetry in core's own API, not a typo.
-        return (bool) \get_user_preferences('local_stackanalytics_colorblind', false);
+        return (bool) \get_user_preferences('local_quizanalytics_colorblind', false);
     }
 
     /**
@@ -137,10 +137,10 @@ class sections_output_helper {
     public static function resolve_anonymize_mode(): bool {
         $param = optional_param('anonymize', null, PARAM_INT);
         if ($param !== null) {
-            \set_user_preference('local_stackanalytics_anonymize', (bool) $param);
+            \set_user_preference('local_quizanalytics_anonymize', (bool) $param);
             return (bool) $param;
         }
-        return (bool) \get_user_preferences('local_stackanalytics_anonymize', false);
+        return (bool) \get_user_preferences('local_quizanalytics_anonymize', false);
     }
 
     /**
@@ -177,7 +177,7 @@ class sections_output_helper {
             $colorblindattrs['checked'] = 'checked';
         }
         $html .= \html_writer::empty_tag('input', $colorblindattrs);
-        $html .= ' ' . \html_writer::label(\get_string('colorblindmode', 'local_stackanalytics'), 'qa-colorblind-toggle');
+        $html .= ' ' . \html_writer::label(\get_string('colorblindmode', 'local_quizanalytics'), 'qa-colorblind-toggle');
 
         $html .= \html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'anonymize', 'value' => '0']);
         $anonymizeattrs = [
@@ -187,7 +187,7 @@ class sections_output_helper {
             $anonymizeattrs['checked'] = 'checked';
         }
         $html .= \html_writer::empty_tag('input', $anonymizeattrs);
-        $html .= ' ' . \html_writer::label(\get_string('anonymizemode', 'local_stackanalytics'), 'qa-anonymize-toggle');
+        $html .= ' ' . \html_writer::label(\get_string('anonymizemode', 'local_quizanalytics'), 'qa-anonymize-toggle');
 
         $html .= ' ' . \html_writer::empty_tag('input', [
             'type' => 'submit', 'value' => \get_string('apply', 'moodle'), 'class' => 'btn btn-secondary btn-sm',
@@ -210,8 +210,8 @@ class sections_output_helper {
         global $PAGE;
 
         $options = [
-            'question'        => \get_string('viewquestionanalytics', 'local_stackanalytics'),
-            'solutionprocess' => \get_string('viewsolutionprocess', 'local_stackanalytics'),
+            'question'        => \get_string('viewquestionanalytics', 'local_quizanalytics'),
+            'solutionprocess' => \get_string('viewsolutionprocess', 'local_quizanalytics'),
         ];
 
         $html = \html_writer::start_tag('form', [
@@ -223,10 +223,10 @@ class sections_output_helper {
             }
             $html .= \html_writer::empty_tag('input', ['type' => 'hidden', 'name' => $name, 'value' => $value]);
         }
-        $html .= \html_writer::label(\get_string('viewselectlabel', 'local_stackanalytics'), 'qa-view-select');
+        $html .= \html_writer::label(\get_string('viewselectlabel', 'local_quizanalytics'), 'qa-view-select');
         $html .= ' ' . \html_writer::select($options, 'view', $current, false, ['id' => 'qa-view-select']);
         $html .= ' ' . \html_writer::empty_tag('input', [
-            'type' => 'submit', 'value' => \get_string('gobutton', 'local_stackanalytics'), 'class' => 'btn btn-secondary',
+            'type' => 'submit', 'value' => \get_string('gobutton', 'local_quizanalytics'), 'class' => 'btn btn-secondary',
         ]);
         $html .= \html_writer::end_tag('form');
         return $html;
@@ -268,7 +268,7 @@ class sections_output_helper {
         foreach ($meta['questions'] as $q) {
             $questionoptions[$q['name']] = $q['name'];
         }
-        $html .= \html_writer::label(\get_string('selectquestion', 'local_stackanalytics'), 'spv-question-select');
+        $html .= \html_writer::label(\get_string('selectquestion', 'local_quizanalytics'), 'spv-question-select');
         $html .= ' ' . \html_writer::select($questionoptions, 'spvquestion', $question, false, ['id' => 'spv-question-select']);
         $html .= ' ';
 
@@ -276,20 +276,20 @@ class sections_output_helper {
         for ($i = 1; $i <= $partsforquestion; $i++) {
             $partoptions[$i] = $i;
         }
-        $html .= \html_writer::label(\get_string('selectpart', 'local_stackanalytics'), 'spv-part-select');
+        $html .= \html_writer::label(\get_string('selectpart', 'local_quizanalytics'), 'spv-part-select');
         $html .= ' ' . \html_writer::select($partoptions, 'spvpart', $part, false, ['id' => 'spv-part-select']);
         $html .= ' ';
 
-        $studentoptions = ['' => \get_string('selectstudentnone', 'local_stackanalytics')];
+        $studentoptions = ['' => \get_string('selectstudentnone', 'local_quizanalytics')];
         foreach ($meta['students'] as $s) {
             $studentoptions[$s['id']] = $s['name'];
         }
-        $html .= \html_writer::label(\get_string('selectstudent', 'local_stackanalytics'), 'spv-student-select');
+        $html .= \html_writer::label(\get_string('selectstudent', 'local_quizanalytics'), 'spv-student-select');
         $html .= ' ' . \html_writer::select($studentoptions, 'spvstudent', $studentid, false, ['id' => 'spv-student-select']);
         $html .= ' ';
 
         $html .= \html_writer::empty_tag('input', [
-            'type' => 'submit', 'value' => \get_string('gobutton', 'local_stackanalytics'), 'class' => 'btn btn-secondary',
+            'type' => 'submit', 'value' => \get_string('gobutton', 'local_quizanalytics'), 'class' => 'btn btn-secondary',
         ]);
         $html .= \html_writer::end_tag('form');
         return $html;
@@ -310,7 +310,7 @@ class sections_output_helper {
      * @param \moodle_url $action    The pdf.php endpoint to submit to.
      * @param array $hiddenparams    name => value pairs pdf.php needs (id, colorblind, etc).
      * @param array<string, string> $sections Section id => localized checkbox
-     *        label, from local_stackanalytics_quiz_api_client::report_sections($kind).
+     *        label, from local_quizanalytics_quiz_api_client::report_sections($kind).
      *        The id (never the label) is what's posted back as each
      *        checkbox's value, so the posted selection stays meaningful
      *        regardless of the site's language.

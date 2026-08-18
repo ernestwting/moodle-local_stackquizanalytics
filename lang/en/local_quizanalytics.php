@@ -15,14 +15,13 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * English language strings for local_stackanalytics.
+ * English language strings for local_quizanalytics.
  *
- * Skeleton phase — just enough to install. The full merged string set
- * (local_quizanalytics's + local_stackanalytics's, minus the handful of
- * overlapping keys reconciled into one value) lands in the phase that
- * unifies the language file, once both halves' content exists.
+ * The full merged string set (the original local_quizanalytics's +
+ * local_stackanalytics's, minus the handful of overlapping keys
+ * reconciled into one value).
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -30,7 +29,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['pluginname'] = 'STACK Quiz & Model Analytics';
-$string['stackanalytics:view'] = 'View STACK quiz analytics, models, and diagnostics';
+$string['quizanalytics:view'] = 'View STACK quiz analytics, models, and diagnostics';
 $string['sectionselectorlabel'] = 'Section:';
 // The on-screen H1 heading every section's own page shows, deliberately
 // shorter and section-agnostic (unlike 'pluginname', used for the plugin's

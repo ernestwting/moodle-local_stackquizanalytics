@@ -21,12 +21,12 @@
  * (skipna=True), which every function here replicates by simply filtering
  * nulls out first.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackanalytics\quiz\analytics;
+namespace local_quizanalytics\quiz\analytics;
 
 /**
  * Small pandas-style descriptive statistics (mean, median, sample variance/stdev) skipping nulls.

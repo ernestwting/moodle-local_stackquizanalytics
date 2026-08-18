@@ -37,12 +37,12 @@
  * get_attempt_pools()'s plain `isin($bestIndices)` filter (no per-student
  * scoping needed) correct in both the Python original and this port.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackanalytics\quiz\analytics;
+namespace local_quizanalytics\quiz\analytics;
 
 /**
  * Turns raw Moodle attempt records into the per-question "response rows" every other analytics module consumes.
@@ -163,7 +163,7 @@ class parser {
      * parser.py's build_response_rows() row shape exactly.
      *
      * @param array $records  as returned by
-     *              local_stackanalytics_quiz_data_fetcher::get_response_records_for_quiz()
+     *              local_quizanalytics_quiz_data_fetcher::get_response_records_for_quiz()
      * @param string $quizname
      * @param bool $anonymize replace real student names/emails with stable per-student
      *        pseudonyms - see anonymize::anonymize_response_rows()

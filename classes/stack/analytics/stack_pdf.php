@@ -26,12 +26,12 @@
  * predating this check — the two PDF systems are independent, this one
  * simply doesn't need to repeat that choice.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackanalytics\stack\analytics;
+namespace local_quizanalytics\stack\analytics;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -80,7 +80,7 @@ class stack_pdf extends \pdf {
             $this->GetY()
         );
         $this->SetY($y + 2);
-        $this->Cell(0, 8, get_string('pdffooternote', 'local_stackanalytics'), 0, 0, 'L');
+        $this->Cell(0, 8, get_string('pdffooternote', 'local_quizanalytics'), 0, 0, 'L');
         $this->Cell(0, 8, get_string('page') . ' ' . $this->getAliasNumPage() . ' / ' . $this->getAliasNbPages(), 0, 0, 'R');
     }
 }

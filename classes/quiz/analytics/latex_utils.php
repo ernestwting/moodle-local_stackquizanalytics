@@ -28,12 +28,12 @@
  * Namespaced, autoloaded class — no MOODLE_INTERNAL guard needed (loaded via
  * Moodle's PSR-4 autoloader from classes/analytics/latex_utils.php).
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackanalytics\quiz\analytics;
+namespace local_quizanalytics\quiz\analytics;
 
 /**
  * LaTeX/math text cleanup: STACK debug-dump stripping, KaTeX-safe normalization, and plain-text math rendering.

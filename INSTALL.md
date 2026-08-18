@@ -1,6 +1,6 @@
 # Installing STACK Quiz & Model Analytics
 
-This is a single Moodle plugin — installing `local_stackanalytics` is
+This is a single Moodle plugin — installing `local_quizanalytics` is
 the whole install. All four sections (Quiz Analytics, Question Analytics,
 Model Analytics, Diagnostics Analytics) run entirely in-process; there's no
 separate service to deploy and nothing here ever talks to the public
@@ -24,20 +24,20 @@ repo can go straight into Moodle's plugin uploader.
 **Option A — Moodle's own plugin installer (easiest, no shell access
 needed):** Site administration → Plugins → Install plugins → upload a zip
 of this repository's contents. Moodle places it at the right path
-(`local/stackanalytics/`) itself.
+(`local/quizanalytics/`) itself.
 
 **Option B — shell/SFTP, for admins who prefer it:**
 
 ```bash
 # From a clone/extract of this repo:
-cp -r . <moodleroot>/local/stackanalytics
-chown -R www-data:www-data <moodleroot>/local/stackanalytics
+cp -r . <moodleroot>/local/quizanalytics
+chown -R www-data:www-data <moodleroot>/local/quizanalytics
 # (use whatever user your web server actually runs as)
 ```
 
 Either way, the folder Moodle sees it at must be exactly
-`<moodleroot>/local/stackanalytics` — Moodle derives the component name
-`local_stackanalytics` from that path. Plotly.js, KaTeX, and TCPDF are
+`<moodleroot>/local/quizanalytics` — Moodle derives the component name
+`local_quizanalytics` from that path. Plotly.js, KaTeX, and TCPDF are
 already vendored inside `js/vendor/` and `classes/quiz/vendor/`; no separate
 download step is needed.
 
@@ -47,7 +47,7 @@ Log in as an admin and visit **Site administration** (or
 `<yoursite>/admin/index.php` directly if the upgrade screen doesn't appear
 on its own). This single step:
 
-- Registers the `local/stackanalytics:view` capability (`db/access.php`).
+- Registers the `local/quizanalytics:view` capability (`db/access.php`).
 - Registers the Quiz Analytics/Question Analytics cache areas
   (`db/caches.php`).
 - Registers both Model Analytics prediction models —
@@ -110,7 +110,7 @@ registers appear here, disabled by default (deliberately — see
 8. Confirm the page is correctly **hidden** on a course with no STACK
    quizzes, and that a student account gets Moodle's standard
    permission-denied error if they navigate to
-   `local/stackanalytics/index.php?id=<courseid>` (or
+   `local/quizanalytics/index.php?id=<courseid>` (or
    `questionanalytics.php`, `modelanalytics.php`,
    `diagnosticsanalytics.php`) directly.
 

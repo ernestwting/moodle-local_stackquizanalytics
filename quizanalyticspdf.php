@@ -19,7 +19,7 @@
  * PDF — the report index.php itself shows, re-derived server-side.
  *
  * A separate entry point from index.php, gated by the same
- * local/stackanalytics:view capability that governs everything else
+ * local/quizanalytics:view capability that governs everything else
  * shown on that page. Re-derives every quiz/course/record from trusted
  * server-side data (course id, selection, and section choices) — the one
  * piece of client-posted content this route does use, chart_images, is
@@ -33,29 +33,29 @@
  * Analytics, see questionanalyticspdf.php) — one file, one report, no
  * ?kind= param needed any more.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_once(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/filelib.php'); // Send_file() lives here, not autoloaded for a lean entry point like this.
-require_once($CFG->dirroot . '/local/stackanalytics/classes/quiz/data_fetcher.php');
-require_once($CFG->dirroot . '/local/stackanalytics/classes/quiz/api_client.php');
+require_once($CFG->dirroot . '/local/quizanalytics/classes/quiz/data_fetcher.php');
+require_once($CFG->dirroot . '/local/quizanalytics/classes/quiz/api_client.php');
 
 $courseid = required_param('id', PARAM_INT);
 
 $course = $DB->get_record('course', ['id' => $courseid], '*', MUST_EXIST);
 require_login($course);
 $context = context_course::instance($course->id);
-require_capability('local/stackanalytics:view', $context);
+require_capability('local/quizanalytics:view', $context);
 
 // PDF generation redoes the full analytics computation (re-derived
 // server-side, never trusting the client beyond the chart images — see
 // below) on top of drawing the document itself, so it can run longer than
 // a normal page load — this is the one report whose cost scales with the
 // whole course rather than a single quiz — see settings.php.
-core_php_time_limit::raise((int) get_config('local_stackanalytics', 'computetimelimit'));
+core_php_time_limit::raise((int) get_config('local_quizanalytics', 'computetimelimit'));
 
 $colorblind = (bool) optional_param('colorblind', 0, PARAM_INT);
 $anonymize = (bool) optional_param('anonymize', 0, PARAM_INT);
@@ -80,18 +80,18 @@ if ($rawchartimages !== '') {
     }
 }
 
-$client = new local_stackanalytics_quiz_api_client();
+$client = new local_quizanalytics_quiz_api_client();
 
-$stackquizzes = local_stackanalytics_quiz_data_fetcher::get_course_stack_quizzes($course->id);
-$byquiz = local_stackanalytics_quiz_data_fetcher::get_course_response_records($course, $stackquizzes);
+$stackquizzes = local_quizanalytics_quiz_data_fetcher::get_course_stack_quizzes($course->id);
+$byquiz = local_quizanalytics_quiz_data_fetcher::get_course_response_records($course, $stackquizzes);
 $byquiz = array_filter($byquiz, fn($records) => !empty($records));
 if (empty($byquiz)) {
-    throw new \moodle_exception('nocourseattempts', 'local_stackanalytics');
+    throw new \moodle_exception('nocourseattempts', 'local_quizanalytics');
 }
 
 $pdf = $client->download_pdf_quiz($course->fullname, $byquiz, $selectedsections, $colorblind, $chartimages, $anonymize);
 if ($pdf === null) {
-    throw new \moodle_exception('pdferror', 'local_stackanalytics');
+    throw new \moodle_exception('pdferror', 'local_quizanalytics');
 }
 
 $filename = clean_filename($course->shortname . ' - Quiz Analytics - ' . date('Y-m-d') . '.pdf');

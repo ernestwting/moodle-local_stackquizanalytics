@@ -27,16 +27,16 @@
  * and "is this reading worth a teacher's attention" is a presentation
  * judgement, not part of what either class computes.
  *
- * @package local_stackanalytics
+ * @package local_quizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_stackanalytics\stack\analytics\report;
+namespace local_quizanalytics\stack\analytics\report;
 
-use local_stackanalytics\stack\local\stack_course_helper;
-use local_stackanalytics\stack\diagnostics\seed_bias_report;
-use local_stackanalytics\stack\diagnostics\bloated_tree_report;
+use local_quizanalytics\stack\local\stack_course_helper;
+use local_quizanalytics\stack\diagnostics\seed_bias_report;
+use local_quizanalytics\stack\diagnostics\bloated_tree_report;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -82,8 +82,8 @@ class diagnostics_report {
             $allquestionids = stack_course_helper::get_all_question_ids_for_entry((int) $slot->questionbankentryid);
             $rows[] = (object) [
                 'slotid' => (int) $slot->id,
-                'questionname' => $questionnames[$slot->questionid] ?? get_string('unknownquestion', 'local_stackanalytics'),
-                'quizname' => $quiznames[$slot->quizid] ?? get_string('unknownquiz', 'local_stackanalytics'),
+                'questionname' => $questionnames[$slot->questionid] ?? get_string('unknownquestion', 'local_quizanalytics'),
+                'quizname' => $quiznames[$slot->quizid] ?? get_string('unknownquiz', 'local_quizanalytics'),
                 'seedbias' => self::build_seed_bias((int) $slot->quizid, $allquestionids),
                 'bloatedtree' => self::build_bloated_tree((int) $slot->quizid, (int) $slot->questionid, $allquestionids),
             ];
