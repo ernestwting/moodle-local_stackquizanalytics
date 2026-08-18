@@ -103,6 +103,18 @@ class unreached_node_ratio extends \core_analytics\local\indicator\linear {
         }
 
         $summaries = stack_prt_graph::get_response_summaries((int) $slot->quizid, (int) $slot->questionid);
+        if (empty($summaries)) {
+            // No attempts recorded at all — every other Model 2 indicator
+            // for this same sample would also report "not enough data" at
+            // this point (their own get_slot_final_states()/
+            // get_slot_finished_fractions() queries are equally unfiltered
+            // by attempt state, so an empty result there means the same
+            // "zero attempts" as an empty $summaries here). Without this
+            // check, 0 reached out of N branches still divides out to a
+            // full 1.0 "100% unreached" ratio — a false "Worth a look" flag
+            // built from no real data, not a genuine coverage gap.
+            return null;
+        }
         $reached = stack_prt_graph::count_reached_branches($branches, $summaries);
 
         $ratio = stack_prt_graph::unreached_ratio(count($branches), $reached);

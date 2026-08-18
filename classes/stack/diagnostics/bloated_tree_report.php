@@ -88,6 +88,15 @@ class bloated_tree_report {
         }
 
         $summaries = stack_prt_graph::get_response_summaries($quizid, $questionid);
+        if (empty($summaries)) {
+            // No attempts recorded at all — every branch would classify()
+            // as 'unreached' (occurrence count 0), which is a real coverage
+            // gap when there's attempt data to have missed a branch in, but
+            // a "no data yet" case rather than a diagnosis when there's no
+            // attempt data at all. Same reasoning as
+            // unreached_node_ratio::compute_for_sample()'s identical guard.
+            return [];
+        }
 
         $report = [];
         foreach ($branches as $branch) {
