@@ -1,0 +1,142 @@
+# STACK Quiz & Model Analytics for Moodle
+
+[![Moodle Plugin CI](https://github.com/ernestwting/moodle_analytics/actions/workflows/moodle-ci.yml/badge.svg)](https://github.com/ernestwting/moodle_analytics/actions/workflows/moodle-ci.yml)
+
+One installable Moodle plugin covering **two** kinds of analytics for STACK
+(Maxima CAS) quizzes: question-level/course-wide statistics and
+visualizations (**Quiz Analytics**), and Analytics-API-backed risk/review
+prediction models plus a diagnostics dashboard (**Model & Diagnostics
+Analytics**). A single "Analytics" entry point, one course/quiz-level
+dashboard, a "Section:" switcher between the two at the top of every page —
+where previously these were two separate plugins a teacher had to install,
+find, and use independently.
+
+**This is a single, self-contained Moodle plugin.** Every computation (STACK/
+Maxima response parsing, statistics, indicator math, PDF export) runs in
+plain PHP, in-process — there is no separate service to deploy, configure, or
+keep running, and nothing here ever sends data anywhere outside the Moodle
+server itself. Installing `local_stackquizanalytics` is the only step.
+
+## Requirements
+
+**Requires the [STACK question type](https://marketplace.moodle.com/plugins/qtype_stack) (`qtype_stack`) to already be installed.** Both sections of this plugin analyze STACK/Maxima question responses specifically — install `qtype_stack` first, then this plugin.
+
+## What's included
+
+| Section | Reached via | What it does |
+|---|---|---|
+| **Quiz Analytics** (`index.php`) | The course's "Analytics" nav entry (lands here first), or an "Analytics" link this plugin adds to each STACK quiz's own settings menu | Course-wide cross-quiz comparison, or drill into any one quiz for **Question Analytics** (difficulty analysis, response distribution, per-question error drill-down, student performance matrix, question metrics) or **Solution Process Visualization** (PRT transition graphs, network features, PRT/TED 3D distance charts, cross-attempt comparison with clickable per-student drill-down). |
+| **Model & Diagnostics Analytics** (`models.php`) | The "Section:" switcher at the top of every page | **Model 1 — Student risk**: a Moodle Analytics API target on the course/enrolment analyser, fed by five behavioural indicators (grade trajectory, response-latency anomaly, disengagement entropy, help-seeking gap, feedback-revision distance). **Model 2 — Question/PRT review**: a target on each STACK question-in-a-quiz, fed by four indicators (IRT-inspired difficulty, syntax-error rate, unreached-node ratio, feedback-ineffectiveness). **Diagnostics Dashboard**: seed-bias (one-way ANOVA) and PRT branch-coverage reports, deliberately kept outside the ML pipeline since they have no natural ground-truth label. |
+
+Both models ship **disabled** by default (alpha stage) — what the dashboard
+shows is each model's *live indicator reading*, not a trained prediction;
+those live in Site Administration → Analytics → Insights once an
+administrator reviews the indicator thresholds and enables/trains a model.
+
+Every view in both sections has a **Generate/Download PDF** button
+(landscape-oriented, section checkboxes) that re-derives the same content
+server-side into a downloadable report — Quiz Analytics embeds chart images
+captured client-side via `Plotly.toImage()`; Model & Diagnostics Analytics
+renders plain-text tables re-derived directly from the same report-builder
+classes the on-screen dashboard uses.
+
+## Architecture
+
+```
+Moodle (PHP)
+     |
+     | reads quiz_attempts/grades/log events via the question engine,
+     | gradelib, and logstore_standard_log directly
+     v
+  Moodle DB
+     |
+     +--> classes/quiz/analytics/*.php    (Quiz Analytics: STACK/Maxima
+     |     response parsing, statistics, chart JSON, PDF layout)
+     |
+     +--> classes/stack/analytics/*.php   (Model & Diagnostics Analytics:
+           indicators, targets, report builders, PDF layout)
+     |
+     v
+Plotly.js / KaTeX (client-side rendering) or TCPDF (server-side PDF)
+```
+
+- **No CSV round-trip, no external service.** `classes/quiz/data_fetcher.php`
+  reads finished attempts straight out of `{quiz_attempts}` via Moodle's
+  question engine; `classes/stack/local/stack_attempt_reader.php` and
+  friends do the same for Model & Diagnostics Analytics's indicators.
+- **STACK question text is rendered through STACK's own CAS engine**
+  (`castext2_qa_processor`), not read as the raw stored `questiontext`.
+- **Every computation is pure PHP** — no Python, no external service, no
+  Composer dependencies at runtime. Quiz Analytics assembles charts as plain
+  Plotly `{data, layout}` JSON rendered client-side by the vendored
+  Plotly.js; its PDF export uses a vendored TCPDF, embedding chart images
+  captured client-side. Model & Diagnostics Analytics's PDF export instead
+  uses Moodle core's own bundled TCPDF (`lib/pdflib.php`) — no need to vendor
+  a second copy of the same ~5MB library for tables that need no charts.
+- **Math rendering** is via a locally-vendored KaTeX (`js/vendor/katex/`) —
+  not a CDN, and not routed through Moodle's `$PAGE->requires->js()`/`->css()`
+  (that path re-minifies already-minified vendor bundles and has been
+  observed to corrupt them). Same reasoning for the vendored Plotly.js and
+  TCPDF.
+- **Caching** (Quiz Analytics): every data-fetch/computation path is backed
+  by a Moodle MUC cache area (`db/caches.php`), keyed on a cheap SQL
+  fingerprint (attempt count + latest `timefinish` + summed grades) rather
+  than a fixed TTL alone — a cache entry is only ever served while that
+  fingerprint still matches.
+- **Analytics API integration** (Model & Diagnostics Analytics):
+  `db/analytics.php` registers both prediction models via
+  `\core_analytics\manager::update_default_models_for_component()`, consumed
+  automatically by core on install/upgrade.
+
+## Where this came from
+
+This plugin merges two previously-separate, independently-installed
+plugins — `local_quizanalytics` and `local_stackanalytics` — into one, so a
+teacher installs a single plugin and sees a single "Analytics" entry rather
+than two unrelated ones under a course's "More" menu. Each section's
+computation logic is carried over essentially unchanged from its own
+plugin (only namespaces, the capability, and the navigation/entry points
+changed to make the merge coherent) — both had already been independently
+built and verified. The design rationale for Model & Diagnostics
+Analytics's targets/indicators — why each detection is a target, an
+indicator, or a diagnostic rather than shoehorned into the ML pipeline —
+lives in
+[`docs/moodle-stack-analytics-architecture.md`](docs/moodle-stack-analytics-architecture.md).
+
+## Status
+
+Alpha, under active phased development — see `CHANGELOG.md` for what has
+landed so far, phase by phase. Both Analytics API models ship **disabled**
+by default; review `INSTALL.md` before enabling either on a live site.
+
+Known gaps, tracked rather than hidden:
+- Two indicators are documented simplifications of the architecture doc's
+  literal spec (`question_difficulty_irt`'s classical-test-theory proxy
+  instead of a jointly-fitted 2PL IRT model; `feedback_ineffectiveness`'s
+  aggregate log-odds effect size instead of a per-branch paired McNemar's
+  test) — both because the full version needs data or a batch step the
+  Analytics API's per-sample indicator model doesn't provide.
+- Some PHPUnit coverage needing real STACK *attempt* data (as opposed to
+  just a STACK question existing) needs a full PHPUnit/Behat environment
+  (`composer install` + `admin/tool/phpunit/cli/init.php`) to actually
+  execute — see `CHANGELOG.md`'s Phase 16 entry.
+
+## Installation
+
+See [INSTALL.md](INSTALL.md) for the full step-by-step setup. See
+[CHANGELOG.md](CHANGELOG.md) for release notes.
+
+## Reference
+
+- `thirdpartylibs.xml` — vendored library manifest (Plotly.js, KaTeX,
+  TCPDF — the latter for Quiz Analytics's PDF export only; Model &
+  Diagnostics Analytics uses core's own bundled copy), required by the
+  Moodle Plugins directory.
+- Standard Moodle `local_` plugin conventions throughout (`version.php`,
+  `db/access.php`, `db/caches.php`, `db/analytics.php`, `lang/en/*.php`,
+  `settings.php`, `lib.php`'s navigation hooks) — nothing here needs a
+  custom install script beyond Moodle's own "Site administration" upgrade
+  screen.
+- License: GNU GPL v3 or later (see `LICENSE`), matching Moodle core's own
+  license. TCPDF is vendored under its own LGPLv3 license (GPL-compatible)
+  — see `classes/quiz/vendor/tcpdf/LICENSE.TXT`.
