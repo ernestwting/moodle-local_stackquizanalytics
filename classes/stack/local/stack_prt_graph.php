@@ -123,19 +123,29 @@ class stack_prt_graph {
      * docblock for why quiz-scoped rather than question-global).
      *
      * @param int $quizid
-     * @param int $questionid
+     * @param int[] $questionids every version's question.id for this slot's
+     *              question bank entry (stack_course_helper::get_all_question_ids_for_entry())
+     *              — see stack_attempt_reader::get_slot_finished_fractions()'s
+     *              docblock for why a single current-version id would miss
+     *              attempts made against an earlier version.
      * @return string[] one responsesummary per attempt (empty ones included; harmless for substring matching)
      */
-    public static function get_response_summaries(int $quizid, int $questionid): array {
+    public static function get_response_summaries(int $quizid, array $questionids): array {
         global $DB;
+
+        if (empty($questionids)) {
+            return [];
+        }
+        [$insql, $params] = $DB->get_in_or_equal($questionids, SQL_PARAMS_NAMED);
+        $params['quizid'] = $quizid;
 
         $sql = "SELECT qa.id, qa.responsesummary
                   FROM {question_attempts} qa
                   JOIN {quiz_attempts} quiza ON quiza.uniqueid = qa.questionusageid
                  WHERE quiza.quiz = :quizid
-                   AND qa.questionid = :questionid";
+                   AND qa.questionid $insql";
 
-        $records = $DB->get_records_sql($sql, ['quizid' => $quizid, 'questionid' => $questionid]);
+        $records = $DB->get_records_sql($sql, $params);
         return array_map(fn($record) => (string) $record->responsesummary, $records);
     }
 

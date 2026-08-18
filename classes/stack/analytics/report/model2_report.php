@@ -89,6 +89,7 @@ class model2_report {
                 'slotid' => (int) $slot->id,
                 'questionname' => $questionnames[$slot->questionid] ?? get_string('unknownquestion', 'local_stackquizanalytics'),
                 'quizname' => $quiznames[$slot->quizid] ?? get_string('unknownquiz', 'local_stackquizanalytics'),
+                'attemptcount' => stack_course_helper::get_attempt_count((int) $slot->quizid, (int) $slot->questionbankentryid),
                 'needsreview' => question_needs_review::compute_for_sample((int) $slot->id),
                 'indicators' => [
                     'questiondifficultyirt' => question_difficulty_irt::compute_for_sample((int) $slot->id),

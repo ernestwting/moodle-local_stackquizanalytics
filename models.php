@@ -67,7 +67,15 @@ echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('dashboardtitle', 'local_stackquizanalytics'));
 echo local_stackquizanalytics_section_selector::render($courseid, 'models');
 
-echo html_writer::div(get_string('pageintro', 'local_stackquizanalytics'), 'alert alert-info');
+// Collapsed by default (native <details>, no JS needed) — the full text was
+// taking up too much space above the fold on every page load for something
+// most teachers only need to read once.
+echo html_writer::tag(
+    'details',
+    html_writer::tag('summary', get_string('pageintrosummary', 'local_stackquizanalytics'))
+        . html_writer::div(get_string('pageintro', 'local_stackquizanalytics'), 'mt-2'),
+    ['class' => 'alert alert-info']
+);
 
 $viewablecourses = stack_course_helper::get_viewable_courses();
 if (count($viewablecourses) > 1) {
@@ -117,7 +125,12 @@ $viewselector = new single_select(
 $viewselector->label = get_string('viewselectorlabel', 'local_stackquizanalytics');
 echo html_writer::div($OUTPUT->render($viewselector), 'd-inline-block mb-3');
 
-echo html_writer::div(get_string('responsibleusecallout', 'local_stackquizanalytics'), 'alert alert-warning mt-2');
+echo html_writer::tag(
+    'details',
+    html_writer::tag('summary', get_string('responsibleusesummary', 'local_stackquizanalytics'))
+        . html_writer::div(get_string('responsibleusecallout', 'local_stackquizanalytics'), 'mt-2'),
+    ['class' => 'alert alert-warning mt-2']
+);
 
 // Narrows Model 2/Diagnostics (both per-question) to one quiz at a time —
 // Model 1 isn't quiz-scoped (its indicators are per-student), so this

@@ -194,9 +194,13 @@ class dashboard_renderer {
                 'local_stackquizanalytics',
                 s($row->quizname)
             ), ['class' => 'small text-muted']);
-            $tablerow = [$questioncell, self::render_needs_review($row->needsreview)];
+            $tablerow = [$questioncell, self::render_needs_review($row->needsreview, $row->attemptcount)];
             foreach (self::MODEL2_INDICATORS as $indicatorkey => $stringsuffix) {
-                $tablerow[] = self::render_indicator_cell($row->indicators[$indicatorkey], 'model2sentence_' . $stringsuffix);
+                $tablerow[] = self::render_indicator_cell(
+                    $row->indicators[$indicatorkey],
+                    'model2sentence_' . $stringsuffix,
+                    $row->attemptcount
+                );
             }
             $table->data[] = $tablerow;
         }
@@ -212,13 +216,16 @@ class dashboard_renderer {
      * The "Current status" table cell for Model 2: a needs-review badge, or a muted note if it can't be computed.
      *
      * @param \stdClass|null $needsreview question_needs_review::compute_for_sample()'s return value
+     * @param int|null $attemptcount total attempts recorded for this question in this quiz (any version, any
+     *                 state) — lets the muted note distinguish "no attempts at all" from "some attempts, but
+     *                 not enough of the right kind"; null (Model 1 cells never pass this) keeps the old generic text
      * @return string
      */
-    private static function render_needs_review(?\stdClass $needsreview): string {
+    private static function render_needs_review(?\stdClass $needsreview, ?int $attemptcount = null): string {
         if ($needsreview === null) {
             return \html_writer::tag(
                 'span',
-                get_string('notenoughdata', 'local_stackquizanalytics'),
+                self::not_enough_data_text($attemptcount),
                 ['class' => 'text-muted small']
             );
         }
@@ -269,13 +276,18 @@ class dashboard_renderer {
      *
      * @param \stdClass|null $result an indicator's compute_for_sample() return value
      * @param string $sentencestringkey the lang string key for the facts sentence, taking $result->summary as $a
+     * @param int|null $attemptcount see render_needs_review()'s docblock
      * @return string
      */
-    private static function render_indicator_cell(?\stdClass $result, string $sentencestringkey): string {
+    private static function render_indicator_cell(
+        ?\stdClass $result,
+        string $sentencestringkey,
+        ?int $attemptcount = null
+    ): string {
         if ($result === null) {
             return \html_writer::tag(
                 'span',
-                get_string('notenoughdata', 'local_stackquizanalytics'),
+                self::not_enough_data_text($attemptcount),
                 ['class' => 'text-muted small']
             );
         }
@@ -289,6 +301,29 @@ class dashboard_renderer {
         $sentence = get_string($sentencestringkey, 'local_stackquizanalytics', (object) $result->summary);
 
         return $badge . \html_writer::tag('div', $sentence, ['class' => 'small text-muted mt-1']);
+    }
+
+    /**
+     * The "not enough data" note text for a null indicator/status cell —
+     * "No attempts yet" when the question genuinely has zero attempts
+     * recorded, "Not enough attempt data (N so far)" when some attempts
+     * exist but not the specific kind this particular reading needs
+     * (finished, multi-step, etc.), or the old generic text when no count
+     * is available at all (Model 1 cells, which don't have this per-question
+     * concept). Public so pdf_content.php's Model 2 section can show the
+     * same distinction the on-screen table does, not just this class.
+     *
+     * @param int|null $attemptcount
+     * @return string
+     */
+    public static function not_enough_data_text(?int $attemptcount): string {
+        if ($attemptcount === null) {
+            return get_string('notenoughdata', 'local_stackquizanalytics');
+        }
+        if ($attemptcount === 0) {
+            return get_string('noattemptsyet', 'local_stackquizanalytics');
+        }
+        return get_string('notenoughdatacount', 'local_stackquizanalytics', $attemptcount);
     }
 
     /**

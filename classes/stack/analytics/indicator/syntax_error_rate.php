@@ -116,7 +116,8 @@ class syntax_error_rate extends \core_analytics\local\indicator\linear {
         }
         $slot = $slots[$sampleid];
 
-        $finalstates = stack_attempt_reader::get_slot_final_states((int) $slot->quizid, (int) $slot->questionid);
+        $questionids = stack_course_helper::get_all_question_ids_for_entry((int) $slot->questionbankentryid);
+        $finalstates = stack_attempt_reader::get_slot_final_states((int) $slot->quizid, $questionids);
         if (empty($finalstates)) {
             return null;
         }

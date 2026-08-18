@@ -138,7 +138,8 @@ class feedback_ineffectiveness extends \core_analytics\local\indicator\linear {
         }
         $slot = $slots[$sampleid];
 
-        $attempts = stack_attempt_reader::get_slot_step_sequences((int) $slot->quizid, (int) $slot->questionid);
+        $questionids = stack_course_helper::get_all_question_ids_for_entry((int) $slot->questionbankentryid);
+        $attempts = stack_attempt_reader::get_slot_step_sequences((int) $slot->quizid, $questionids);
         if (empty($attempts)) {
             return null;
         }

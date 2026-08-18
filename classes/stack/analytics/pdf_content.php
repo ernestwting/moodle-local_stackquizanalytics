@@ -130,10 +130,14 @@ class pdf_content {
         foreach ($report->rows as $row) {
             $cells = [
                 $row->questionname . ' (' . $row->quizname . ')',
-                self::needsreview_cell($row->needsreview),
+                self::needsreview_cell($row->needsreview, $row->attemptcount),
             ];
             foreach (self::MODEL2_INDICATORS as $indicatorkey => $stringsuffix) {
-                $cells[] = self::indicator_cell($row->indicators[$indicatorkey], 'model2sentence_' . $stringsuffix);
+                $cells[] = self::indicator_cell(
+                    $row->indicators[$indicatorkey],
+                    'model2sentence_' . $stringsuffix,
+                    $row->attemptcount
+                );
             }
             $rows[] = $cells;
         }
@@ -188,11 +192,12 @@ class pdf_content {
      *
      * @param \stdClass|null $result an indicator's compute_for_sample() return value
      * @param string $sentencestringkey the lang string key for the facts sentence, taking $result->summary as $a
+     * @param int|null $attemptcount see dashboard_renderer::not_enough_data_text()'s docblock
      * @return array{text: string, band: ?string}
      */
-    private static function indicator_cell(?\stdClass $result, string $sentencestringkey): array {
+    private static function indicator_cell(?\stdClass $result, string $sentencestringkey, ?int $attemptcount = null): array {
         if ($result === null) {
-            return ['text' => get_string('notenoughdata', 'local_stackquizanalytics'), 'band' => null];
+            return ['text' => dashboard_renderer::not_enough_data_text($attemptcount), 'band' => null];
         }
         $label = get_string('band_' . $result->band, 'local_stackquizanalytics');
         $sentence = get_string($sentencestringkey, 'local_stackquizanalytics', (object) $result->summary);
@@ -224,11 +229,12 @@ class pdf_content {
      * The "Current status" cell for one Model 2 row, plus its color band.
      *
      * @param \stdClass|null $needsreview question_needs_review::compute_for_sample()'s return value
+     * @param int|null $attemptcount see dashboard_renderer::not_enough_data_text()'s docblock
      * @return array{text: string, band: ?string}
      */
-    private static function needsreview_cell(?\stdClass $needsreview): array {
+    private static function needsreview_cell(?\stdClass $needsreview, ?int $attemptcount = null): array {
         if ($needsreview === null) {
-            return ['text' => get_string('notenoughdata', 'local_stackquizanalytics'), 'band' => null];
+            return ['text' => dashboard_renderer::not_enough_data_text($attemptcount), 'band' => null];
         }
         $stringkey = $needsreview->needsreview ? 'needsreviewyes' : 'needsreviewno';
         $text = get_string($stringkey, 'local_stackquizanalytics', (object) [

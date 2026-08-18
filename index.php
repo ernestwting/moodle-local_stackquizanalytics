@@ -71,24 +71,24 @@ if (empty($stackquizzes)) {
     exit;
 }
 
-// The quiz selector: a plain GET form, so picking a quiz is just a page
-// reload with &quizid=... — no JS or AJAX needed for the switch itself.
+// The quiz selector: a single_select, matching the Course:/View: selectors
+// used everywhere else in this plugin (models.php) — auto-submits on change
+// via core's own JS (falls back to a visible "Go" button when JS is off),
+// rather than the plain-form-with-always-visible-button this used to be.
 $selectoptions = [0 => get_string('quizselectoption', 'local_stackquizanalytics')];
 foreach ($stackquizzes as $quiz) {
     $selectoptions[$quiz->id] = $quiz->name;
 }
 
-echo html_writer::start_tag('form', ['method' => 'get', 'action' => $PAGE->url->out_omit_querystring(), 'class' => 'mb-4']);
-echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'id', 'value' => $courseid]);
-echo html_writer::label(get_string('quizselectlabel', 'local_stackquizanalytics'), 'qa-quizid-select', true, ['class' => 'mr-2']);
-echo html_writer::select($selectoptions, 'quizid', $quizid, false, ['id' => 'qa-quizid-select']);
-echo ' ';
-echo html_writer::empty_tag('input', [
-    'type'  => 'submit',
-    'value' => get_string('gobutton', 'local_stackquizanalytics'),
-    'class' => 'btn btn-secondary',
-]);
-echo html_writer::end_tag('form');
+$quizselector = new single_select(
+    new moodle_url('/local/stackquizanalytics/index.php', ['id' => $courseid]),
+    'quizid',
+    $selectoptions,
+    $quizid,
+    null
+);
+$quizselector->label = get_string('quizselectlabel', 'local_stackquizanalytics');
+echo html_writer::div($OUTPUT->render($quizselector), 'mb-4');
 
 $colorblind = sections_output_helper::resolve_colorblind_mode();
 $anonymize = sections_output_helper::resolve_anonymize_mode();

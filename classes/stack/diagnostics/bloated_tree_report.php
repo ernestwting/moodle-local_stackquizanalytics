@@ -78,16 +78,23 @@ class bloated_tree_report {
      * within one quiz (Model 2's sample grain).
      *
      * @param int $quizid
-     * @param int $questionid
+     * @param int $questionid the *current* version's question id — used only to
+     *            look up the PRT structure as authored right now
+     * @param int[] $questionids every version's question id for this slot's
+     *              bank entry (stack_course_helper::get_all_question_ids_for_entry())
+     *              — used to find attempt history however old; see
+     *              stack_attempt_reader::get_slot_finished_fractions()'s
+     *              docblock for why a single current-version id would miss
+     *              attempts made against an earlier version
      * @return \stdClass[] each with ->nodename, ->branch, ->answernote, ->count, ->classification
      */
-    public static function build_report(int $quizid, int $questionid): array {
+    public static function build_report(int $quizid, int $questionid, array $questionids): array {
         $branches = stack_prt_graph::get_prt_branches($questionid);
         if (empty($branches)) {
             return [];
         }
 
-        $summaries = stack_prt_graph::get_response_summaries($quizid, $questionid);
+        $summaries = stack_prt_graph::get_response_summaries($quizid, $questionids);
         if (empty($summaries)) {
             // No attempts recorded at all — every branch would classify()
             // as 'unreached' (occurrence count 0), which is a real coverage

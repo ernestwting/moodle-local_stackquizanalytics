@@ -328,16 +328,27 @@ class stack_attempt_reader {
      * quiz_slots row). Used by question_difficulty_irt.
      *
      * @param int $quizid
-     * @param int $questionid
+     * @param int[] $questionids every version's question.id for this slot's
+     *              question bank entry (stack_course_helper::get_all_question_ids_for_entry())
+     *              — editing a STACK question after it's been attempted
+     *              leaves old attempts pointing at the old version's id, not
+     *              the currently-resolved one, so matching only the current
+     *              id would silently miss that attempt history.
      * @return float[] one fraction (0..1) per finished attempt
      */
-    public static function get_slot_finished_fractions(int $quizid, int $questionid): array {
+    public static function get_slot_finished_fractions(int $quizid, array $questionids): array {
         global $DB;
+
+        if (empty($questionids)) {
+            return [];
+        }
+        [$insql, $params] = $DB->get_in_or_equal($questionids, SQL_PARAMS_NAMED);
+        $params['quizid'] = $quizid;
 
         $sql = "SELECT qas.fraction
                   FROM {quiz_attempts} quiza
                   JOIN {question_attempts} qa ON qa.questionusageid = quiza.uniqueid
-                                              AND qa.questionid = :questionid
+                                              AND qa.questionid $insql
                   JOIN {question_attempt_steps} qas ON qas.questionattemptid = qa.id
                                                     AND qas.sequencenumber = (
                                                         SELECT MAX(s2.sequencenumber)
@@ -359,7 +370,7 @@ class stack_attempt_reader {
         // fraction values, corrupting question_difficulty_irt's distribution
         // math well beyond the version-join fan-out bug fixed alongside
         // this one.
-        $fractions = $DB->get_fieldset_sql($sql, ['quizid' => $quizid, 'questionid' => $questionid]);
+        $fractions = $DB->get_fieldset_sql($sql, $params);
         return array_map(fn($fraction) => (float) $fraction, $fractions);
     }
 
@@ -372,16 +383,22 @@ class stack_attempt_reader {
      * from other incorrect final states (mathematical-equivalence failure).
      *
      * @param int $quizid
-     * @param int $questionid
+     * @param int[] $questionids see get_slot_finished_fractions()'s docblock for why this is a list, not one id
      * @return \stdClass[] each with ->state and ->fraction
      */
-    public static function get_slot_final_states(int $quizid, int $questionid): array {
+    public static function get_slot_final_states(int $quizid, array $questionids): array {
         global $DB;
+
+        if (empty($questionids)) {
+            return [];
+        }
+        [$insql, $params] = $DB->get_in_or_equal($questionids, SQL_PARAMS_NAMED);
+        $params['quizid'] = $quizid;
 
         $sql = "SELECT qas.id, qas.state, qas.fraction
                   FROM {quiz_attempts} quiza
                   JOIN {question_attempts} qa ON qa.questionusageid = quiza.uniqueid
-                                              AND qa.questionid = :questionid
+                                              AND qa.questionid $insql
                   JOIN {question_attempt_steps} qas ON qas.questionattemptid = qa.id
                                                     AND qas.sequencenumber = (
                                                         SELECT MAX(s2.sequencenumber)
@@ -390,7 +407,7 @@ class stack_attempt_reader {
                                                     )
                  WHERE quiza.quiz = :quizid";
 
-        return array_values($DB->get_records_sql($sql, ['quizid' => $quizid, 'questionid' => $questionid]));
+        return array_values($DB->get_records_sql($sql, $params));
     }
 
     /**
@@ -401,21 +418,27 @@ class stack_attempt_reader {
      * transitions.
      *
      * @param int $quizid
-     * @param int $questionid
+     * @param int[] $questionids see get_slot_finished_fractions()'s docblock for why this is a list, not one id
      * @return array keyed by question_attempts.id, each value an ordered array of stdClass{fraction}
      */
-    public static function get_slot_step_sequences(int $quizid, int $questionid): array {
+    public static function get_slot_step_sequences(int $quizid, array $questionids): array {
         global $DB;
+
+        if (empty($questionids)) {
+            return [];
+        }
+        [$insql, $params] = $DB->get_in_or_equal($questionids, SQL_PARAMS_NAMED);
+        $params['quizid'] = $quizid;
 
         $sql = "SELECT qas.id AS stepid, qa.id AS qaid, qas.sequencenumber, qas.fraction
                   FROM {quiz_attempts} quiza
                   JOIN {question_attempts} qa ON qa.questionusageid = quiza.uniqueid
-                                              AND qa.questionid = :questionid
+                                              AND qa.questionid $insql
                   JOIN {question_attempt_steps} qas ON qas.questionattemptid = qa.id
                  WHERE quiza.quiz = :quizid
               ORDER BY qa.id, qas.sequencenumber";
 
-        $rows = $DB->get_records_sql($sql, ['quizid' => $quizid, 'questionid' => $questionid]);
+        $rows = $DB->get_records_sql($sql, $params);
 
         $byattempt = [];
         foreach ($rows as $row) {

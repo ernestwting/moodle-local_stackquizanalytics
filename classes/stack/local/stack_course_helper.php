@@ -114,12 +114,12 @@ class stack_course_helper {
      * grain was chosen over a bare question id).
      *
      * @param int $courseid
-     * @return \stdClass[] keyed by slot id, each with ->id, ->quizid, ->questionid, ->slot (slot number)
+     * @return \stdClass[] keyed by slot id, each with ->id, ->quizid, ->questionid, ->questionbankentryid, ->slot (slot number)
      */
     public static function get_course_stack_slots(int $courseid): array {
         global $DB;
 
-        $sql = "SELECT slot.id, slot.quizid, slot.slot, q.id AS questionid
+        $sql = "SELECT slot.id, slot.quizid, slot.slot, q.id AS questionid, qbe.id AS questionbankentryid
                   FROM " . self::stack_slot_join_sql() . "
                  WHERE quiz.course = :courseid";
 
@@ -134,7 +134,7 @@ class stack_course_helper {
      * which may span multiple courses) back to their slot/quiz/question data.
      *
      * @param int[] $slotids
-     * @return \stdClass[] keyed by slot id, each with ->id, ->quizid, ->courseid, ->slot, ->questionid
+     * @return \stdClass[] keyed by slot id, each with ->id, ->quizid, ->courseid, ->slot, ->questionid, ->questionbankentryid
      */
     public static function get_stack_slots(array $slotids): array {
         global $DB;
@@ -144,12 +144,77 @@ class stack_course_helper {
         }
 
         [$insql, $params] = $DB->get_in_or_equal($slotids, SQL_PARAMS_NAMED);
-        $sql = "SELECT slot.id, slot.quizid, quiz.course AS courseid, slot.slot, q.id AS questionid
+        $sql = "SELECT slot.id, slot.quizid, quiz.course AS courseid, slot.slot, q.id AS questionid,
+                       qbe.id AS questionbankentryid
                   FROM " . self::stack_slot_join_sql() . "
                  WHERE slot.id $insql";
         $params['contextmodule'] = CONTEXT_MODULE;
 
         return $DB->get_records_sql($sql, $params);
+    }
+
+    /**
+     * Every question id that has ever been a live (non-draft) version of a
+     * question bank entry — what Model 2's attempt-matching queries need to
+     * find a question's full attempt history, since editing a STACK question
+     * creates a new {question_versions} row (and a new question.id) without
+     * retroactively updating {question_attempts}.questionid on attempts
+     * already made against an earlier version. stack_slot_join_sql() pins a
+     * slot to exactly one *current* version's question.id for structural
+     * purposes (which PRT is authored right now); this instead resolves
+     * every version's id, for matching attempts however old.
+     *
+     * Confirmed against this plugin's own test data: a question edited 13
+     * times had real attempts recorded only against version 11's question
+     * id, not version 13's (the currently-resolved one) — the exact case
+     * this method exists to cover.
+     *
+     * @param int $questionbankentryid
+     * @return int[]
+     */
+    public static function get_all_question_ids_for_entry(int $questionbankentryid): array {
+        global $DB;
+
+        $ids = $DB->get_fieldset_select(
+            'question_versions',
+            'questionid',
+            'questionbankentryid = :entry AND status <> :draft',
+            ['entry' => $questionbankentryid, 'draft' => 'draft']
+        );
+        return array_map('intval', $ids);
+    }
+
+    /**
+     * Raw count of every attempt at a question (any version, any state —
+     * finished or not) within one quiz, regardless of what any specific
+     * Model 2 indicator needs to compute a real reading. Lets the dashboard
+     * distinguish "genuinely no attempts yet" from "some attempts exist, but
+     * not the specific kind (finished, multi-step, etc.) this indicator
+     * needs" instead of collapsing both into the same generic "not enough
+     * data" message.
+     *
+     * @param int $quizid
+     * @param int $questionbankentryid
+     * @return int
+     */
+    public static function get_attempt_count(int $quizid, int $questionbankentryid): int {
+        global $DB;
+
+        $questionids = self::get_all_question_ids_for_entry($questionbankentryid);
+        if (empty($questionids)) {
+            return 0;
+        }
+        [$insql, $params] = $DB->get_in_or_equal($questionids, SQL_PARAMS_NAMED);
+        $params['quizid'] = $quizid;
+
+        return (int) $DB->count_records_sql(
+            "SELECT COUNT(*)
+               FROM {question_attempts} qa
+               JOIN {quiz_attempts} quiza ON quiza.uniqueid = qa.questionusageid
+              WHERE quiza.quiz = :quizid
+                AND qa.questionid $insql",
+            $params
+        );
     }
 
     /**

@@ -102,7 +102,8 @@ class unreached_node_ratio extends \core_analytics\local\indicator\linear {
             return null; // No answernoted branches to judge coverage of (e.g. a trivial single-node PRT).
         }
 
-        $summaries = stack_prt_graph::get_response_summaries((int) $slot->quizid, (int) $slot->questionid);
+        $questionids = stack_course_helper::get_all_question_ids_for_entry((int) $slot->questionbankentryid);
+        $summaries = stack_prt_graph::get_response_summaries((int) $slot->quizid, $questionids);
         if (empty($summaries)) {
             // No attempts recorded at all — every other Model 2 indicator
             // for this same sample would also report "not enough data" at

@@ -152,7 +152,8 @@ class question_needs_review extends \core_analytics\local\target\binary {
         }
         $slot = $slots[$sampleid];
 
-        $fractions = stack_attempt_reader::get_slot_finished_fractions((int) $slot->quizid, (int) $slot->questionid);
+        $questionids = stack_course_helper::get_all_question_ids_for_entry((int) $slot->questionbankentryid);
+        $fractions = stack_attempt_reader::get_slot_finished_fractions((int) $slot->quizid, $questionids);
         if (empty($fractions)) {
             return null; // No finished attempts yet — no basis for a label.
         }

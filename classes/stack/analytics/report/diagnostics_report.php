@@ -79,12 +79,13 @@ class diagnostics_report {
 
         $rows = [];
         foreach ($slots as $slot) {
+            $allquestionids = stack_course_helper::get_all_question_ids_for_entry((int) $slot->questionbankentryid);
             $rows[] = (object) [
                 'slotid' => (int) $slot->id,
                 'questionname' => $questionnames[$slot->questionid] ?? get_string('unknownquestion', 'local_stackquizanalytics'),
                 'quizname' => $quiznames[$slot->quizid] ?? get_string('unknownquiz', 'local_stackquizanalytics'),
-                'seedbias' => self::build_seed_bias((int) $slot->quizid, (int) $slot->questionid),
-                'bloatedtree' => self::build_bloated_tree((int) $slot->quizid, (int) $slot->questionid),
+                'seedbias' => self::build_seed_bias((int) $slot->quizid, $allquestionids),
+                'bloatedtree' => self::build_bloated_tree((int) $slot->quizid, (int) $slot->questionid, $allquestionids),
             ];
         }
 
@@ -95,11 +96,11 @@ class diagnostics_report {
      * The seed-bias ANOVA for one question, plus a band derived from its effect size.
      *
      * @param int $quizid
-     * @param int $questionid
+     * @param int[] $questionids every version's question id for this slot's bank entry
      * @return \stdClass|null {anova: \stdClass, band: string} — null if there's not enough data for an ANOVA
      */
-    private static function build_seed_bias(int $quizid, int $questionid): ?\stdClass {
-        $seedgroups = seed_bias_report::get_seed_score_groups($quizid, $questionid);
+    private static function build_seed_bias(int $quizid, array $questionids): ?\stdClass {
+        $seedgroups = seed_bias_report::get_seed_score_groups($quizid, $questionids);
         $anova = seed_bias_report::anova($seedgroups);
         if ($anova === null) {
             return null;
@@ -120,12 +121,13 @@ class diagnostics_report {
      * The PRT branch-coverage report for one question, plus a band derived from its unreached/low-traffic counts.
      *
      * @param int $quizid
-     * @param int $questionid
+     * @param int $questionid the *current* version's question id (PRT structure lookup)
+     * @param int[] $questionids every version's question id for this slot's bank entry (attempt-history lookup)
      * @return \stdClass|null {branches: \stdClass[], unreachedcount: int, lowtrafficcount: int, band: string}
      *         — null if there are no answernoted branches to judge coverage of
      */
-    private static function build_bloated_tree(int $quizid, int $questionid): ?\stdClass {
-        $branches = bloated_tree_report::build_report($quizid, $questionid);
+    private static function build_bloated_tree(int $quizid, int $questionid, array $questionids): ?\stdClass {
+        $branches = bloated_tree_report::build_report($quizid, $questionid, $questionids);
         if (empty($branches)) {
             return null;
         }

@@ -53,16 +53,26 @@ class seed_bias_report {
      * Groups final fractions by the STACK seed used for that attempt.
      *
      * @param int $quizid
-     * @param int $questionid
+     * @param int[] $questionids every version's question id for this slot's
+     *              bank entry (stack_course_helper::get_all_question_ids_for_entry())
+     *              — see stack_attempt_reader::get_slot_finished_fractions()'s
+     *              docblock for why a single current-version id would miss
+     *              attempts made against an earlier version
      * @return array seed => float[] fractions
      */
-    public static function get_seed_score_groups(int $quizid, int $questionid): array {
+    public static function get_seed_score_groups(int $quizid, array $questionids): array {
         global $DB;
+
+        if (empty($questionids)) {
+            return [];
+        }
+        [$insql, $params] = $DB->get_in_or_equal($questionids, SQL_PARAMS_NAMED);
+        $params['quizid'] = $quizid;
 
         $sql = "SELECT qa.id AS qaid, seeddata.value AS seed, finalstep.fraction
                   FROM {quiz_attempts} quiza
                   JOIN {question_attempts} qa ON qa.questionusageid = quiza.uniqueid
-                                              AND qa.questionid = :questionid
+                                              AND qa.questionid $insql
                   JOIN {question_attempt_steps} firststep ON firststep.questionattemptid = qa.id
                                                           AND firststep.sequencenumber = 0
                   JOIN {question_attempt_step_data} seeddata ON seeddata.attemptstepid = firststep.id
@@ -76,7 +86,7 @@ class seed_bias_report {
                  WHERE quiza.quiz = :quizid
                    AND finalstep.fraction IS NOT NULL";
 
-        $records = $DB->get_records_sql($sql, ['quizid' => $quizid, 'questionid' => $questionid]);
+        $records = $DB->get_records_sql($sql, $params);
 
         $groups = [];
         foreach ($records as $record) {
