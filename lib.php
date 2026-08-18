@@ -33,10 +33,11 @@
  *      then promotes any child key not in core's "expected" list onto the
  *      course's secondary nav bar (or its "More" overflow) automatically.
  *
- * ONE nav entry, not two — this merge's whole point is that a teacher sees
- * a single "Analytics" tab, landing on the Quiz Analytics section
+ * ONE nav entry, not several — this merge's whole point is that a teacher
+ * sees a single "Analytics" tab, landing on the Quiz Analytics section
  * (index.php), with the "Section:" selector at the top of every page one
- * click away from Model & Diagnostics Analytics (models.php).
+ * click away from every other section
+ * (classes/section_selector.php::SECTION_PAGES).
  *
  * @package local_stackquizanalytics
  * @copyright  2026 Ernest Ting <eting@caltech.edu>
@@ -48,8 +49,7 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * Adds a single "Analytics" link to a course's own administration
  * navigation, landing on the Quiz Analytics section (index.php) — the
- * "Section:" selector on that page reaches Model & Diagnostics Analytics
- * from there.
+ * "Section:" selector on that page reaches every other section from there.
  *
  * @param navigation_node $navigation the course admin node
  * @param stdClass $course
@@ -87,8 +87,8 @@ function local_stackquizanalytics_extend_navigation_course($navigation, $course,
 
 /**
  * Adds an "Analytics" link to a STACK quiz's own settings/administration
- * menu, jumping straight to the Quiz Analytics page pre-scoped to that quiz
- * (index.php?id=<courseid>&quizid=<quizid>) — ported from
+ * menu, jumping straight to the Question Analytics page pre-scoped to that
+ * quiz (questionanalytics.php?id=<courseid>&quizid=<quizid>) — ported from
  * local_quizanalytics, which had this; local_stackanalytics never did
  * (Model 2/Diagnostics are course-wide with an in-page quiz filter, not
  * naturally reached from a single quiz's own menu).
@@ -131,7 +131,7 @@ function local_stackquizanalytics_extend_settings_navigation($settingsnav, $cont
         return;
     }
 
-    $url = new moodle_url('/local/stackquizanalytics/index.php', [
+    $url = new moodle_url('/local/stackquizanalytics/questionanalytics.php', [
         'id'     => $cm->course,
         'quizid' => $cm->instance,
     ]);

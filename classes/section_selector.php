@@ -15,13 +15,17 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * The top-level "Section:" selector shared by index.php (Quiz Analytics —
- * ported from local_quizanalytics) and models.php (Model & Diagnostics
- * Analytics — ported from local_stackanalytics), the one genuinely new
- * piece of UI this merge adds: a single course/quiz-response-level dashboard
- * with one nav entry, switching between the two previously-separate
- * plugins' whole page trees via a plain GET-reload — same convention every
- * other selector in both halves already uses, no JS required.
+ * The top-level "Section:" selector shared by every page-level entry point
+ * in this plugin — one nav entry, switching between each section's whole
+ * page tree via a plain GET-reload, same convention every other selector
+ * in this plugin already uses, no JS required.
+ *
+ * Started as a 2-way switch (Quiz Analytics / Model & Diagnostics
+ * Analytics) when this plugin first merged local_quizanalytics and
+ * local_stackanalytics; Quiz Analytics's own per-quiz drill-down later
+ * split into its own Question Analytics section (this file's first
+ * post-merge change), with Model & Diagnostics Analytics due to split into
+ * Model Analytics and Diagnostics Analytics the same way.
  *
  * Deliberately global-namespace and outside classes/quiz/ or classes/stack/
  * — this belongs to neither product specifically, only to the merged
@@ -35,33 +39,38 @@
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Renders the "Section:" selector between Quiz Analytics (index.php) and Model & Diagnostics Analytics (models.php).
+ * Renders the "Section:" selector shown at the top of every section's own page.
  */
 class local_stackquizanalytics_section_selector {
+    /** @var array<string, string> section key => page-level entry point, relative to this plugin's own root. */
+    const SECTION_PAGES = [
+        'quiz' => 'index.php',
+        'question' => 'questionanalytics.php',
+        'models' => 'models.php',
+    ];
+
     /**
-     * Renders the two-link "Section:" switcher, bolding whichever section is currently active.
+     * Renders the "Section:" switcher, bolding whichever section is currently active.
      *
      * @param int $courseid
-     * @param string $current 'quiz' or 'models'
+     * @param string $current one of self::SECTION_PAGES's keys
      * @return string
      */
     public static function render(int $courseid, string $current): string {
         $options = [
             'quiz' => get_string('sectionquiz', 'local_stackquizanalytics'),
+            'question' => get_string('sectionquestion', 'local_stackquizanalytics'),
             'models' => get_string('sectionmodels', 'local_stackquizanalytics'),
         ];
 
-        // Rendered as two plain links rather than a form+select — there's no
+        // Rendered as plain links rather than a form+select — there's no
         // per-section state to carry across the switch (unlike the quiz/view
         // selectors nested inside each section, which do need a GET form to
         // submit their own params), so a link is the simpler, more honestly-GET
         // choice here.
         $links = [];
         foreach ($options as $section => $label) {
-            $url = new \moodle_url(
-                $section === 'quiz' ? '/local/stackquizanalytics/index.php' : '/local/stackquizanalytics/models.php',
-                ['id' => $courseid]
-            );
+            $url = new \moodle_url('/local/stackquizanalytics/' . self::SECTION_PAGES[$section], ['id' => $courseid]);
             if ($section === $current) {
                 $links[] = \html_writer::tag('strong', $label);
             } else {

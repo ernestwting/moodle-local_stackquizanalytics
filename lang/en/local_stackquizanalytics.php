@@ -39,6 +39,7 @@ $string['sectionselectorlabel'] = 'Section:';
 // different heading text switching depending which one you were on.
 $string['pagemaintitle'] = 'STACK Analytics';
 $string['sectionquiz'] = 'Quiz Analytics';
+$string['sectionquestion'] = 'Question Analytics';
 $string['sectionmodels'] = 'Model & Diagnostics Analytics';
 $string['privacy:metadata'] = 'The STACK Quiz & Model Analytics plugin does not store any personal data of its own. It reads finished quiz attempts, question responses, grades, and log events directly from Moodle\'s own database (mod_quiz, the question engine, grade_grades, and logstore_standard_log) at request/calculation time, all of which are already covered by their own privacy providers.';
 
