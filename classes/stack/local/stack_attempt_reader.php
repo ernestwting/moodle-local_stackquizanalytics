@@ -1,0 +1,459 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * Shared question-engine data access for both models' indicators: Model 1's
+ * per-student queries (scoped by userid+courseid) and Model 2's per-slot
+ * queries (scoped by quizid+questionid, added in Phase 4). Centralising
+ * these here, rather than duplicating a variant of the same STACK-question
+ * join in every indicator class, means there is exactly one place to fix a
+ * schema assumption if it turns out to be wrong against a real install.
+ *
+ * All queries join through mod_quiz's quiz_attempts + the question engine's
+ * own question_attempts / question_attempt_steps / question_attempt_step_data
+ * tables, which have been stable across Moodle versions for well over a
+ * decade (see question/engine/lib.php) — the STACK-question filter itself
+ * reuses the same quiz_slots -> question_references -> question_bank_entries
+ * -> question_versions -> question join local_quizanalytics's data_fetcher
+ * already relies on for the same purpose.
+ *
+ * @package local_stackquizanalytics
+ * @copyright  2026 Ernest Ting <eting@caltech.edu>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+namespace local_stackquizanalytics\stack\local;
+
+defined('MOODLE_INTERNAL') || die();
+
+/**
+ * Reads a student's own finished/in-progress STACK question attempts within
+ * a course and an optional [starttime, endtime] window.
+ */
+class stack_attempt_reader {
+
+    /**
+     * One row per finished STACK question attempt belonging to this student
+     * in this course, with the attempt's final fraction and maxmark — the
+     * raw signal grade_trajectory needs.
+     *
+     * @param int $userid
+     * @param int $courseid
+     * @param int|false $starttime
+     * @param int|false $endtime
+     * @return \stdClass[] each with ->fraction (0..1 or null) and ->maxmark
+     */
+    public static function get_finished_stack_grades(int $userid, int $courseid, $starttime, $endtime): array {
+        global $DB;
+
+        [$timesql, $params] = self::window_sql('qas.timecreated', $starttime, $endtime);
+        $params['contextmodule'] = CONTEXT_MODULE;
+        $params['courseid'] = $courseid;
+        $params['userid'] = $userid;
+
+        $sql = "SELECT qa.id AS qaid, qa.maxmark, qas.fraction
+                  FROM " . self::stack_slot_join_sql() . "
+                  JOIN {quiz_attempts} quiza ON quiza.quiz = quiz.id
+                                             AND quiza.userid = :userid
+                                             AND quiza.state = 'finished'
+                  JOIN {question_attempts} qa ON qa.questionusageid = quiza.uniqueid
+                                              AND qa.slot = slot.slot
+                  JOIN {question_attempt_steps} qas ON qas.questionattemptid = qa.id
+                                                    AND qas.sequencenumber = (
+                                                        SELECT MAX(s2.sequencenumber)
+                                                          FROM {question_attempt_steps} s2
+                                                         WHERE s2.questionattemptid = qa.id
+                                                    )
+                 WHERE quiz.course = :courseid
+                       $timesql";
+
+        return array_values($DB->get_records_sql($sql, $params));
+    }
+
+    /**
+     * Every step of every STACK question attempt this student made in this
+     * course/window, ordered by attempt then sequence — the raw material for
+     * the response-latency, disengagement-entropy, and feedback-revision
+     * indicators, which all reason about the sequence of tries within a
+     * single question attempt rather than just its final grade.
+     *
+     * @param int $userid
+     * @param int $courseid
+     * @param int|false $starttime
+     * @param int|false $endtime
+     * @return array keyed by question_attempts.id, each value an ordered
+     *               array of stdClass step rows (sequencenumber, state,
+     *               fraction, timecreated)
+     */
+    public static function get_attempt_step_sequences(int $userid, int $courseid, $starttime, $endtime): array {
+        global $DB;
+
+        [$timesql, $params] = self::window_sql('qas.timecreated', $starttime, $endtime);
+        $params['contextmodule'] = CONTEXT_MODULE;
+        $params['courseid'] = $courseid;
+        $params['userid'] = $userid;
+
+        $sql = "SELECT qas.id AS stepid, qa.id AS qaid, qas.sequencenumber, qas.state,
+                       qas.fraction, qas.timecreated
+                  FROM " . self::stack_slot_join_sql() . "
+                  JOIN {quiz_attempts} quiza ON quiza.quiz = quiz.id
+                                             AND quiza.userid = :userid
+                  JOIN {question_attempts} qa ON qa.questionusageid = quiza.uniqueid
+                                              AND qa.slot = slot.slot
+                  JOIN {question_attempt_steps} qas ON qas.questionattemptid = qa.id
+                 WHERE quiz.course = :courseid
+                       $timesql
+              ORDER BY qa.id, qas.sequencenumber";
+
+        $rows = $DB->get_records_sql($sql, $params);
+
+        $byattempt = [];
+        foreach ($rows as $row) {
+            $byattempt[$row->qaid][] = $row;
+        }
+        return $byattempt;
+    }
+
+    /**
+     * The submitted response values recorded at a single step (STACK's
+     * input names, e.g. 'ans1', vary per question and are not enumerated
+     * here — callers compare whichever keys are present at both of two
+     * consecutive steps).
+     *
+     * @param int $stepid a question_attempt_steps.id
+     * @return array name => value
+     */
+    public static function get_step_response_data(int $stepid): array {
+        global $DB;
+
+        $records = $DB->get_records('question_attempt_step_data', ['attemptstepid' => $stepid], '', 'name, value');
+        $data = [];
+        foreach ($records as $record) {
+            $data[$record->name] = $record->value;
+        }
+        return $data;
+    }
+
+    /**
+     * Course-wide cohort of view-to-submit deltas for STACK question steps,
+     * used as the comparison distribution for the response-latency-anomaly
+     * indicator's z-score. Deliberately not scoped to "algebraically complex"
+     * questions yet (that needs the PRT-complexity data classes/local/
+     * prt_graph.php builds in Phase 3) — computed over all STACK attempts in
+     * the course for now, a superset of the architecture doc's target
+     * population that leaves the z-score math itself unaffected.
+     *
+     * @param int $courseid
+     * @param int|false $starttime
+     * @param int|false $endtime
+     * @return float[] inter-step deltas in seconds, one per step transition
+     */
+    public static function get_course_step_deltas(int $courseid, $starttime, $endtime): array {
+        global $DB;
+
+        [$timesql, $params] = self::window_sql('qas.timecreated', $starttime, $endtime);
+        $params['contextmodule'] = CONTEXT_MODULE;
+        $params['courseid'] = $courseid;
+
+        $sql = "SELECT qas.id AS stepid, qa.id AS qaid, qas.sequencenumber, qas.timecreated
+                  FROM " . self::stack_slot_join_sql() . "
+                  JOIN {quiz_attempts} quiza ON quiza.quiz = quiz.id
+                  JOIN {question_attempts} qa ON qa.questionusageid = quiza.uniqueid
+                                              AND qa.slot = slot.slot
+                  JOIN {question_attempt_steps} qas ON qas.questionattemptid = qa.id
+                 WHERE quiz.course = :courseid
+                       $timesql
+              ORDER BY qa.id, qas.sequencenumber";
+
+        $rows = $DB->get_records_sql($sql, $params);
+
+        $byattempt = [];
+        foreach ($rows as $row) {
+            $byattempt[$row->qaid][] = (int) $row->timecreated;
+        }
+
+        $deltas = [];
+        foreach ($byattempt as $timestamps) {
+            for ($i = 1; $i < count($timestamps); $i++) {
+                $deltas[] = (float) ($timestamps[$i] - $timestamps[$i - 1]);
+            }
+        }
+        return $deltas;
+    }
+
+    /**
+     * Same inter-step deltas as get_course_step_deltas(), scoped to one
+     * student — the "raw signal" side of the response-latency-anomaly
+     * indicator, compared against the course-wide cohort distribution that
+     * method returns.
+     *
+     * @param int $userid
+     * @param int $courseid
+     * @param int|false $starttime
+     * @param int|false $endtime
+     * @return float[] inter-step deltas in seconds
+     */
+    public static function get_user_step_deltas(int $userid, int $courseid, $starttime, $endtime): array {
+        global $DB;
+
+        [$timesql, $params] = self::window_sql('qas.timecreated', $starttime, $endtime);
+        $params['contextmodule'] = CONTEXT_MODULE;
+        $params['courseid'] = $courseid;
+        $params['userid'] = $userid;
+
+        $sql = "SELECT qas.id AS stepid, qa.id AS qaid, qas.sequencenumber, qas.timecreated
+                  FROM " . self::stack_slot_join_sql() . "
+                  JOIN {quiz_attempts} quiza ON quiza.quiz = quiz.id AND quiza.userid = :userid
+                  JOIN {question_attempts} qa ON qa.questionusageid = quiza.uniqueid
+                                              AND qa.slot = slot.slot
+                  JOIN {question_attempt_steps} qas ON qas.questionattemptid = qa.id
+                 WHERE quiz.course = :courseid
+                       $timesql
+              ORDER BY qa.id, qas.sequencenumber";
+
+        $rows = $DB->get_records_sql($sql, $params);
+
+        $byattempt = [];
+        foreach ($rows as $row) {
+            $byattempt[$row->qaid][] = (int) $row->timecreated;
+        }
+
+        $deltas = [];
+        foreach ($byattempt as $timestamps) {
+            for ($i = 1; $i < count($timestamps); $i++) {
+                $deltas[] = (float) ($timestamps[$i] - $timestamps[$i - 1]);
+            }
+        }
+        return $deltas;
+    }
+
+    /** Components treated as "help resources" for the help-seeking-gap indicator. */
+    const HELP_RESOURCE_COMPONENTS = ['mod_forum', 'mod_glossary', 'mod_resource', 'mod_page', 'mod_url', 'mod_book'];
+
+    /**
+     * Timestamps of STACK question steps graded below full marks (fraction
+     * < 1.0) — the "recent failure" events the help-seeking-gap indicator
+     * looks for a follow-up resource access after.
+     *
+     * @param int $courseid
+     * @param int|false $starttime
+     * @param int|false $endtime
+     * @param int|null $userid restrict to one student, or null for the whole course (the baseline population)
+     * @return \stdClass[] each with ->userid and ->timecreated
+     */
+    public static function get_stack_failure_events(int $courseid, $starttime, $endtime, ?int $userid = null): array {
+        global $DB;
+
+        [$timesql, $params] = self::window_sql('qas.timecreated', $starttime, $endtime);
+        $params['contextmodule'] = CONTEXT_MODULE;
+        $params['courseid'] = $courseid;
+
+        $usersql = '';
+        if ($userid !== null) {
+            $usersql = ' AND quiza.userid = :userid';
+            $params['userid'] = $userid;
+        }
+
+        $sql = "SELECT qas.id AS stepid, quiza.userid, qas.timecreated
+                  FROM " . self::stack_slot_join_sql() . "
+                  JOIN {quiz_attempts} quiza ON quiza.quiz = quiz.id$usersql
+                  JOIN {question_attempts} qa ON qa.questionusageid = quiza.uniqueid
+                                              AND qa.slot = slot.slot
+                  JOIN {question_attempt_steps} qas ON qas.questionattemptid = qa.id
+                                                    AND qas.fraction IS NOT NULL
+                                                    AND qas.fraction < 1.0
+                 WHERE quiz.course = :courseid
+                       $timesql";
+
+        return array_values($DB->get_records_sql($sql, $params));
+    }
+
+    /**
+     * Resource-access log timestamps (forum/glossary/resource/page/url/book),
+     * grouped by user — the help-seeking side of the same indicator.
+     *
+     * @param int $courseid
+     * @param int|false $starttime
+     * @param int|false $endtime
+     * @param int|null $userid restrict to one student, or null for the whole course
+     * @return array userid => int[] timestamps, ordered
+     */
+    public static function get_resource_access_timestamps(int $courseid, $starttime, $endtime, ?int $userid = null): array {
+        global $DB;
+
+        [$componentsql, $params] = $DB->get_in_or_equal(self::HELP_RESOURCE_COMPONENTS, SQL_PARAMS_NAMED, 'comp');
+        $params['courseid'] = $courseid;
+
+        $usersql = '';
+        if ($userid !== null) {
+            $usersql = ' AND userid = :userid';
+            $params['userid'] = $userid;
+        }
+
+        [$timesql, $timeparams] = self::window_sql('timecreated', $starttime, $endtime);
+        $params = array_merge($params, $timeparams);
+
+        $sql = "SELECT id, userid, timecreated
+                  FROM {logstore_standard_log}
+                 WHERE courseid = :courseid
+                   AND component $componentsql
+                       $usersql
+                       $timesql
+              ORDER BY userid, timecreated";
+
+        $rows = $DB->get_records_sql($sql, $params);
+
+        $byuser = [];
+        foreach ($rows as $row) {
+            $byuser[$row->userid][] = (int) $row->timecreated;
+        }
+        return $byuser;
+    }
+
+    /**
+     * Final-step fraction for every finished attempt at one specific
+     * question, within one specific quiz — Model 2's sample grain (a
+     * quiz_slots row). Used by question_difficulty_irt.
+     *
+     * @param int $quizid
+     * @param int $questionid
+     * @return float[] one fraction (0..1) per finished attempt
+     */
+    public static function get_slot_finished_fractions(int $quizid, int $questionid): array {
+        global $DB;
+
+        $sql = "SELECT qas.fraction
+                  FROM {quiz_attempts} quiza
+                  JOIN {question_attempts} qa ON qa.questionusageid = quiza.uniqueid
+                                              AND qa.questionid = :questionid
+                  JOIN {question_attempt_steps} qas ON qas.questionattemptid = qa.id
+                                                    AND qas.sequencenumber = (
+                                                        SELECT MAX(s2.sequencenumber)
+                                                          FROM {question_attempt_steps} s2
+                                                         WHERE s2.questionattemptid = qa.id
+                                                    )
+                 WHERE quiza.quiz = :quizid
+                   AND quiza.state = 'finished'
+                   AND qas.fraction IS NOT NULL";
+
+        $records = $DB->get_records_sql($sql, ['quizid' => $quizid, 'questionid' => $questionid]);
+        return array_map(fn($record) => (float) $record->fraction, $records);
+    }
+
+    /**
+     * Final step (state, fraction) for every attempt at one specific
+     * question within one specific quiz. Used by syntax_error_rate to
+     * distinguish 'invalid' (syntax/input-validation failure, a standard
+     * question-engine state — see question/engine/states.php's
+     * question_state_invalid, confirmed against a real Moodle 4.5 checkout)
+     * from other incorrect final states (mathematical-equivalence failure).
+     *
+     * @param int $quizid
+     * @param int $questionid
+     * @return \stdClass[] each with ->state and ->fraction
+     */
+    public static function get_slot_final_states(int $quizid, int $questionid): array {
+        global $DB;
+
+        $sql = "SELECT qas.id, qas.state, qas.fraction
+                  FROM {quiz_attempts} quiza
+                  JOIN {question_attempts} qa ON qa.questionusageid = quiza.uniqueid
+                                              AND qa.questionid = :questionid
+                  JOIN {question_attempt_steps} qas ON qas.questionattemptid = qa.id
+                                                    AND qas.sequencenumber = (
+                                                        SELECT MAX(s2.sequencenumber)
+                                                          FROM {question_attempt_steps} s2
+                                                         WHERE s2.questionattemptid = qa.id
+                                                    )
+                 WHERE quiza.quiz = :quizid";
+
+        return array_values($DB->get_records_sql($sql, ['quizid' => $quizid, 'questionid' => $questionid]));
+    }
+
+    /**
+     * Every step of every attempt at one specific question within one
+     * specific quiz, across all students — the Model 2 (slot-scoped)
+     * counterpart to get_attempt_step_sequences(), used by
+     * feedback_ineffectiveness to look at consecutive-step fraction
+     * transitions.
+     *
+     * @param int $quizid
+     * @param int $questionid
+     * @return array keyed by question_attempts.id, each value an ordered array of stdClass{fraction}
+     */
+    public static function get_slot_step_sequences(int $quizid, int $questionid): array {
+        global $DB;
+
+        $sql = "SELECT qas.id AS stepid, qa.id AS qaid, qas.sequencenumber, qas.fraction
+                  FROM {quiz_attempts} quiza
+                  JOIN {question_attempts} qa ON qa.questionusageid = quiza.uniqueid
+                                              AND qa.questionid = :questionid
+                  JOIN {question_attempt_steps} qas ON qas.questionattemptid = qa.id
+                 WHERE quiza.quiz = :quizid
+              ORDER BY qa.id, qas.sequencenumber";
+
+        $rows = $DB->get_records_sql($sql, ['quizid' => $quizid, 'questionid' => $questionid]);
+
+        $byattempt = [];
+        foreach ($rows as $row) {
+            $byattempt[$row->qaid][] = $row;
+        }
+        return $byattempt;
+    }
+
+    /**
+     * The shared "STACK question slots in this quiz's course" join fragment
+     * every method above builds on.
+     */
+    private static function stack_slot_join_sql(): string {
+        return "{quiz} quiz
+                  JOIN {course_modules} cm ON cm.instance = quiz.id
+                  JOIN {modules} m ON m.id = cm.module AND m.name = 'quiz'
+                  JOIN {context} ctx ON ctx.contextlevel = :contextmodule AND ctx.instanceid = cm.id
+                  JOIN {quiz_slots} slot ON slot.quizid = quiz.id
+                  JOIN {question_references} qr ON qr.usingcontextid = ctx.id
+                                                AND qr.component = 'mod_quiz'
+                                                AND qr.questionarea = 'slot'
+                                                AND qr.itemid = slot.id
+                  JOIN {question_bank_entries} qbe ON qbe.id = qr.questionbankentryid
+                  JOIN {question_versions} qv ON qv.questionbankentryid = qbe.id
+                  JOIN {question} q ON q.id = qv.questionid AND q.qtype = 'stack'";
+    }
+
+    /**
+     * Builds a "AND field BETWEEN ..." SQL fragment plus its bound
+     * parameters for an optional [starttime, endtime] window, matching how
+     * the Analytics API passes false rather than null for "no bound".
+     *
+     * @param string $field the fully-qualified column to bound
+     * @param int|false $starttime
+     * @param int|false $endtime
+     * @return array [string $sql, array $params]
+     */
+    private static function window_sql(string $field, $starttime, $endtime): array {
+        $sql = '';
+        $params = [];
+        if ($starttime) {
+            $sql .= " AND $field >= :starttime";
+            $params['starttime'] = $starttime;
+        }
+        if ($endtime) {
+            $sql .= " AND $field <= :endtime";
+            $params['endtime'] = $endtime;
+        }
+        return [$sql, $params];
+    }
+}
