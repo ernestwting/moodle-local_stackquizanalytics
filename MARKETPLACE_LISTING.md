@@ -20,27 +20,28 @@ database with no separate service to install.
 
 ## Long description
 
-STACK Quiz & Model Analytics brings two kinds of insight to STACK (Maxima
-CAS) quizzes under one installable plugin, without any CSV export/upload
-step or separate server to configure — everything reads straight out of
-Moodle's own database and runs in-process, in plain PHP.
+STACK Quiz & Model Analytics brings four sections of insight to STACK
+(Maxima CAS) quizzes under one installable plugin, without any CSV
+export/upload step or separate server to configure — everything reads
+straight out of Moodle's own database and runs in-process, in plain PHP.
 
 **Quiz Analytics** — course-wide view: compare every STACK quiz in a
 course side by side (grade distributions, engagement over time, an
-attempts-vs-grade scatter plot, trend lines). Per quiz, **Question
-Analytics**: difficulty and discrimination indices, response outcome
-distribution, a student performance matrix, consolidated question metrics,
-and a per-question error drill-down showing exactly what each student
-submitted next to the correct answer. Per quiz, **Solution Process
-Visualization**: class-wide answer transition graphs showing how students
-moved through a question's Potential Response Tree, per-node network
-centrality, 3D charts plotting each student's distance from the correct
-answer across attempts, and a cross-attempt comparison highlighting who
-improved, stayed flat, or regressed. PDF export on every view, with
-section checkboxes, a colorblind mode, and an anonymize-student-data
-toggle.
+attempts-vs-grade scatter plot, trend lines).
 
-**Model & Diagnostics Analytics** — built on Moodle's own Analytics API.
+**Question Analytics** — per quiz: difficulty and discrimination indices,
+response outcome distribution, a student performance matrix, consolidated
+question metrics, and a per-question error drill-down showing exactly what
+each student submitted next to the correct answer. Also includes
+**Solution Process Visualization**: class-wide answer transition graphs
+showing how students moved through a question's Potential Response Tree,
+per-node network centrality, 3D charts plotting each student's distance
+from the correct answer across attempts, and a cross-attempt comparison
+highlighting who improved, stayed flat, or regressed. PDF export on every
+view in both of these sections, with section checkboxes, a colorblind
+mode, and an anonymize-student-data toggle.
+
+**Model Analytics** — built on Moodle's own Analytics API.
 **Model 1 (Student risk)**: a target predicting whether a student is at
 risk of not achieving course success, fed by five behavioral indicators
 (grade trajectory, response-latency anomaly, disengagement entropy,
@@ -48,24 +49,42 @@ help-seeking gap, feedback-revision distance). **Model 2 (Question/PRT
 review)**: a target predicting whether a STACK question's Potential
 Response Tree needs instructor review, fed by four indicators (IRT-inspired
 difficulty, syntax-error rate, unreached-node ratio, feedback-
-ineffectiveness). **Diagnostics Dashboard**: seed-bias (one-way ANOVA) and
-PRT branch-coverage reports, kept outside the ML pipeline since they have
-no natural ground-truth label. Both models ship **disabled** by default —
-what the dashboard shows is each model's live indicator reading, not a
-trained prediction, until an administrator reviews the thresholds and
+ineffectiveness). Both models ship **disabled** by default — what this
+section shows is each model's live indicator reading, not a trained
+prediction, until an administrator reviews the thresholds and
 enables/trains a model under Site Administration → Analytics → Models.
-PDF export re-derives whichever sections are ticked as a landscape report.
+
+**Diagnostics Analytics** — seed-bias (one-way ANOVA) and PRT
+branch-coverage reports, kept outside the ML pipeline since they have no
+natural ground-truth label: direct calculations, not model predictions.
+PDF export re-derives whichever sections are ticked, in both Model
+Analytics and Diagnostics Analytics, as a landscape report.
 
 One "Analytics" nav entry (reachable from a course's own navigation, and
 from an "Analytics" link this plugin adds directly to each STACK quiz's
-own settings menu) with a "Section:" switcher between the two at the top
-of every page — previously two separate plugins, now one install.
+own settings menu) with a "Section:" switcher between all four sections at
+the top of every page — previously two separate plugins, now one install.
 
 No external services, subscriptions, or API keys of any kind — every
 computation runs in-process in plain PHP, and nothing ever leaves the
 Moodle server.
 
 Requires `qtype_stack` (the STACK question type) to have anything to show.
+
+## Release notes (v2.1.0)
+
+Copy-paste source for the "Plugin versions" tab (Edit plugin page →
+Versions) when uploading this release.
+
+Split the plugin's two combined pages into four independently-reachable
+sections: **Quiz Analytics** (course-wide comparison only) and **Question
+Analytics** (the per-quiz drill-down, split out so picking a quiz doesn't
+silently swap you into a different report), and **Model Analytics** (Model
+1 + Model 2) and **Diagnostics Analytics** (the Diagnostics Dashboard,
+split out since it's direct calculations, not a model). Each section gets
+its own PDF export entry point. Also: side-by-side Course/quiz selectors,
+a consistent "STACK Analytics" page heading across every section, and
+visual quiz-grouping dividers in Model 2's table and the Diagnostics list.
 
 ## Release notes (v2.0.0)
 
@@ -152,15 +171,15 @@ https://github.com/ernestwting/moodle-local_stackquizanalytics#readme
 ## License
 
 GNU GPL v3 or later (see `LICENSE`). TCPDF is vendored (for Quiz
-Analytics's PDF export only) under LGPLv3 (GPL-compatible) — see
-`classes/quiz/vendor/tcpdf/LICENSE.TXT`. Declared per-library in
-`thirdpartylibs.xml`.
+Analytics/Question Analytics's PDF exports only) under LGPLv3
+(GPL-compatible) — see `classes/quiz/vendor/tcpdf/LICENSE.TXT`. Declared
+per-library in `thirdpartylibs.xml`.
 
 ## Privacy
 
 Implements `\core_privacy\local\metadata\null_provider` — this plugin
-stores no personal data of its own; both sections only read data already
+stores no personal data of its own; every section only reads data already
 governed by mod_quiz/the question engine/gradelib/logstore_standard_log's
-own privacy providers, and Quiz Analytics's own MUC caches are
-derived/disposable, not independent storage. See
+own privacy providers, and Quiz Analytics/Question Analytics's own MUC
+caches are derived/disposable, not independent storage. See
 `classes/privacy/provider.php`.

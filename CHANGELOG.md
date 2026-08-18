@@ -7,6 +7,52 @@ This plugin merges two previously-separate, independently-installed
 plugins — `local_quizanalytics` and `local_stackanalytics` — into one. Each
 phase below corresponds to one commit in this repository's history.
 
+## [2.1.0] — Split into four sections
+
+Quiz Analytics did double duty as both the course-wide comparison and,
+via a quiz picker, the per-quiz Question Analytics/Solution Process
+drill-down — picking a quiz silently swapped the whole page into a
+different kind of report. Model & Diagnostics Analytics combined two
+actual ML models with a non-ML Diagnostics Dashboard behind a View:
+selector, which made Diagnostics read as a third model rather than what
+it is. Both combined pages are split into four independently-reachable
+sections, each with its own PDF export — no changes to any
+report-builder, indicator, renderer, or PDF-content class, since this
+was a page/routing-level split only.
+
+- **UI polish first.** Course/View selectors laid out side by side
+  instead of stacked; a single `pagemaintitle` ("STACK Analytics") used
+  for every section's on-screen heading, replacing the previous
+  per-section heading text; a full-width divider row in Model 2's table
+  and a labeled block above each quiz's questions in the Diagnostics
+  list, so which quiz a row belongs to is visually obvious instead of
+  small muted text; the Diagnostics page's long intro text collapsed
+  into a native `<details>` panel.
+- **Quiz Analytics** (`index.php`) trimmed to the course-wide comparison
+  only — no more quiz picker, no more `if ($quizid)` branch. Its PDF
+  export moves to a new `quizanalyticspdf.php`.
+- **Question Analytics** (`questionanalytics.php`, new) is the per-quiz
+  drill-down moved out of `index.php`, with its own required quiz
+  selector (defaulting to the course's first STACK quiz when none is
+  specified) and its own PDF export, `questionanalyticspdf.php` (renamed
+  from `pdf.php`, dropping the old `kind=quiz` branch — that's
+  `quizanalyticspdf.php`'s job now).
+- **Model Analytics** (`modelanalytics.php`, renamed from `models.php`)
+  trimmed to Model 1 + Model 2 only. Its PDF export is
+  `modelanalyticspdf.php` (renamed from `modelspdf.php`).
+- **Diagnostics Analytics** (`diagnosticsanalytics.php`, new) is the
+  Diagnostics Dashboard moved out of `models.php`'s View: selector, with
+  its own PDF export, `diagnosticsanalyticspdf.php`.
+  `dashboard_renderer::render_pdf_form()` gained a `$sectionheadings`
+  parameter so Model Analytics and Diagnostics Analytics each control
+  their own "Include in the PDF" checkbox subset, instead of the method
+  hardcoding all three of the old page's sections.
+- **`classes/section_selector.php`** grows from a 2-way to a 4-way
+  switch; `lib.php`'s per-quiz settings-menu link now points at
+  `questionanalytics.php` instead of `index.php`, since that's where
+  per-quiz analytics live now. The course-level "Analytics" nav entry
+  still lands on `index.php`.
+
 ## [2.0.0] — Post-merge polish
 
 The first round of feedback after the 21-phase merge landed, ahead of

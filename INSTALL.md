@@ -1,9 +1,10 @@
 # Installing STACK Quiz & Model Analytics
 
 This is a single Moodle plugin — installing `local_stackquizanalytics` is
-the whole install. Both sections (Quiz Analytics, Model & Diagnostics
-Analytics) run entirely in-process; there's no separate service to deploy
-and nothing here ever talks to the public internet.
+the whole install. All four sections (Quiz Analytics, Question Analytics,
+Model Analytics, Diagnostics Analytics) run entirely in-process; there's no
+separate service to deploy and nothing here ever talks to the public
+internet.
 
 ## Prerequisites
 
@@ -47,8 +48,9 @@ Log in as an admin and visit **Site administration** (or
 on its own). This single step:
 
 - Registers the `local/stackquizanalytics:view` capability (`db/access.php`).
-- Registers the Quiz Analytics cache areas (`db/caches.php`).
-- Registers both Model & Diagnostics Analytics prediction models —
+- Registers the Quiz Analytics/Question Analytics cache areas
+  (`db/caches.php`).
+- Registers both Model Analytics prediction models —
   **Student at risk in a STACK-based course** (Model 1) and **STACK
   question/PRT needs review** (Model 2) — from `db/analytics.php`, via
   `\core_analytics\manager::update_default_models_for_component()`. Both
@@ -66,7 +68,7 @@ Analytics:**
   on a large course specifically; 0 removes PHP's execution-time limit
   entirely for this plugin's own requests.
 
-## 4. Review and enable the Model & Diagnostics Analytics models
+## 4. Review and enable the Model Analytics models
 
 **Site administration → Analytics → Models.** Both models this plugin
 registers appear here, disabled by default (deliberately — see
@@ -91,22 +93,26 @@ registers appear here, disabled by default (deliberately — see
 2. Look at the course's secondary navigation bar
    (`Course | Settings | Participants | Grades | Reports | ...`) for an
    **Analytics** entry — check inside **More** too if the bar is full.
-3. Click it. You should land on Quiz Analytics's course-wide cross-quiz
-   comparison, with a "Section:" switcher at the top linking to Model &
-   Diagnostics Analytics.
-4. Pick a quiz from the dropdown. You should see a "View:" selector —
-   **Question Analytics** is the default; picking **Solution Process
-   Visualization** reloads the page showing that instead.
-5. Click **Model & Diagnostics Analytics** in the "Section:" switcher. You
-   should land on Model 1's table; the "View:" selector there switches
-   between Model 1, Model 2, and Diagnostics.
-6. Try the PDF export button on whichever view is showing, in either
-   section.
-7. Confirm the page is correctly **hidden** on a course with no STACK
+3. Click it. You should land on **Quiz Analytics**'s course-wide cross-quiz
+   comparison, with a "Section:" switcher at the top linking to the other
+   three sections.
+4. Click **Question Analytics** in the "Section:" switcher. It defaults to
+   the course's first STACK quiz, with a "View:" selector — **Question
+   Analytics** is the default view; picking **Solution Process
+   Visualization** reloads the page showing that instead. Use the quiz
+   dropdown to switch quizzes.
+5. Click **Model Analytics** in the "Section:" switcher. You should land on
+   Model 1's table; the "View:" selector there switches between Model 1
+   and Model 2.
+6. Click **Diagnostics Analytics** in the "Section:" switcher. You should
+   land on the Diagnostics Dashboard.
+7. Try the PDF export button on whichever view is showing, in any section.
+8. Confirm the page is correctly **hidden** on a course with no STACK
    quizzes, and that a student account gets Moodle's standard
    permission-denied error if they navigate to
-   `local/stackquizanalytics/index.php?id=<courseid>` or `models.php`
-   directly.
+   `local/stackquizanalytics/index.php?id=<courseid>` (or
+   `questionanalytics.php`, `modelanalytics.php`,
+   `diagnosticsanalytics.php`) directly.
 
 ## 6. Test the per-quiz shortcut
 
@@ -114,14 +120,14 @@ registers appear here, disabled by default (deliberately — see
    its settings/administration menu (the gear icon, or wherever your theme
    surfaces activity settings).
 2. You should see an **Analytics** entry there too — it jumps straight to
-   Quiz Analytics's drill-down for this same quiz (step 5.4 above), just
-   reached in one click from the quiz itself.
+   Question Analytics's drill-down for this same quiz (step 5.4 above),
+   just reached in one click from the quiz itself.
 
 If either entry point doesn't appear at all, check that the quiz actually
 has finished attempts and a STACK question added directly to a slot — first
 load computes everything fresh (a few seconds); reloading the same page
-should be near-instant afterward (cache hit, Quiz Analytics only) until a
-new attempt is submitted.
+should be near-instant afterward (cache hit, Quiz Analytics/Question
+Analytics only) until a new attempt is submitted.
 
 ## 7. Test the prediction models
 
@@ -146,7 +152,7 @@ producing a misleading prediction.
 | Charts blank / JS console errors (Quiz Analytics) | Check the browser console for a 404 on `js/vendor/plotly.min.js` or `js/vendor/katex/*` — those ship inside this repo already, so a 404 usually means the plugin folder wasn't copied completely |
 | Math renders as literal `\(...\)` text instead of typeset symbols | KaTeX's CSS/font files (`js/vendor/katex/fonts/`) didn't come along with the rest of `js/vendor/katex/` — re-copy the whole folder |
 | Question text shows `@variable@` placeholders or both languages' `[[lang]]` blocks at once | `castext2_qa_processor`/`stack_outofcontext_process` couldn't be loaded — check `qtype_stack` is installed and up to date |
-| "STACK Analytics" / Model & Diagnostics section shows nothing | The course has no STACK question in any quiz slot (`stack_course_helper::course_has_stack_activity()` gates this) |
+| "STACK Analytics" / Model Analytics or Diagnostics Analytics section shows nothing | The course has no STACK question in any quiz slot (`stack_course_helper::course_has_stack_activity()` gates this) |
 | A model shows 0 samples after training/prediction | `is_valid_analysable()` or `is_valid_sample()` rejected the course/sample — check the model's own log in Site administration → Analytics → Models → (model) → Log for the specific reason string |
 | Seed-bias table says "Not enough attempt data yet" | Fewer than 2 distinct STACK seeds have recorded attempts for that quiz slot yet |
 | PRT branch-coverage table is empty for a question | That question's PRT nodes have no non-blank `trueanswernote`/`falseanswernote` set — coverage can't be observed without one |
