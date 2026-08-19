@@ -14,7 +14,25 @@ plugin by its merge-time component name, `local_stackquizanalytics`, and
 time; see [2.3.0] for why and when that settled on the current
 `local_quizanalytics`.
 
-## [2.4.0] — Fixed Quiz Analytics timing out on large courses (Cloudflare 524)
+## [2.3.3] — Renamed display name to "STACK q-type Analytics"
+
+`pluginname` (and every other on-screen/PDF/docblock echo of it — the
+on-screen page heading, both PDF report headings/authors, the privacy
+metadata string, the cache-warming task's own name, `README.md`/
+`INSTALL.md`/`MARKETPLACE_LISTING.md`'s live copy) renamed from "STACK
+Analytics" to "STACK q-type Analytics". Historical narrative describing
+what the name *was* at an earlier point in time — old CHANGELOG entries,
+the "Release notes (v2.1.0)" section and the Marketplace-listing
+reconciliation note's own "as of the last time it was checked" wording in
+`MARKETPLACE_LISTING.md` — is deliberately left as it read at the time,
+same convention every earlier rename in this file has followed. This is a
+display-string-only change: no frankenstyle component, capability id,
+class namespace, cache/Analytics API identifier, or URL changed, so no
+uninstall/reinstall or user-preference migration is needed — only a
+Moodle string-cache purge (or the automatic one an upgrade triggers) to
+see it everywhere.
+
+## [2.3.2] — Fixed Quiz Analytics timing out on large courses (Cloudflare 524)
 
 Live testing against a real 500-1000-finished-attempt course reproduced a
 Cloudflare 524 ("A timeout occurred") on Quiz Analytics/Question Analytics —

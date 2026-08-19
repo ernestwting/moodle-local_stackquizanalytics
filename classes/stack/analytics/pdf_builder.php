@@ -46,7 +46,7 @@ class pdf_builder {
     public static function build(string $coursename, array $sections): string {
         $pdf = new stack_pdf('L', 'mm', 'A4', true, 'UTF-8');
         $pdf->SetCreator('local_quizanalytics');
-        $pdf->SetAuthor('STACK Analytics Dashboard');
+        $pdf->SetAuthor('STACK q-type Analytics Dashboard');
         $pdf->SetTitle($coursename . ' - ' . get_string('dashboardtitle', 'local_quizanalytics'));
         $pdf->setPrintHeader(true);
         $pdf->setPrintFooter(true);

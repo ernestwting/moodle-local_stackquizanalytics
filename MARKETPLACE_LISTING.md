@@ -5,17 +5,18 @@ plugin itself — delete or ignore this file when packaging a release ZIP.
 
 ## Plugin name
 
-STACK Quiz & Model Analytics
+STACK q-type Analytics
 
 ## Component / Frankenstyle name
 
 `local_quizanalytics`
 
 (Matches plugin id 3995 on the Marketplace — https://marketplace.moodle.com/plugins/3995
-— the listing this replaces. That listing's current display title reads
-"STACK Analytics" rather than "STACK Quiz & Model Analytics" below; worth
-reconciling manually when submitting, since that's a listing-level field
-this doc can't confirm gets overwritten by a version upload alone.)
+— the listing this replaces. That listing's own display title read
+"STACK Analytics" as of the last time it was checked, not the current
+"STACK q-type Analytics" above; worth reconciling manually when
+submitting, since that's a listing-level field this doc can't confirm
+gets overwritten by a version upload alone.)
 
 ## Short description (1–2 sentences)
 
@@ -26,7 +27,7 @@ database with no separate service to install.
 
 ## Long description
 
-STACK Quiz & Model Analytics brings four sections of insight to STACK
+STACK q-type Analytics brings four sections of insight to STACK
 (Maxima CAS) quizzes under one installable plugin, without any CSV
 export/upload step or separate server to configure — everything reads
 straight out of Moodle's own database and runs in-process, in plain PHP.

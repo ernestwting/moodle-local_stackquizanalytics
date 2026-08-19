@@ -1,4 +1,4 @@
-# Installing STACK Quiz & Model Analytics
+# Installing STACK q-type Analytics
 
 This is a single Moodle plugin — installing `local_quizanalytics` is
 the whole install. All four sections (Quiz Analytics, Question Analytics,
@@ -55,7 +55,7 @@ on its own). This single step:
   question/PRT needs review** (Model 2) — from `db/analytics.php`, via
   `\core_analytics\manager::update_default_models_for_component()`. Both
   are created **disabled**; see step 4.
-- Registers the **Warm STACK Analytics result caches** scheduled task
+- Registers the **Warm STACK q-type Analytics result caches** scheduled task
   (`db/tasks.php`, every 15 minutes) — proactively recomputes the Quiz
   Analytics/Question Analytics result cache for any course whose entry is
   missing or stale, so a real visitor essentially never has to wait through
@@ -67,7 +67,7 @@ on its own). This single step:
 
 ## 3. (Optional) Adjust the Quiz Analytics computation time limit
 
-**Site administration → Plugins → Local plugins → STACK Analytics:**
+**Site administration → Plugins → Local plugins → STACK q-type Analytics:**
 
 - **Computation time limit** → 120 seconds by default. Only relevant for a
   course with many STACK quizzes and/or students — the Quiz Analytics
@@ -172,11 +172,11 @@ producing a misleading prediction.
 | "No attempts yet" / "...has no finished attempts" (Quiz Analytics) | No attempts in `state = finished` for the quiz(zes) in question |
 | "Analytics could not be computed for this quiz" | An unexpected error — check Moodle's debugging messages/logs (Site administration → Reports → Logs, or your server's PHP error log) for the underlying exception |
 | A large course's course-wide view or PDF export times out | Raise **Computation time limit** in the plugin's settings (see step 3 above) |
-| Quiz/Question Analytics 524s (or otherwise times out) on a large course (500+ attempts) | A reverse proxy/CDN in front of the site (e.g. Cloudflare), not PHP, is giving up first — **Computation time limit** won't fix this. Confirm Moodle cron is actually running so the **Warm STACK Analytics result caches** scheduled task can keep the cache warm ahead of real visitors (Site administration → Server → Scheduled tasks); you can also run it once by hand (`php admin/cli/scheduled_task.php --execute='\local_quizanalytics\task\warm_analytics_cache'`) to warm a course immediately rather than waiting up to 15 minutes |
+| Quiz/Question Analytics 524s (or otherwise times out) on a large course (500+ attempts) | A reverse proxy/CDN in front of the site (e.g. Cloudflare), not PHP, is giving up first — **Computation time limit** won't fix this. Confirm Moodle cron is actually running so the **Warm STACK q-type Analytics result caches** scheduled task can keep the cache warm ahead of real visitors (Site administration → Server → Scheduled tasks); you can also run it once by hand (`php admin/cli/scheduled_task.php --execute='\local_quizanalytics\task\warm_analytics_cache'`) to warm a course immediately rather than waiting up to 15 minutes |
 | Charts blank / JS console errors (Quiz Analytics) | Check the browser console for a 404 on `js/vendor/plotly.min.js` or `js/vendor/katex/*` — those ship inside this repo already, so a 404 usually means the plugin folder wasn't copied completely |
 | Math renders as literal `\(...\)` text instead of typeset symbols | KaTeX's CSS/font files (`js/vendor/katex/fonts/`) didn't come along with the rest of `js/vendor/katex/` — re-copy the whole folder |
 | Question text shows `@variable@` placeholders or both languages' `[[lang]]` blocks at once | `castext2_qa_processor`/`stack_outofcontext_process` couldn't be loaded — check `qtype_stack` is installed and up to date |
-| "STACK Analytics" / Model Analytics or Diagnostics Analytics section shows nothing | The course has no STACK question in any quiz slot (`stack_course_helper::course_has_stack_activity()` gates this) |
+| "STACK q-type Analytics" / Model Analytics or Diagnostics Analytics section shows nothing | The course has no STACK question in any quiz slot (`stack_course_helper::course_has_stack_activity()` gates this) |
 | A model shows 0 samples after training/prediction | `is_valid_analysable()` or `is_valid_sample()` rejected the course/sample — check the model's own log in Site administration → Analytics → Models → (model) → Log for the specific reason string |
 | A model's **Actions** menu has no **Evaluate**/**Get predictions**/**Log** | `onlycli` analytics setting is on, restricting those to CLI/cron only — see step 4 |
 | Seed-bias table says "Not enough attempt data yet" | Fewer than 2 distinct STACK seeds have recorded attempts for that quiz slot yet |

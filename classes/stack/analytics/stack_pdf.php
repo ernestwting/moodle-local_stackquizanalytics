@@ -47,7 +47,7 @@ require_once($CFG->libdir . '/pdflib.php');
  */
 class stack_pdf extends \pdf {
     /** @var string Heading text drawn in the page header band. */
-    public string $reportheading = 'STACK Analytics Dashboard';
+    public string $reportheading = 'STACK q-type Analytics Dashboard';
 
     /**
      * Draws the page header band (called back by TCPDF itself on every page).

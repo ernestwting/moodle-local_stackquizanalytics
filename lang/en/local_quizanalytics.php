@@ -28,7 +28,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['pluginname'] = 'STACK Analytics';
+$string['pluginname'] = 'STACK q-type Analytics';
 $string['quizanalytics:view'] = 'View STACK quiz analytics, models, and diagnostics';
 $string['sectionselectorlabel'] = 'Section:';
 // The on-screen H1 heading every section's own page shows, kept as its own
@@ -36,12 +36,12 @@ $string['sectionselectorlabel'] = 'Section:';
 // admin-facing/nav-link name, and 'dashboardtitle', used for the
 // Model & Diagnostics PDF's own title) — previously each section showed a
 // different heading text switching depending which one you were on.
-$string['pagemaintitle'] = 'STACK Analytics';
+$string['pagemaintitle'] = 'STACK q-type Analytics';
 $string['sectionquiz'] = 'Quiz Analytics';
 $string['sectionquestion'] = 'Question Analytics';
 $string['sectionmodels'] = 'Model Analytics';
 $string['sectiondiagnostics'] = 'Diagnostics Analytics';
-$string['privacy:metadata'] = 'The STACK Quiz & Model Analytics plugin does not store any personal data of its own. It reads finished quiz attempts, question responses, grades, and log events directly from Moodle\'s own database (mod_quiz, the question engine, grade_grades, and logstore_standard_log) at request/calculation time, all of which are already covered by their own privacy providers.';
+$string['privacy:metadata'] = 'The STACK q-type Analytics plugin does not store any personal data of its own. It reads finished quiz attempts, question responses, grades, and log events directly from Moodle\'s own database (mod_quiz, the question engine, grade_grades, and logstore_standard_log) at request/calculation time, all of which are already covered by their own privacy providers.';
 
 // Quiz Analytics section (index.php, quizanalyticspdf.php — ported from the
 // standalone local_quizanalytics plugin this merges). Values unchanged from
@@ -133,7 +133,7 @@ $string['indicator:syntaxerrorrate'] = 'STACK syntax-error rate';
 $string['indicator:unreachednoderatio'] = 'STACK PRT unreached-node ratio';
 $string['indicator:feedbackineffectiveness'] = 'STACK feedback ineffectiveness';
 $string['target:questionneedsreview'] = 'STACK question/PRT needs review';
-$string['dashboardtitle'] = 'STACK Analytics Dashboard';
+$string['dashboardtitle'] = 'STACK q-type Analytics Dashboard';
 $string['courseselectorlabel'] = 'Course:';
 $string['quizselectorlabel'] = 'Quiz:';
 $string['viewselectorlabel'] = 'View:';
@@ -216,10 +216,10 @@ $string['responsibleusecallout'] = 'A few things worth keeping in mind when read
 $string['responsibleusesummary'] = 'Responsible use: a few things to keep in mind';
 $string['pdfsectionslabel'] = 'Include in the PDF:';
 $string['pdfnorows'] = 'Nothing to show for this section — no data yet, or nothing matched the current filters.';
-$string['pdffooternote'] = 'STACK Analytics Dashboard — live indicator readings, not a trained AI prediction';
+$string['pdffooternote'] = 'STACK q-type Analytics Dashboard — live indicator readings, not a trained AI prediction';
 $string['questionneedsreviewthreshold'] = 'Question-needs-review pass-rate threshold';
 $string['questionneedsreviewthreshold_desc'] = 'A question is labeled "needs review" (Model 2\'s proxy label) when its empirical pass rate falls below this value (0.0-1.0). See the architecture doc\'s §3.3 circularity caveat before lowering this to chase a particular result.';
-$string['task:warmanalyticscache'] = 'Warm STACK Analytics result caches';
+$string['task:warmanalyticscache'] = 'Warm STACK q-type Analytics result caches';
 $string['lowtrafficfloor'] = 'Bloated-tree "low traffic" floor';
 $string['lowtrafficfloor_desc'] = 'On the Diagnostics Dashboard, a PRT branch with at least one but fewer than this many observed traversals is reported as "low traffic" (needs a human look) rather than "never reached" (a pruning candidate).';
 $string['helpseekinglookback'] = 'Help-seeking lookback window (seconds)';

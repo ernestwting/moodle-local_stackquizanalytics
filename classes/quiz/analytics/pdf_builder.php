@@ -67,7 +67,7 @@ class pdf_builder {
     public static function build(array $content, array $chartimages): string {
         $pdf = new quizanalytics_tcpdf('P', 'mm', 'LETTER', true, 'UTF-8', false);
         $pdf->SetCreator('local_quizanalytics');
-        $pdf->SetAuthor('Moodle STACK Analytics Hub');
+        $pdf->SetAuthor('Moodle STACK q-type Analytics Hub');
         $pdf->SetTitle($content['title']);
         $pdf->setPrintHeader(true);
         $pdf->setPrintFooter(true);

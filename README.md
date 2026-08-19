@@ -1,4 +1,4 @@
-# STACK Quiz & Model Analytics for Moodle
+# STACK q-type Analytics for Moodle
 
 [![Moodle Plugin CI](https://github.com/ernestwting/moodle-local_stackanalytics/actions/workflows/moodle-ci.yml/badge.svg)](https://github.com/ernestwting/moodle-local_stackanalytics/actions/workflows/moodle-ci.yml)
 <!-- Repo is still named moodle-local_stackanalytics on GitHub even though the plugin's own

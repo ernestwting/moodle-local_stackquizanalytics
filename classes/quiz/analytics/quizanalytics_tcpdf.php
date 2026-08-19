@@ -40,7 +40,7 @@ require_once(__DIR__ . '/../vendor/tcpdf/tcpdf.php');
  */
 class quizanalytics_tcpdf extends \TCPDF {
     /** @var string Heading text drawn in the page header band. */
-    public string $reportheading = 'STACK Quiz & Model Analytics — Quiz Analytics Report';
+    public string $reportheading = 'STACK q-type Analytics — Quiz Analytics Report';
 
     /**
      * Builds the PDF document and suppresses TCPDF's own branding link.
