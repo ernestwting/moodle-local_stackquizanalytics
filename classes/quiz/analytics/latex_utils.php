@@ -502,7 +502,7 @@ class latex_utils {
             return $rawtext;
         }
 
-        $pattern = '/ans(\d+):\s*(.*?)\s*\[(score|valid|invalid)\]/';
+        $pattern = '/ans(\w+):\s*(.*?)\s*\[(score|valid|invalid)\]/';
         if (!preg_match_all($pattern, $rawtext, $matches, PREG_SET_ORDER)) {
             return self::clean_moodle_latex($rawtext);
         }

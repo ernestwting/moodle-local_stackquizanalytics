@@ -14,6 +14,46 @@ plugin by its merge-time component name, `local_stackquizanalytics`, and
 time; see [2.3.0] for why and when that settled on the current
 `local_quizanalytics`.
 
+## [2.3.1] — Fixed named STACK inputs being misread as blank
+
+Live testing against a course whose STACK questions rename their inputs
+away from the default `ans1`/`ans2`/... convention (e.g. a "separation of
+variables" ODE question using `ans_mcq`, `ans_fx`, `ans_1fx`, etc.) showed
+every one of those questions' responses misclassified as blank in the Quiz
+Analytics error drill-down, despite a real score and a real submitted
+response — the response text just didn't contain any Correct Answer, and
+was contributing entirely fabricated "PRT" rows to the per-PRT pass-rate
+breakdown.
+
+Root cause: the `ansK: <expr> [tag]` field regex used in four places
+(`classes/quiz/analytics/parser.php`, `latex_utils.php`,
+`solution_distance.php`, and the PRT-field *exclusion* regex in
+`prt_analysis.php`) all hardcoded a numeric-only suffix (`ans\d+`). A
+question author can rename a STACK input to anything (`ans_mcq`,
+`ans_1fx`, ...) — same as this plugin already accounted for on the PRT
+side (PRT names are matched by shape, not a literal `prt` prefix, per
+`prt_analysis.php`'s own docblock). A named input:
+
+- Never matched the ans-field regex, so `parser.php` treated its response
+  as having zero ans fields — the same test `parse_response_cell()` uses
+  for a genuinely blank response — regardless of the real (non-empty,
+  correctly-scored) PRT data sitting right next to it in the same cell.
+- Also never matched `prt_analysis.php`'s `ANS_FIELD_RE` (used to exclude
+  ans fields from its by-elimination PRT detection), so it fell through
+  and got counted as a fake PRT named e.g. `ans_mcq`, always scored 0.0/
+  incorrect — polluting the per-PRT pass-rate table and PRT branch-
+  coverage diagnostics with entries that were never real PRTs.
+
+Broadened all four regexes from `ans(\d+)` to `ans(\w+)`. `parser.php`'s
+`ans_list` entries now carry `'index' => null` for a non-numeric input
+name (rather than an incorrect `(int)` cast colliding everything on 0) —
+the one consumer that keys off a numeric index
+(`solution_distance.php`'s Solution Process Visualization tree-edit-
+distance lookup) already treats a missing index as "no match," so a named
+question degrades to no TED score there rather than a wrong one. Added
+`tests/parser_named_ans_test.php` covering both the ans-field parse and
+the PRT-exclusion fix against a real captured response.
+
 ## [2.3.0] — Renamed component to `local_quizanalytics`
 
 [2.2.0]'s rename picked the wrong target. Confirming against the actual

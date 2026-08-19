@@ -86,12 +86,19 @@ class parser {
             return ['ans_list' => [], 'prt_list' => []];
         }
 
-        // 1. Parse ans fields: ansK: expression [tag]
-        preg_match_all('/ans(\d+):\s*(.*?)\s*\[(score|valid|invalid)\]/', $celltext, $ansmatches, PREG_SET_ORDER);
+        // 1. Parse ans fields: ansK: expression [tag]. STACK input names are
+        // author-defined too (default "ans1"/"ans2", but a multi-part
+        // question commonly renames them to something descriptive like
+        // "ans_mcq"/"ans_fx") — matched on the "ans...: ... [tag]" shape
+        // rather than a literal numeric suffix, same reasoning as the PRT
+        // matching below. 'index' stays an int (and is used for numeric
+        // part-lookups elsewhere) only when the suffix genuinely is one;
+        // a named suffix leaves it null rather than colliding on 0.
+        preg_match_all('/ans(\w+):\s*(.*?)\s*\[(score|valid|invalid)\]/', $celltext, $ansmatches, PREG_SET_ORDER);
         $anslist = [];
         foreach ($ansmatches as $m) {
             $anslist[] = [
-                'index' => (int) $m[1],
+                'index' => ctype_digit($m[1]) ? (int) $m[1] : null,
                 'expression' => trim($m[2]),
                 'tag' => $m[3],
             ];

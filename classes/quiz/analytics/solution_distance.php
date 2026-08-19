@@ -29,7 +29,7 @@ namespace local_quizanalytics\quiz\analytics;
  */
 class solution_distance {
     /** @var string Matches one "ansK: ... [tag]" PRT answer-note segment. */
-    const ANS_PATTERN = '/ans(\d+):\s*(.*?)\s*\[(score|valid|invalid)\]/';
+    const ANS_PATTERN = '/ans(\w+):\s*(.*?)\s*\[(score|valid|invalid)\]/';
 
     /** @var int Cap on distinct tree-edit-distance values shown before bucketing the rest into "other". */
     const MAX_TED_DISPLAY = 20;

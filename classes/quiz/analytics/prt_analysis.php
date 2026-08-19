@@ -36,7 +36,7 @@ class prt_analysis {
      * "ansK: ... [tag]" fields, and treat anything else shaped like
      * "<name>: value" as a PRT.
      */
-    const ANS_FIELD_RE = '/^\s*ans\d+\s*:\s*.*\[(?:score|valid|invalid)\]\s*$/i';
+    const ANS_FIELD_RE = '/^\s*ans\w+\s*:\s*.*\[(?:score|valid|invalid)\]\s*$/i';
 
     /** @var string Matches the "Seed: ..." metadata line so it's excluded from PRT-field detection. */
     const SEED_FIELD_RE = '/^\s*seed\s*:/i';
