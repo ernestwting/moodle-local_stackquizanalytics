@@ -28,12 +28,12 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['pluginname'] = 'STACK Quiz & Model Analytics';
+$string['pluginname'] = 'STACK Analytics';
 $string['quizanalytics:view'] = 'View STACK quiz analytics, models, and diagnostics';
 $string['sectionselectorlabel'] = 'Section:';
-// The on-screen H1 heading every section's own page shows, deliberately
-// shorter and section-agnostic (unlike 'pluginname', used for the plugin's
-// own admin-facing/nav-link name, and 'dashboardtitle', used for the
+// The on-screen H1 heading every section's own page shows, kept as its own
+// string (distinct from 'pluginname', used for the plugin's own
+// admin-facing/nav-link name, and 'dashboardtitle', used for the
 // Model & Diagnostics PDF's own title) — previously each section showed a
 // different heading text switching depending which one you were on.
 $string['pagemaintitle'] = 'STACK Analytics';

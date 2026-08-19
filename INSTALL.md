@@ -84,6 +84,17 @@ registers appear here, disabled by default (deliberately — see
 - A model needs training data before it predicts anything — use the
   **Evaluate**/**Get predictions** actions on the model's own page once
   enabled.
+- If those actions are missing from a model's **Actions** menu, Moodle's
+  **Restrict processing to CLI only** analytics setting (`onlycli`) is on —
+  a banner on the Models page says so directly. With it on, predictions
+  still happen automatically via the `\core\task\analytics_process_models`
+  scheduled task (cron), just not on-demand from the web UI. Either wait for
+  cron, force that task from the CLI
+  (`php admin/tool/task/cli/schedule_task.php
+  --execute='\core\task\analytics_process_models'`), or disable `onlycli`
+  (Site administration → Analytics → Analytics settings) to get the
+  **Evaluate**/**Get predictions**/**Log** buttons back for iterative
+  testing — worth switching back on once you're done.
 
 ## 5. Test the course-level page
 
@@ -154,6 +165,7 @@ producing a misleading prediction.
 | Question text shows `@variable@` placeholders or both languages' `[[lang]]` blocks at once | `castext2_qa_processor`/`stack_outofcontext_process` couldn't be loaded — check `qtype_stack` is installed and up to date |
 | "STACK Analytics" / Model Analytics or Diagnostics Analytics section shows nothing | The course has no STACK question in any quiz slot (`stack_course_helper::course_has_stack_activity()` gates this) |
 | A model shows 0 samples after training/prediction | `is_valid_analysable()` or `is_valid_sample()` rejected the course/sample — check the model's own log in Site administration → Analytics → Models → (model) → Log for the specific reason string |
+| A model's **Actions** menu has no **Evaluate**/**Get predictions**/**Log** | `onlycli` analytics setting is on, restricting those to CLI/cron only — see step 4 |
 | Seed-bias table says "Not enough attempt data yet" | Fewer than 2 distinct STACK seeds have recorded attempts for that quiz slot yet |
 | PRT branch-coverage table is empty for a question | That question's PRT nodes have no non-blank `trueanswernote`/`falseanswernote` set — coverage can't be observed without one |
 | "STACK question/PRT needs review" predictions look circular/self-fulfilling | Expected, documented limitation — see the architecture doc's §3.3 and this target's own class docblock |
