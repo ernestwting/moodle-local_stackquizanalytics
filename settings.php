@@ -82,4 +82,12 @@ if ($hassiteconfig) {
         \local_quizanalytics\stack\analytics\indicator\help_seeking_gap::LOOKBACK_SECONDS,
         PARAM_INT
     ));
+
+    $settings->add(new admin_setting_configtext(
+        'local_quizanalytics/parallelworkers',
+        get_string('parallelworkers', 'local_quizanalytics'),
+        get_string('parallelworkers_desc', 'local_quizanalytics'),
+        4,
+        PARAM_INT
+    ));
 }

@@ -34,6 +34,18 @@
  * the complementary fix for whatever narrow window still lands on a cold
  * cache between task runs.
  *
+ * Fetches each course's quizzes at most once per run — profiling a real
+ * 38-quiz/48,445-attempt course showed the fetch stage (data_fetcher.php)
+ * dominating runtime by roughly 10-20x over the entire analysis pipeline
+ * combined for the same quiz (see parallel_course_fetcher.php's own
+ * docblock for why: it's genuine live CAS/PRT grading Moodle's own
+ * question-engine API does on every call, not something this plugin can
+ * memoize away). The original version of this task fetched every cold
+ * quiz's records once for its own per-quiz cache entry, then fetched all
+ * of them *again* for the course-wide entry — this version fetches once,
+ * in parallel via parallel_course_fetcher::fetch(), and reuses the same
+ * records for both.
+ *
  * Scoped to the default view only — colorblind off, anonymize off, the
  * default course-wide grade type — the combination almost every visitor
  * actually lands on (sections_output_helper::resolve_colorblind_mode()/
@@ -66,6 +78,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot . '/local/quizanalytics/classes/quiz/data_fetcher.php');
 require_once($CFG->dirroot . '/local/quizanalytics/classes/quiz/api_client.php');
 require_once($CFG->dirroot . '/local/quizanalytics/classes/quiz/cache_helper.php');
+require_once($CFG->dirroot . '/local/quizanalytics/classes/task/parallel_course_fetcher.php');
 
 /**
  * Scheduled task that keeps the Quiz Analytics/Question Analytics result caches warm.
@@ -89,6 +102,7 @@ class warm_analytics_cache extends \core\task\scheduled_task {
         global $DB;
 
         $client = new \local_quizanalytics_quiz_api_client();
+        $workers = max(1, (int) (get_config('local_quizanalytics', 'parallelworkers') ?: 4));
 
         foreach (\local_quizanalytics_quiz_data_fetcher::get_courses_with_stack_quizzes() as $courseid) {
             $course = $DB->get_record('course', ['id' => $courseid]);
@@ -101,71 +115,99 @@ class warm_analytics_cache extends \core\task\scheduled_task {
                 continue;
             }
 
-            foreach ($stackquizzes as $quiz) {
-                $this->warm_question_analysis($client, $quiz, $course);
-            }
-
-            $this->warm_course_wide_analysis($client, $stackquizzes, $course);
+            $this->warm_course($client, $course, $stackquizzes, $workers);
         }
     }
 
     /**
-     * Warms one quiz's Question Analytics ('questionanalysis') cache entry, if it isn't already.
+     * Warms whatever's cold (per-quiz and/or course-wide) for one course,
+     * fetching every quiz that needs it exactly once.
      *
      * @param \local_quizanalytics_quiz_api_client $client
-     * @param \stdClass $quiz
      * @param \stdClass $course
-     */
-    private function warm_question_analysis(\local_quizanalytics_quiz_api_client $client, \stdClass $quiz, \stdClass $course): void {
-        $stats = \local_quizanalytics_quiz_cache_helper::stats_for_quiz($quiz);
-        if ($stats->count === 0) {
-            return;
-        }
-
-        $cache = \cache::make('local_quizanalytics', 'questionanalysis');
-        $key = \local_quizanalytics_quiz_cache_helper::build_key($quiz->id, $stats->fingerprint, false, false);
-        if ($cache->get($key) !== false) {
-            return; // Already warm for the current fingerprint.
-        }
-
-        $records = \local_quizanalytics_quiz_data_fetcher::get_response_records_for_quiz($quiz, $course);
-        $result = $client->analyze($quiz->name, $records, false, false);
-        if ($result !== null) {
-            $cache->set($key, $result);
-        }
-    }
-
-    /**
-     * Warms a course's course-wide Quiz Analytics ('quizanalysiscoursewide') cache entry, if it isn't already.
-     *
-     * @param \local_quizanalytics_quiz_api_client $client
      * @param \stdClass[] $stackquizzes
-     * @param \stdClass $course
+     * @param int $workers
      */
-    private function warm_course_wide_analysis(\local_quizanalytics_quiz_api_client $client, array $stackquizzes, \stdClass $course): void {
-        $stats = \local_quizanalytics_quiz_cache_helper::stats_for_quizzes($stackquizzes);
-        if ($stats->count === 0) {
-            return;
+    private function warm_course(
+        \local_quizanalytics_quiz_api_client $client,
+        \stdClass $course,
+        array $stackquizzes,
+        int $workers
+    ): void {
+        $quizstats = [];
+        $coldquizzes = [];
+        foreach ($stackquizzes as $quiz) {
+            $stats = \local_quizanalytics_quiz_cache_helper::stats_for_quiz($quiz);
+            $quizstats[$quiz->id] = $stats;
+            if ($stats->count === 0) {
+                continue; // No finished attempts yet — nothing to warm for this quiz.
+            }
+            $qacache = \cache::make('local_quizanalytics', 'questionanalysis');
+            $qakey = \local_quizanalytics_quiz_cache_helper::build_key($quiz->id, $stats->fingerprint, false, false);
+            if ($qacache->get($qakey) === false) {
+                $coldquizzes[$quiz->id] = $quiz;
+            }
         }
 
-        $cache = \cache::make('local_quizanalytics', 'quizanalysiscoursewide');
-        $key = \local_quizanalytics_quiz_cache_helper::build_key(
-            $course->id,
-            $stats->fingerprint,
-            course_analysis::DEFAULT_GRADE_TYPE,
-            false,
-            false
-        );
-        if ($cache->get($key) !== false) {
-            return;
+        $coursestats = \local_quizanalytics_quiz_cache_helper::stats_for_quizzes($stackquizzes);
+        $coursewidecold = false;
+        $qwkey = null;
+        if ($coursestats->count > 0) {
+            $qwcache = \cache::make('local_quizanalytics', 'quizanalysiscoursewide');
+            $qwkey = \local_quizanalytics_quiz_cache_helper::build_key(
+                $course->id,
+                $coursestats->fingerprint,
+                course_analysis::DEFAULT_GRADE_TYPE,
+                false,
+                false
+            );
+            $coursewidecold = $qwcache->get($qwkey) === false;
         }
 
-        $byquiz = \local_quizanalytics_quiz_data_fetcher::get_course_response_records($course, $stackquizzes);
-        $byquiz = array_filter($byquiz, fn($records) => !empty($records));
+        if (empty($coldquizzes) && !$coursewidecold) {
+            return; // Everything for this course is already warm.
+        }
 
-        $result = $client->analyze_course($course->fullname, $byquiz, false, course_analysis::DEFAULT_GRADE_TYPE, false);
-        if ($result !== null) {
-            $cache->set($key, $result);
+        // If the course-wide entry needs warming it needs every quiz's
+        // records regardless of whether that quiz's own per-quiz entry
+        // does; otherwise only fetch the quizzes that are actually cold.
+        $quizzestofetch = $coursewidecold ? $stackquizzes : $coldquizzes;
+
+        try {
+            $byquiz = \local_quizanalytics\task\parallel_course_fetcher::fetch($course, $quizzestofetch, $workers);
+        } catch (\Throwable $e) {
+            debugging(
+                'local_quizanalytics: could not warm course ' . $course->id . ': ' . $e->getMessage(),
+                DEBUG_DEVELOPER
+            );
+            return; // Try again next run rather than caching anything partial.
+        }
+
+        foreach ($coldquizzes as $quiz) {
+            $records = $byquiz[$quiz->name] ?? [];
+            if (empty($records)) {
+                continue;
+            }
+            $result = $client->analyze($quiz->name, $records, false, false);
+            if ($result !== null) {
+                $qacache = \cache::make('local_quizanalytics', 'questionanalysis');
+                $qakey = \local_quizanalytics_quiz_cache_helper::build_key(
+                    $quiz->id,
+                    $quizstats[$quiz->id]->fingerprint,
+                    false,
+                    false
+                );
+                $qacache->set($qakey, $result);
+            }
+        }
+
+        if ($coursewidecold) {
+            $filtered = array_filter($byquiz, fn($records) => !empty($records));
+            $result = $client->analyze_course($course->fullname, $filtered, false, course_analysis::DEFAULT_GRADE_TYPE, false);
+            if ($result !== null) {
+                $qwcache = \cache::make('local_quizanalytics', 'quizanalysiscoursewide');
+                $qwcache->set($qwkey, $result);
+            }
         }
     }
 }
