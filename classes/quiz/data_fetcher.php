@@ -142,6 +142,37 @@ class local_quizanalytics_quiz_data_fetcher {
     }
 
     /**
+     * Every course id containing at least one STACK quiz (same matching
+     * rule as course_has_stack_quiz()), site-wide — used by the cache-
+     * warming scheduled task to find which courses to precompute for. Unlike
+     * stack_course_helper::get_viewable_courses(), this isn't scoped to any
+     * particular user's own enrolments/capabilities, since a scheduled task
+     * has no such user to check against.
+     *
+     * @return int[] course ids
+     */
+    public static function get_courses_with_stack_quizzes(): array {
+        global $DB;
+
+        $sql = "SELECT DISTINCT quiz.course
+                  FROM {quiz} quiz
+                  JOIN {course_modules} cm ON cm.instance = quiz.id
+                  JOIN {modules} m ON m.id = cm.module AND m.name = 'quiz'
+                  JOIN {context} ctx ON ctx.contextlevel = :contextmodule AND ctx.instanceid = cm.id
+                  JOIN {quiz_slots} slot ON slot.quizid = quiz.id
+                  JOIN {question_references} qr ON qr.usingcontextid = ctx.id
+                                                AND qr.component = 'mod_quiz'
+                                                AND qr.questionarea = 'slot'
+                                                AND qr.itemid = slot.id
+                  JOIN {question_bank_entries} qbe ON qbe.id = qr.questionbankentryid
+                  JOIN {question_versions} qv ON qv.questionbankentryid = qbe.id
+                  JOIN {question} q ON q.id = qv.questionid AND q.qtype = 'stack'";
+
+        $courseids = $DB->get_records_sql($sql, ['contextmodule' => CONTEXT_MODULE]);
+        return array_map('intval', array_keys($courseids));
+    }
+
+    /**
      * Response records for a single quiz — one row per finished attempt,
      * with one set of question_N_text, response_N, right_answer_N (etc.)
      * columns per slot in that attempt.
@@ -172,16 +203,34 @@ class local_quizanalytics_quiz_data_fetcher {
         $userids = array_unique(array_map(fn($a) => $a->userid, $attempts));
         $users = $DB->get_records_list('user', 'id', $userids, '', 'id, firstname, lastname, email');
 
+        // Batch-load every attempt's question usage in one pass instead of
+        // once per attempt. question_engine::load_questions_usage_by_activity()
+        // (singular) issues its own set of queries every time it's called —
+        // at 500-1000 finished attempts that's 500-1000x the round trips,
+        // easily slow enough on its own to blow past a reverse proxy's
+        // request timeout (Cloudflare 524) before this method ever returns
+        // and lets its caller populate the result cache other requests rely
+        // on. question_engine_data_mapper::load_questions_usages_by_activity()
+        // (plural) is the exact same underlying question_usage_by_activity
+        // API, just backed by one batched recordset query across every
+        // requested usage id — the same fix mod_quiz's own "Responses"
+        // report uses for this identical problem at scale (see
+        // quiz_first_or_all_responses_table::load_extra_data() in Moodle
+        // core, confirmed against a real Moodle 4.5 checkout).
+        $uniqueids = array_map(fn($a) => (int) $a->uniqueid, $attempts);
+        $datamapper = new question_engine_data_mapper();
+        $qubasbyid = $datamapper->load_questions_usages_by_activity(new qubaid_list($uniqueids));
+
         foreach ($attempts as $attempt) {
             $user = $users[$attempt->userid] ?? null;
             if (!$user) {
                 continue; // Deleted/suspended user — skip rather than fail the whole report.
             }
 
-            // This is the same question engine API Moodle's own quiz reports use
-            // internally to build the Responses/Grades exports, so the text you
-            // get here should match what a manual CSV download would contain.
-            $quba = question_engine::load_questions_usage_by_activity($attempt->uniqueid);
+            $quba = $qubasbyid[$attempt->uniqueid] ?? null;
+            if (!$quba) {
+                continue; // No question usage recorded for this attempt — shouldn't happen for a finished attempt.
+            }
 
             $row = [
                 'last_name'      => $user->lastname,

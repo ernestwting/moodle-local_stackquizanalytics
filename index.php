@@ -175,10 +175,21 @@ $qwkey = local_quizanalytics_quiz_cache_helper::build_key(
 );
 $result = $qwcache->get($qwkey);
 if ($result === false) {
+    // A cold course-wide compute over many hundreds of attempts can run
+    // long enough that a reverse proxy in front of this site gives up on
+    // the browser before PHP finishes (Cloudflare's default ~100s edge
+    // timeout, seen as a 524). Without ignore_user_abort(true), PHP would
+    // notice the client's connection is gone and stop before ever reaching
+    // $qwcache->set() below — wasting the work and leaving every following
+    // viewer to redo the exact same expensive computation from scratch.
+    // Finishing anyway means the cache is warm for the very next request,
+    // even though this one's own visitor already saw an error page.
+    $previousabort = ignore_user_abort(true);
     $result = $client->analyze_course($course->fullname, $fetchbyquiz(), $colorblind, $gradetype, $anonymize);
     if ($result !== null) {
         $qwcache->set($qwkey, $result);
     }
+    ignore_user_abort($previousabort);
 }
 
 if ($result === null) {

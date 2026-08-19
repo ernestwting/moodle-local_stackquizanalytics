@@ -14,6 +14,50 @@ plugin by its merge-time component name, `local_stackquizanalytics`, and
 time; see [2.3.0] for why and when that settled on the current
 `local_quizanalytics`.
 
+## [2.4.0] — Fixed Quiz Analytics timing out on large courses (Cloudflare 524)
+
+Live testing against a real 500-1000-finished-attempt course reproduced a
+Cloudflare 524 ("A timeout occurred") on Quiz Analytics/Question Analytics —
+the origin server not answering before the reverse proxy in front of it
+(Cloudflare, ~100s default edge timeout) gave up. Three compounding causes,
+all fixed without any UI change:
+
+- **The actual bottleneck**: `data_fetcher.php`'s
+  `get_response_records_for_quiz()` called
+  `question_engine::load_questions_usage_by_activity()` once per finished
+  attempt — each call its own set of DB queries — so a 500-1000-attempt
+  course meant 500-1000x the round trips inside one HTTP request.
+  `local_quizanalytics/computetimelimit` (PHP's own execution time limit)
+  couldn't help here: it protects against PHP timing itself out, not
+  against an independent reverse-proxy timeout sitting in front of it.
+  Switched to `question_engine_data_mapper::load_questions_usages_by_activity()`
+  (plural) — one batched query across every attempt's usage at once,
+  the exact fix Moodle core's own mod_quiz "Responses" report uses for this
+  identical problem at scale (`quiz_first_or_all_responses_table::
+  load_extra_data()`, confirmed against a real Moodle 4.5 checkout).
+  Verified byte-identical output against the old per-attempt code on real
+  attempt data before and after the change.
+- **The cache could never actually warm**: `index.php`/
+  `questionanalytics.php` already cached results keyed by an attempt
+  fingerprint (`cache_helper.php`), but a cold-cache request that gets
+  524'd mid-compute has its PHP process killed by the disconnect (unless
+  told otherwise) before ever reaching the `cache->set()` call that would
+  have made the *next* visitor's request fast — so every visitor kept
+  re-triggering the same expensive cold path indefinitely. Wrapped each
+  cache-miss compute in `ignore_user_abort(true)`/restore, so the work
+  still finishes and the cache still warms even after the browser/proxy
+  has given up on that particular request.
+- **No user should ever be the one paying for a cold cache in the first
+  place**: added a scheduled task
+  (`local_quizanalytics\task\warm_analytics_cache`, every 15 minutes) that
+  proactively recomputes any stale/missing cache entry for every course
+  with STACK activity, site-wide — the same compute, just run by cron
+  instead of inside a visitor's own request. Scoped to the default view
+  (colorblind/anonymize off) only; a visitor with a personal preference
+  toggled on still computes cold on their own first visit, an accepted
+  gap. Solution Process Visualization isn't warmed by this task — there's
+  no single default question/part/student selection to precompute for it.
+
 ## [2.3.1] — Fixed named STACK inputs being misread as blank
 
 Live testing against a course whose STACK questions rename their inputs

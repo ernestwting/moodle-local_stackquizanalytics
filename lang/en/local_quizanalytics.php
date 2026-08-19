@@ -219,6 +219,7 @@ $string['pdfnorows'] = 'Nothing to show for this section — no data yet, or not
 $string['pdffooternote'] = 'STACK Analytics Dashboard — live indicator readings, not a trained AI prediction';
 $string['questionneedsreviewthreshold'] = 'Question-needs-review pass-rate threshold';
 $string['questionneedsreviewthreshold_desc'] = 'A question is labeled "needs review" (Model 2\'s proxy label) when its empirical pass rate falls below this value (0.0-1.0). See the architecture doc\'s §3.3 circularity caveat before lowering this to chase a particular result.';
+$string['task:warmanalyticscache'] = 'Warm STACK Analytics result caches';
 $string['lowtrafficfloor'] = 'Bloated-tree "low traffic" floor';
 $string['lowtrafficfloor_desc'] = 'On the Diagnostics Dashboard, a PRT branch with at least one but fewer than this many observed traversals is reported as "low traffic" (needs a human look) rather than "never reached" (a pruning candidate).';
 $string['helpseekinglookback'] = 'Help-seeking lookback window (seconds)';

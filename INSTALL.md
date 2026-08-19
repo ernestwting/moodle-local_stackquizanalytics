@@ -55,18 +55,30 @@ on its own). This single step:
   question/PRT needs review** (Model 2) — from `db/analytics.php`, via
   `\core_analytics\manager::update_default_models_for_component()`. Both
   are created **disabled**; see step 4.
+- Registers the **Warm STACK Analytics result caches** scheduled task
+  (`db/tasks.php`, every 15 minutes) — proactively recomputes the Quiz
+  Analytics/Question Analytics result cache for any course whose entry is
+  missing or stale, so a real visitor essentially never has to wait through
+  a cold compute themselves. This depends on your site's Moodle cron
+  actually running on schedule (`php admin/cli/cron.php`, or whatever your
+  hosting's cron job/systemd timer runs) — a site with cron disabled or
+  badly delayed loses this benefit entirely, same as any other Moodle
+  scheduled task.
 
 ## 3. (Optional) Adjust the Quiz Analytics computation time limit
 
-**Site administration → Plugins → Local plugins → STACK Quiz & Model
-Analytics:**
+**Site administration → Plugins → Local plugins → STACK Analytics:**
 
 - **Computation time limit** → 120 seconds by default. Only relevant for a
   course with many STACK quizzes and/or students — the Quiz Analytics
   course-wide view and PDF export are the paths whose cost scales with the
   whole course rather than a single quiz. Raise this if you see a timeout
   on a large course specifically; 0 removes PHP's execution-time limit
-  entirely for this plugin's own requests.
+  entirely for this plugin's own requests. Note this only raises *PHP's*
+  own execution limit — it does nothing for a timeout enforced by a reverse
+  proxy/CDN in front of your site (e.g. Cloudflare's default ~100s edge
+  timeout, surfaced to a visitor as a 524); the scheduled task above is
+  what actually keeps a real visitor off that path on a large course.
 
 ## 4. Review and enable the Model Analytics models
 
@@ -90,7 +102,7 @@ registers appear here, disabled by default (deliberately — see
   still happen automatically via the `\core\task\analytics_process_models`
   scheduled task (cron), just not on-demand from the web UI. Either wait for
   cron, force that task from the CLI
-  (`php admin/tool/task/cli/schedule_task.php
+  (`php admin/cli/scheduled_task.php
   --execute='\core\task\analytics_process_models'`), or disable `onlycli`
   (Site administration → Analytics → Analytics settings) to get the
   **Evaluate**/**Get predictions**/**Log** buttons back for iterative
@@ -160,6 +172,7 @@ producing a misleading prediction.
 | "No attempts yet" / "...has no finished attempts" (Quiz Analytics) | No attempts in `state = finished` for the quiz(zes) in question |
 | "Analytics could not be computed for this quiz" | An unexpected error — check Moodle's debugging messages/logs (Site administration → Reports → Logs, or your server's PHP error log) for the underlying exception |
 | A large course's course-wide view or PDF export times out | Raise **Computation time limit** in the plugin's settings (see step 3 above) |
+| Quiz/Question Analytics 524s (or otherwise times out) on a large course (500+ attempts) | A reverse proxy/CDN in front of the site (e.g. Cloudflare), not PHP, is giving up first — **Computation time limit** won't fix this. Confirm Moodle cron is actually running so the **Warm STACK Analytics result caches** scheduled task can keep the cache warm ahead of real visitors (Site administration → Server → Scheduled tasks); you can also run it once by hand (`php admin/cli/scheduled_task.php --execute='\local_quizanalytics\task\warm_analytics_cache'`) to warm a course immediately rather than waiting up to 15 minutes |
 | Charts blank / JS console errors (Quiz Analytics) | Check the browser console for a 404 on `js/vendor/plotly.min.js` or `js/vendor/katex/*` — those ship inside this repo already, so a 404 usually means the plugin folder wasn't copied completely |
 | Math renders as literal `\(...\)` text instead of typeset symbols | KaTeX's CSS/font files (`js/vendor/katex/fonts/`) didn't come along with the rest of `js/vendor/katex/` — re-copy the whole folder |
 | Question text shows `@variable@` placeholders or both languages' `[[lang]]` blocks at once | `castext2_qa_processor`/`stack_outofcontext_process` couldn't be loaded — check `qtype_stack` is installed and up to date |
