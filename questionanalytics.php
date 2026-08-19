@@ -165,6 +165,7 @@ if ($view === 'question') {
         // compute even if the browser/reverse proxy gives up first, so the
         // cache actually ends up warm for the next viewer instead of every
         // request redoing the same expensive work from scratch.
+        sections_output_helper::flush_computing_notice();
         $previousabort = ignore_user_abort(true);
         $result = $client->analyze($selectedquiz->name, $fetchrecords(), $colorblind, $anonymize);
         if ($result !== null) {
@@ -203,6 +204,7 @@ if ($view === 'question') {
     $metakey = local_quizanalytics_quiz_cache_helper::build_key($selectedquiz->id, $stats->fingerprint, $anonymize);
     $meta = $metacache->get($metakey);
     if ($meta === false) {
+        sections_output_helper::flush_computing_notice();
         $previousabort = ignore_user_abort(true);
         $meta = $client->solution_process_meta($selectedquiz->name, $fetchrecords(), $anonymize);
         if ($meta !== null) {
@@ -287,6 +289,7 @@ if ($view === 'question') {
         // Solution Process Visualization (tree edit distance, 3D figures,
         // network graphs) is the most expensive of this plugin's views —
         // the one this pattern matters most for.
+        sections_output_helper::flush_computing_notice();
         $previousabort = ignore_user_abort(true);
         $result = $client->solution_process_analyze(
             $selectedquiz->name,

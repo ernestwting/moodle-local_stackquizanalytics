@@ -68,6 +68,28 @@ class sections_output_helper {
     }
 
     /**
+     * Echoes a "this may take a while" notice and pushes it to the browser
+     * immediately, for a caller about to run a cold-cache compute that can
+     * take anywhere from seconds to several minutes on a large course.
+     * PHP doesn't send anything to the browser until either its output
+     * buffer fills or the script ends, so without this a visitor just sees
+     * a blank/loading tab for the whole wait with no indication anything
+     * is happening — this at minimum gets the page shell and this notice
+     * out before the expensive part starts. Purely cosmetic: doesn't change
+     * what gets computed, cached, or how long it takes.
+     */
+    public static function flush_computing_notice(): void {
+        echo \html_writer::div(
+            get_string('computingnotice', 'local_quizanalytics'),
+            'alert alert-info'
+        );
+        if (ob_get_level() > 0) {
+            @ob_flush();
+        }
+        flush();
+    }
+
+    /**
      * Echoes the vendored-library <script>/<link> tags, the JSON payload as
      * an inline script variable, and the shared sections-renderer.js — in
      * that guaranteed document order, so plain synchronous script execution

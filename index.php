@@ -184,6 +184,7 @@ if ($result === false) {
     // viewer to redo the exact same expensive computation from scratch.
     // Finishing anyway means the cache is warm for the very next request,
     // even though this one's own visitor already saw an error page.
+    sections_output_helper::flush_computing_notice();
     $previousabort = ignore_user_abort(true);
     $result = $client->analyze_course($course->fullname, $fetchbyquiz(), $colorblind, $gradetype, $anonymize);
     if ($result !== null) {
