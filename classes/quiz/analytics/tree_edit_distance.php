@@ -119,19 +119,31 @@ class tree_edit_distance {
             $labelb[$j] = $nodesb[$j - 1]->label;
         }
 
+        // Both $forestdist and $treedist were originally keyed by a
+        // string-concatenated "$x,$y" built fresh on every single read/write
+        // inside the hottest loop in this file — real overhead (string
+        // interpolation + closure call + string hashing for the array
+        // lookup) on what's otherwise a tight arithmetic inner loop. $x
+        // ranges over [0, n] and $y over [0, m] throughout (both arrays),
+        // so a flat integer index x * (m + 1) + y is a bijection covering
+        // exactly the same key space with plain integer-keyed array access
+        // instead — PHP's array implementation handles integer keys more
+        // cheaply than string keys, and this removes the string
+        // build/hash/closure-call cost entirely. Purely a storage-layout
+        // change: same values computed in the same order, same result.
+        $stride = $m + 1;
         $treedist = [];
 
         foreach ($keyrootsa as $i) {
             foreach ($keyrootsb as $j) {
-                $key = fn($x, $y) => "{$x},{$y}";
-                $forestdist = [$key($la[$i] - 1, $lb[$j] - 1) => 0];
+                $forestdist = [($la[$i] - 1) * $stride + ($lb[$j] - 1) => 0];
 
                 for ($i1 = $la[$i]; $i1 <= $i; $i1++) {
-                    $forestdist[$key($i1, $lb[$j] - 1)] = $forestdist[$key($i1 - 1, $lb[$j] - 1)] + 1;
+                    $forestdist[$i1 * $stride + ($lb[$j] - 1)] = $forestdist[($i1 - 1) * $stride + ($lb[$j] - 1)] + 1;
                 }
 
                 for ($j1 = $lb[$j]; $j1 <= $j; $j1++) {
-                    $forestdist[$key($la[$i] - 1, $j1)] = $forestdist[$key($la[$i] - 1, $j1 - 1)] + 1;
+                    $forestdist[($la[$i] - 1) * $stride + $j1] = $forestdist[($la[$i] - 1) * $stride + ($j1 - 1)] + 1;
                 }
 
                 for ($i1 = $la[$i]; $i1 <= $i; $i1++) {
@@ -139,25 +151,25 @@ class tree_edit_distance {
                         if ($la[$i1] === $la[$i] && $lb[$j1] === $lb[$j]) {
                             $renamecost = ($labela[$i1] === $labelb[$j1]) ? 0 : 1;
                             $dist = min(
-                                $forestdist[$key($i1 - 1, $j1)] + 1,
-                                $forestdist[$key($i1, $j1 - 1)] + 1,
-                                $forestdist[$key($i1 - 1, $j1 - 1)] + $renamecost
+                                $forestdist[($i1 - 1) * $stride + $j1] + 1,
+                                $forestdist[$i1 * $stride + ($j1 - 1)] + 1,
+                                $forestdist[($i1 - 1) * $stride + ($j1 - 1)] + $renamecost
                             );
-                            $forestdist[$key($i1, $j1)] = $dist;
-                            $treedist[$key($i1, $j1)] = $dist;
+                            $forestdist[$i1 * $stride + $j1] = $dist;
+                            $treedist[$i1 * $stride + $j1] = $dist;
                         } else {
                             $dist = min(
-                                $forestdist[$key($i1 - 1, $j1)] + 1,
-                                $forestdist[$key($i1, $j1 - 1)] + 1,
-                                $forestdist[$key($la[$i1] - 1, $lb[$j1] - 1)] + $treedist[$key($i1, $j1)]
+                                $forestdist[($i1 - 1) * $stride + $j1] + 1,
+                                $forestdist[$i1 * $stride + ($j1 - 1)] + 1,
+                                $forestdist[($la[$i1] - 1) * $stride + ($lb[$j1] - 1)] + $treedist[$i1 * $stride + $j1]
                             );
-                            $forestdist[$key($i1, $j1)] = $dist;
+                            $forestdist[$i1 * $stride + $j1] = $dist;
                         }
                     }
                 }
             }
         }
 
-        return $treedist["{$n},{$m}"];
+        return $treedist[$n * $stride + $m];
     }
 }
