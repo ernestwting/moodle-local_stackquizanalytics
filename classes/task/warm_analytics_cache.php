@@ -101,6 +101,20 @@ class warm_analytics_cache extends \core\task\scheduled_task {
     public function execute(): void {
         global $DB;
 
+        // This is CLI/cron-only (never a web request a shared host needs to
+        // budget memory for per-request), and a real course's course-wide
+        // fetch legitimately needs to hold every one of its quizzes' full
+        // response records in memory at once — confirmed directly: a
+        // 38-quiz/48,445-attempt course exhausted a 2048M ceiling on one
+        // worker that happened to draw several of the largest quizzes.
+        // ini_set() here is inherited by every forked child in
+        // parallel_course_fetcher.php (ordinary copied process memory, no
+        // shared-resource fork hazard the way a DB connection is), so this
+        // one call covers the parent's own merge/analyze work and every
+        // child's fetch work alike. The OS's own memory limits remain the
+        // real backstop against a genuine runaway leak.
+        @ini_set('memory_limit', -1);
+
         $client = new \local_quizanalytics_quiz_api_client();
         $workers = max(1, (int) (get_config('local_quizanalytics', 'parallelworkers') ?: 4));
 
