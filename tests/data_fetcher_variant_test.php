@@ -100,42 +100,70 @@ final class data_fetcher_variant_test extends \advanced_testcase {
         quiz_add_quiz_question($question->id, $quiz);
 
         $users = [$dg->create_user(), $dg->create_user()];
-        $variants = [2, 137]; // Arbitrary, distinct — free randomisation means seed = variant directly.
         $expectedtexts = [];
 
-        foreach ($users as $i => $user) {
-            $quizobj = \mod_quiz\quiz_settings::create($quiz->id, $user->id);
-            $quba = \question_engine::make_questions_usage_by_activity('mod_quiz', $quizobj->get_context());
-            $quba->set_preferred_behaviour($quizobj->get_quiz()->preferredbehaviour);
-            $timenow = time();
-            $attempt = quiz_create_attempt($quizobj, 1, false, $timenow, false, $user->id);
-            quiz_start_new_attempt($quizobj, $quba, $attempt, 1, $timenow, [], [1 => $variants[$i]]);
+        // 'test1's own questionvariables is `n : rand(5)+3; a : rand(5)+3`
+        // (see qtype_stack's tests/helper.php) — only 25 distinct (n, a)
+        // combinations total, so two arbitrarily-picked seeds have a real
+        // chance of colliding on the same instantiated text (confirmed:
+        // this happened in a live CI run with a fixed [2, 137] pair). User
+        // 1 anchors the first seed; user 2 probes a small candidate list
+        // and keeps the first one whose instantiated text actually differs
+        // — quiz_create_attempt()/quiz_start_new_attempt() build the
+        // in-memory attempt/$quba without writing anything to the database
+        // (that happens at quiz_attempt_save_started() below), so probing
+        // and discarding a candidate here is cheap and leaves nothing to
+        // clean up.
+        $candidateseeds = [2, 137, 41, 59, 83, 101, 127, 151, 173, 199, 223, 251];
 
-            // Ground truth, captured in this attempt's own freshly-built
-            // $quba right now — the most direct possible check that this
-            // fixture actually exercises two different seeds, independent
-            // of anything quiz_attempt::create() does on reload later.
-            $expectedtexts[$i] = $this->render_expected_text($quba->get_question(1));
+        $quizobj0 = \mod_quiz\quiz_settings::create($quiz->id, $users[0]->id);
+        $quba0 = \question_engine::make_questions_usage_by_activity('mod_quiz', $quizobj0->get_context());
+        $quba0->set_preferred_behaviour($quizobj0->get_quiz()->preferredbehaviour);
+        $timenow = time();
+        $attempt0 = quiz_create_attempt($quizobj0, 1, false, $timenow, false, $users[0]->id);
+        quiz_start_new_attempt($quizobj0, $quba0, $attempt0, 1, $timenow, [], [1 => $candidateseeds[0]]);
+        $expectedtexts[0] = $this->render_expected_text($quba0->get_question(1));
+        quiz_attempt_save_started($quizobj0, $quba0, $attempt0);
+        \mod_quiz\quiz_attempt::create($attempt0->id)->process_finish($timenow, false);
 
-            quiz_attempt_save_started($quizobj, $quba, $attempt);
-            $attemptobj = \mod_quiz\quiz_attempt::create($attempt->id);
-            $attemptobj->process_finish($timenow, false);
+        $quizobj1 = \mod_quiz\quiz_settings::create($quiz->id, $users[1]->id);
+        $winningtext1 = null;
+        $winningattempt1 = null;
+        $winningquba1 = null;
+        foreach (array_slice($candidateseeds, 1) as $seed) {
+            $quba1 = \question_engine::make_questions_usage_by_activity('mod_quiz', $quizobj1->get_context());
+            $quba1->set_preferred_behaviour($quizobj1->get_quiz()->preferredbehaviour);
+            $attempt1 = quiz_create_attempt($quizobj1, 1, false, $timenow, false, $users[1]->id);
+            quiz_start_new_attempt($quizobj1, $quba1, $attempt1, 1, $timenow, [], [1 => $seed]);
+            $text = $this->render_expected_text($quba1->get_question(1));
+            if ($text !== $expectedtexts[0]) {
+                $winningtext1 = $text;
+                $winningattempt1 = $attempt1;
+                $winningquba1 = $quba1;
+                break;
+            }
         }
+        $this->assertNotNull(
+            $winningtext1,
+            'Test fixture problem: every candidate seed tried for user 2 produced the same instantiated ' .
+            'text as user 1\'s, so this test cannot distinguish correct per-variant caching from the old ' .
+            'per-slot-only bug.'
+        );
+        $expectedtexts[1] = $winningtext1;
+        quiz_attempt_save_started($quizobj1, $winningquba1, $winningattempt1);
+        \mod_quiz\quiz_attempt::create($winningattempt1->id)->process_finish($timenow, false);
 
         return [$course, $quiz, $users, $expectedtexts];
     }
 
     public function test_question_text_is_cached_per_variant_not_just_per_slot(): void {
         $this->resetAfterTest(true);
+        // create_quiz_with_two_variant_attempts() already guarantees (via
+        // its own candidate-seed probing) that expectedtexts[0] and [1]
+        // are genuinely different — without that, this test couldn't
+        // distinguish correct per-variant caching from the old
+        // per-slot-only bug.
         [$course, $quiz, $users, $expectedtexts] = $this->create_quiz_with_two_variant_attempts();
-
-        // Fixture sanity check: if this ever stops producing two genuinely
-        // different instantiated texts (e.g. the 'test1' fixture changes
-        // upstream), the rest of this test can't actually exercise the bug
-        // it exists to catch.
-        $this->assertNotSame($expectedtexts[0], $expectedtexts[1],
-            'Test fixture problem: the two forced variants produced identical instantiated text, ' .
-            'so this test cannot distinguish correct per-variant caching from the old per-slot-only bug.');
 
         $records = \local_quizanalytics_quiz_data_fetcher::get_response_records_for_quiz($quiz, $course);
         $this->assertCount(2, $records);

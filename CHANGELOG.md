@@ -14,6 +14,29 @@ plugin by its merge-time component name, `local_stackquizanalytics`, and
 time; see [2.3.0] for why and when that settled on the current
 `local_quizanalytics`.
 
+## [2.4.9] — Fixed a flaky PHPUnit test (real seed collision, confirmed live)
+
+The previous round's CI fix got PHPUnit past the missing-plugin errors,
+surfacing one further failure: `data_fetcher_variant_test`'s own fixture
+sanity check ("the two forced variants produced identical instantiated
+text") — the two hardcoded seeds it forced (2 and 137) happened to collide
+on the same instantiated text in that run. Root cause: `test1`'s fixture
+question variables are `n : rand(5)+3; a : rand(5)+3` (qtype_stack's own
+`tests/helper.php`) — only 25 distinct `(n, a)` combinations total, so any
+two arbitrarily-picked seeds have a real, non-trivial chance of colliding.
+Confirmed directly, not assumed: a standalone script exercising 12
+candidate seeds through the real question engine found only 8 distinct
+texts, with three actual collision pairs among them — this local
+environment's seeds 2/137 happened not to collide, but the mechanism the
+CI hit is real.
+
+Fixed by no longer trusting a single hardcoded pair: the second user's
+attempt now probes a list of candidate seeds (cheap — building the
+in-memory attempt/question-usage-by-activity doesn't touch the database
+until the attempt is actually saved) and keeps the first one whose
+instantiated text differs from the first user's, only then committing a
+real finished attempt with that seed.
+
 ## [2.4.8] — Fixed two real GitHub Actions PHPUnit failures
 
 Confirmed from the actual failed-run output (5 errors, 100 tests), not
