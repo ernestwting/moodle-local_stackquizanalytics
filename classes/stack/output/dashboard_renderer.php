@@ -64,6 +64,16 @@ class dashboard_renderer {
     ];
 
     /**
+     * DOM id of the "this may take a little time" notice — must stay equal
+     * to sections_output_helper::LOADING_NOTICE_ID's own value (not
+     * referenced directly: modelanalytics.php/diagnosticsanalytics.php
+     * don't otherwise need that class, and pulling it in just for this one
+     * constant isn't worth the added dependency) so the same hide-notice
+     * script works regardless of which section rendered the notice.
+     */
+    const LOADING_NOTICE_ID = 'lqa-loading-notice';
+
+    /**
      * Echoes a "this may take a little time" notice and pushes it to the
      * browser immediately, before Model 1/Model 2's own report::build()
      * calls — unlike Quiz/Question Analytics, these have no result cache to
@@ -76,12 +86,30 @@ class dashboard_renderer {
     public static function flush_computing_notice(): void {
         echo \html_writer::div(
             \get_string('largecoursenotice', 'local_quizanalytics'),
-            'alert alert-info'
+            'alert alert-info',
+            ['id' => self::LOADING_NOTICE_ID]
         );
         if (\ob_get_level() > 0) {
             @\ob_flush();
         }
         \flush();
+    }
+
+    /**
+     * A tiny inline script removing the "may take a while" notice from the
+     * page — call this right after echoing the real results (Model 1/
+     * Model 2's table, or the Diagnostics section), never before. See
+     * sections_output_helper::render_hide_loading_notice()'s own comment
+     * for why a plain <script> tag placed after the real content is enough
+     * on its own, no event listeners needed.
+     *
+     * @return string
+     */
+    public static function render_hide_loading_notice(): string {
+        return \html_writer::tag(
+            'script',
+            'document.getElementById(' . json_encode(self::LOADING_NOTICE_ID) . ')?.remove();'
+        );
     }
 
     /**

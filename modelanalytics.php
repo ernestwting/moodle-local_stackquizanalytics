@@ -221,12 +221,14 @@ if ($view === 'model1') {
 
     dashboard_renderer::flush_computing_notice();
     echo dashboard_renderer::render_model1_table(model1_report::build($courseid), $anonymize);
+    echo dashboard_renderer::render_hide_loading_notice();
 } else {
     echo $OUTPUT->heading(get_string('model2heading', 'local_quizanalytics'), 3);
     echo html_writer::tag('p', get_string('model2intro', 'local_quizanalytics'));
     echo dashboard_renderer::render_model2_about();
     dashboard_renderer::flush_computing_notice();
     echo dashboard_renderer::render_model2_table(model2_report::build($courseid, $quizid !== 0 ? $quizid : null));
+    echo dashboard_renderer::render_hide_loading_notice();
 }
 
 echo dashboard_renderer::render_pdf_form(

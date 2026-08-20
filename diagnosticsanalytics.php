@@ -164,6 +164,7 @@ echo html_writer::tag(
 
 dashboard_renderer::flush_computing_notice();
 echo dashboard_renderer::render_diagnostics_section(diagnostics_report::build($courseid, $quizid !== 0 ? $quizid : null));
+echo dashboard_renderer::render_hide_loading_notice();
 
 echo dashboard_renderer::render_pdf_form(
     new moodle_url('/local/quizanalytics/diagnosticsanalyticspdf.php'),

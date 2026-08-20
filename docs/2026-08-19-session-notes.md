@@ -934,3 +934,37 @@ Two smaller, unrelated fixes landed in the same version:
   wrapper's own width to 100% of its container (matching everything else
   on the page), with the wider chart still scrolling *inside* that box
   exactly as before.
+
+### 12.8 Maturity bumped to stable, and the loading notice now self-removes (2.4.13)
+
+After publishing to the Moodle Plugins directory, the user asked why the
+new version wasn't showing up as an installable "available update" on
+their production site's own Plugins overview page — not something
+reproducible in this project's own dev environment, so answered from
+Moodle's own documentation instead (confirmed via
+https://docs.moodle.org/501/en/Available_update_notifications rather than
+assumed): a site's own Update notifications maturity filter (Site
+administration > Server > Update notifications) commonly excludes alpha
+releases, and `version.php` had declared `MATURITY_ALPHA` this entire
+project. Bumped to `MATURITY_STABLE`, a real statement of confidence
+given how much real-course testing and how many rounds of real-world bug
+fixes this plugin has been through since the original merge.
+
+Also asked for the "may take a while" loading notice (shown across all
+four sections since 2.4.7/2.4.10/2.4.12) to disappear once the real
+results have actually rendered, rather than sitting on the page
+indefinitely. Solved with a shared DOM id on the notice
+(`sections_output_helper::LOADING_NOTICE_ID`, mirrored in
+`dashboard_renderer.php` since Model/Diagnostics Analytics don't
+otherwise depend on that class) and a tiny inline `<script>` echoed right
+after each section's real results, never before — a `<script>` tag runs
+synchronously the instant the browser's own HTML parser reaches it, so by
+construction everything printed earlier in the response, notice included,
+is already in the DOM by the time it runs. No event listeners, load-state
+tracking, or changes to the existing JS renderer's own entry point needed.
+Verified for all four sections (including both Model 1/Model 2 and both
+Question Analytics/Solution Process Visualization) via a real
+authenticated request, checking the actual byte offsets of the notice and
+the hide-script in the raw HTML response to confirm the ordering, and
+confirming the hide-script is a safe no-op on a cache hit where no notice
+was ever shown in the first place.

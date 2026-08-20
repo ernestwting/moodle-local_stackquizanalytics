@@ -211,6 +211,7 @@ if ($view === 'question') {
 
     echo sections_output_helper::render_containers('qa');
     echo sections_output_helper::render_vendor_and_payload('qa', $result);
+    echo sections_output_helper::render_hide_loading_notice();
 
     echo $OUTPUT->heading(get_string('generatepdfheading', 'local_quizanalytics'), 3, 'main mt-4 mb-3');
     echo sections_output_helper::render_pdf_form(
@@ -354,6 +355,7 @@ if ($view === 'question') {
 
     echo sections_output_helper::render_containers('spv');
     echo sections_output_helper::render_vendor_and_payload('spv', $result);
+    echo sections_output_helper::render_hide_loading_notice();
 
     echo $OUTPUT->heading(get_string('generatepdfheading', 'local_quizanalytics'), 3, 'main mt-4 mb-3');
     echo sections_output_helper::render_pdf_form(

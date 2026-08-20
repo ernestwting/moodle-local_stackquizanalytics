@@ -54,6 +54,14 @@ namespace local_quizanalytics\quiz\output;
  */
 class sections_output_helper {
     /**
+     * DOM id of the "this may take a while" notice — shared with
+     * dashboard_renderer's own identical flush_computing_notice(), so
+     * render_hide_loading_notice() below can find and remove either one by
+     * the same id regardless of which section rendered it.
+     */
+    const LOADING_NOTICE_ID = 'lqa-loading-notice';
+
+    /**
      * Echoes the empty container divs a payload gets rendered into.
      * Callers must use a unique $prefix per page when more than one
      * independent result is rendered on the same page.
@@ -84,7 +92,8 @@ class sections_output_helper {
     public static function flush_computing_notice(): void {
         echo \html_writer::div(
             get_string('largecoursenotice', 'local_quizanalytics'),
-            'alert alert-info'
+            'alert alert-info',
+            ['id' => self::LOADING_NOTICE_ID]
         );
         if (ob_get_level() > 0) {
             @ob_flush();
@@ -212,6 +221,29 @@ class sections_output_helper {
         );
 
         return $html;
+    }
+
+    /**
+     * A tiny inline script removing the "may take a while" notice
+     * (LOADING_NOTICE_ID above) from the page — call this right after
+     * echoing the real results, never before. A <script> tag runs
+     * synchronously the instant the browser's HTML parser reaches it, so by
+     * the time this one runs, everything printed before it — the notice,
+     * and whatever real results this call follows — is already sitting in
+     * the DOM. No event listener or load-state tracking needed for that:
+     * the notice exists to reassure a visitor mid-wait, not to linger once
+     * there's something to look at instead. Safe to call even when no
+     * notice was actually shown (a cache hit that skipped
+     * flush_computing_notice() entirely) — getElementById() then finds
+     * nothing and the optional chaining below is a no-op.
+     *
+     * @return string
+     */
+    public static function render_hide_loading_notice(): string {
+        return \html_writer::tag(
+            'script',
+            'document.getElementById(' . json_encode(self::LOADING_NOTICE_ID) . ')?.remove();'
+        );
     }
 
     /**

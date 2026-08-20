@@ -14,6 +14,26 @@ plugin by its merge-time component name, `local_stackquizanalytics`, and
 time; see [2.3.0] for why and when that settled on the current
 `local_quizanalytics`.
 
+## [2.4.13] — Maturity bumped to stable; the loading notice now disappears once results are ready
+
+- `$plugin->maturity` changed from `MATURITY_ALPHA` to `MATURITY_STABLE`.
+  This plugin has now been through extensive real-course testing and
+  several rounds of real-world bug fixes since first merging the two
+  source plugins; alpha maturity was also the likely reason this plugin
+  never showed up as an available update on some sites, since a site's own
+  Update notifications maturity filter (Site administration > Server >
+  Update notifications) commonly excludes alpha releases from
+  notifications by default.
+- The "this may take a little time to load for a large course" notice,
+  added across all four sections in 2.4.7/2.4.10/2.4.12, stayed on the
+  page indefinitely even once the real results had fully rendered below
+  it. Each section now echoes a tiny inline script right after its real
+  results (never before) that removes the notice by id — a plain
+  `<script>` tag runs the instant the browser's HTML parser reaches it, so
+  by the time it runs, everything printed before it is already sitting in
+  the DOM, with no event-listener or load-tracking machinery needed. Safe
+  on a cache hit too, where no notice was shown in the first place.
+
 ## [2.4.12] — Loading notice consistency, and a chart box width fix
 
 - Quiz Analytics only flushed its "this may take a little time" notice on

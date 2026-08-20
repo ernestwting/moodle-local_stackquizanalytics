@@ -78,7 +78,7 @@ Moodle server.
 
 Requires `qtype_stack` (the STACK question type) to have anything to show.
 
-## Release notes (v2.4.12)
+## Release notes (v2.4.13)
 
 Copy-paste source for the "Plugin versions" tab (Edit plugin page →
 Versions) when uploading this release.
@@ -98,7 +98,8 @@ shrinking its labels past legible. Every section's header now follows the
 same selector order (Course, then Quiz, then View, then colorblind/
 anonymize toggles), the same "Quiz:"/"Apply" labeling, and the same "may
 take a while" loading notice — shown reliably regardless of cache state,
-not just on a cold view.
+not just on a cold view, and now disappearing on its own once the real
+results have finished rendering below it. Maturity is now Stable.
 
 ## Release notes (v2.3.0)
 
