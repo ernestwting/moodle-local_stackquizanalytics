@@ -38,13 +38,13 @@ $plugin->component = 'local_quizanalytics'; // Must match the folder this unzips
                                                   // top-level wrapper folder, which is what the Moodle
                                                   // plugin uploader requires to detect the frankenstyle
                                                   // component, plugin type, and required core version.
-$plugin->version   = 2026081907;                 // YYYYMMDDXX — bump this every time you push an update.
+$plugin->version   = 2026082001;                 // YYYYMMDDXX — bump this every time you push an update.
 $plugin->requires  = 2022041900;                 // Moodle 4.0.0 — matches both source plugins' own
                                                   // requirement (the analyser/target/indicator base
                                                   // classes the original local_stackanalytics used are
                                                   // present since Moodle 3.4 and stable through 4.x/5.x).
 $plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '2.3.3';
+$plugin->release   = '2.4.0';
 
 // This plugin is the merger of two previously-standalone plugins:
 // local_quizanalytics (course-wide/question/solution-process STACK response

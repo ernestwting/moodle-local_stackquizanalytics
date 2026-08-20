@@ -14,6 +14,98 @@ plugin by its merge-time component name, `local_stackquizanalytics`, and
 time; see [2.3.0] for why and when that settled on the current
 `local_quizanalytics`.
 
+## [2.4.0] — Made Quiz Analytics usable on a real 48,445-attempt course
+
+Live testing against a real 38-quiz course (48,445 finished attempts
+combined) found Quiz/Question Analytics still effectively unusable even
+after [2.3.2]'s fix: loads taking close to a minute and then rendering
+nothing, Model Analytics silently bouncing back to Quiz Analytics,
+Diagnostics Analytics landing on Course reuse instead. Root-caused and
+fixed in stages, each verified directly against the real course rather
+than assumed:
+
+**Fetch-stage fixes (data_fetcher.php), ~10x on their own:**
+- `render_stack_question_text()`'s CASText2 render was being called once
+  per attempt per slot, but every consumer of `question_N_text` only ever
+  wants the first non-empty value across a question's attempts — memoized
+  per slot.
+- `$quba->get_question($slot)` — instantiating the STACK question for that
+  attempt's seed — measured at 4.2ms/call, ~99.5% of the method's whole
+  per-attempt-slot cost, versus under 0.03ms combined for
+  `get_response_summary()`/`get_right_answer_summary()`/marks (which read
+  already-graded DB columns, not live CAS, confirmed directly against
+  `question_attempt::load_from_records()`). `$question`'s only use in this
+  method is the render call above, so it's now only fetched when that
+  memo is actually still empty.
+- PHP's automatic cyclic garbage collector fell further behind the more
+  quizzes a single course-wide request processed — one quiz's own fetch
+  went from ~10s to 461s with no code difference between them, purely from
+  QUBA object cycles piling up across earlier quizzes in the same run.
+  `gc_collect_cycles()` after each quiz keeps every run cheap instead of
+  one increasingly expensive automatic sweep.
+
+**Made the CAS-bound fetch parallel (the actual >10x-at-scale fix):**
+Even after the above, the fetch stage was still bound by every quiz's
+attempts being graded via CAS strictly one at a time, in one process — despite
+the Maxima backend's own multi-worker queue sitting almost entirely idle
+the whole time. `classes/task/parallel_course_fetcher.php` fans a course's
+quiz list across up to `local_quizanalytics/parallelworkers` (new setting)
+forked worker processes — CLI/cron only, so this only ever runs inside the
+`warm_analytics_cache` scheduled task; the on-demand web pages are
+untouched and still fetch serially on a cold cache, as already documented
+there. Getting this right at real scale took three more rounds of fixes,
+each found by running the actual task end to end against the real course,
+not just per-quiz:
+- A forked child inherits the same underlying DB socket the parent is
+  still using; a child reconnecting to its own fresh connection doesn't
+  fully remove the risk, since the *old* inherited connection object it
+  discards still gets destructed at some point in the child's life,
+  closing the connection on that *shared* socket. Fixed by disposing the
+  parent's own connection before forking, reconnecting fresh in every
+  child *and* the parent afterward — confirmed this was really "MySQL
+  server has gone away" well inside MariaDB's own 8-hour wait_timeout, not
+  an actual timeout.
+- A worker drawing several of a course's largest quizzes could hold all of
+  them in memory simultaneously before writing its result out — now
+  streams each quiz's records to its temp file and frees them immediately
+  after, bounding peak memory to roughly one quiz's worth.
+- Moodle's own `core_questiondata` cache accumulates every distinct
+  question a process ever loads for the rest of that process's life — fine
+  for a short web request, not a CLI worker touching hundreds of distinct
+  STACK questions. Purging it after each quiz keeps memory flat instead of
+  climbing without bound for as long as the worker runs.
+- Replaced an initial `ini_set('memory_limit', -1)` (unlimited) with a
+  bounded, admin-configurable `local_quizanalytics/parallelworkermemory`
+  setting (default 2048M) — unlimited isn't actually safe: without a PHP-
+  level ceiling, concurrent workers can exceed the host's real available
+  memory before PHP would object, at which point it's the kernel's OOM
+  killer choosing what to sacrifice, observed directly taking out this
+  task's own workers with no catchable error and capable of just as easily
+  picking MariaDB or Maxima on a busier host.
+
+Verified end to end: the real 38-quiz/48,445-attempt course now completes
+a fully cold cache warm (all 38 quizzes plus the course-wide view) in
+526.8s via the scheduled task, versus well over an hour previously
+(extrapolated — the unfixed serial fetch hadn't finished 13 of 38 quizzes
+after 28 minutes). Byte-identical output verified between the parallel and
+serial code paths throughout.
+
+**Also, not on the critical path for this course but requested
+alongside it:** replaced `tree_edit_distance.php`'s string-concatenated
+array keys with integer indices (only reachable from Solution Process
+Visualization, confirmed via the same investigation — not Quiz/Question
+Analytics — so doesn't move the numbers above, but is a real, low-risk
+win for that view's own cold-load time). Added a "computing, please
+wait" notice that flushes to the browser immediately on a cold-cache
+on-demand view, so a visitor isn't just staring at a blank tab during
+whatever wait remains — cosmetic only, doesn't change what gets computed.
+
+**Known follow-up, not resolved tonight:** a second `warm_analytics_cache`
+run immediately after a fully-warm one took ~180s rather than being
+near-instant, despite every cache entry checked afterward showing warm —
+likely per-quiz fingerprint-check DB overhead across all courses on the
+site rather than a real recompute, but not root-caused.
+
 ## [2.3.3] — Renamed display name to "STACK q-type Analytics"
 
 `pluginname` (and every other on-screen/PDF/docblock echo of it — the
