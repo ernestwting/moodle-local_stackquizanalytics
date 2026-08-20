@@ -14,6 +14,22 @@ plugin by its merge-time component name, `local_stackquizanalytics`, and
 time; see [2.3.0] for why and when that settled on the current
 `local_quizanalytics`.
 
+## [2.4.4] — Rewrote em-dash/semicolon run-on strings as plain sentences
+
+A copy pass across every user-facing string in `lang/en/local_quizanalytics.php`
+(plus one caption in the shared on-screen renderer) that used an em-dash or
+semicolon to bolt a second clause onto the first, in the style of the old
+`computingnotice` string ("...this can take a while for a large course. This
+page will show the results below once it's done; no need to refresh."). Each
+was rewritten as separate plain sentences, or a colon for short label/value
+pairs (status badges, PDF titles) where splitting into full sentences didn't
+read naturally. Genuine hyphenated compound words (drill-down, cache-warming,
+on-demand, question-complexity-dependent) and breadcrumb-style "→" separators
+were left alone — this was about run-on clause-joining, not hyphens as such.
+Also confirmed "anonymize student data" already defaults to off in every
+section's code path (`resolve_anonymize_mode()`, Model Analytics,
+Diagnostics Analytics, and all three PDF endpoints) — nothing to change there.
+
 ## [2.4.3] — Fixed multi-part question text and answer readability
 
 Prompted by screenshots showing a multi-part STACK question rendering as one
