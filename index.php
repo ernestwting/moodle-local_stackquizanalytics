@@ -175,6 +175,17 @@ $qwkey = local_quizanalytics_quiz_cache_helper::build_key(
 );
 $result = $qwcache->get($qwkey);
 if ($result === false) {
+    if (sections_output_helper::should_defer_to_background($coursestats->count)) {
+        // A course this large risks outliving a reverse proxy's own
+        // timeout before ignore_user_abort(true) below would even get a
+        // chance to help — see warm_single_view_adhoc_task's own docblock.
+        // Hand it to a background task and let the visitor come back to a
+        // warm cache instead of blocking this request on it.
+        \local_quizanalytics\task\warm_single_view_adhoc_task::dispatch_for_course($courseid, $gradetype, $colorblind, $anonymize);
+        sections_output_helper::render_generating_in_background_notice();
+        echo $OUTPUT->footer();
+        exit;
+    }
     // A cold course-wide compute over many hundreds of attempts can run
     // long enough that a reverse proxy in front of this site gives up on
     // the browser before PHP finishes (Cloudflare's default ~100s edge

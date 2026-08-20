@@ -90,6 +90,70 @@ class sections_output_helper {
     }
 
     /**
+     * Default finished-attempt count above which a cold on-demand view
+     * defers to a background task instead of computing inline — used only
+     * when the admin hasn't set local_quizanalytics/backgroundthreshold.
+     *
+     * Deliberately conservative, not just "under 100s on the best case
+     * measured": this plugin's own real, largest test quiz (2,764 attempts,
+     * genuinely complex STACK content — Bessel functions, differential
+     * equations) measured at ~21.6s cold end to end on this session's
+     * hardware, but a synthetic quiz built from a much simpler randomised
+     * question (4,000 attempts, ~3s) measured roughly 10x cheaper *per
+     * attempt* than the real one — confirming the fetch stage still scales
+     * linearly well past anything in this project's real test data (no sign
+     * of the batching in data_fetcher.php's own ATTEMPT_BATCH_SIZE failing
+     * to contain the GC cost that motivated it in the first place), but also
+     * that per-attempt cost is genuinely question-complexity-dependent, not
+     * a single constant this plugin can measure once and rely on. Using this
+     * session's own *pre-optimization* cold measurement for a
+     * similarly-sized real quiz (46.05s/2,764 attempts, before this
+     * session's batching and per-slot memoization fixes) as a deliberately
+     * pessimistic per-attempt rate, 4,000 attempts lands around 67s — real
+     * margin under a 100s reverse-proxy timeout even for content this
+     * plugin has already seen behave expensively, while today's actual
+     * (optimized, and likely-partially-cached) rate would put that same
+     * 4,000 attempts around 31s. An admin who profiles their own site's own
+     * questions can raise or lower this with real numbers instead of these
+     * two bounds.
+     */
+    const DEFAULT_BACKGROUND_THRESHOLD = 4000;
+
+    /**
+     * Whether a cold compute over $attemptcount attempts is large enough
+     * that index.php/questionanalytics.php should dispatch it to a
+     * background task (see warm_single_view_adhoc_task) instead of
+     * computing it inline on this request — the synchronous on-demand path
+     * has no forking (pcntl_fork only works in CLI/cron context) and no
+     * upper bound on how large a single quiz or course can be, so unlike
+     * the scheduled task's own cold-compute cost, this one really can
+     * exceed a reverse proxy's timeout before ignore_user_abort(true) even
+     * gets a chance to help.
+     *
+     * @param int $attemptcount
+     * @return bool
+     */
+    public static function should_defer_to_background(int $attemptcount): bool {
+        $threshold = (int) (get_config('local_quizanalytics', 'backgroundthreshold') ?: self::DEFAULT_BACKGROUND_THRESHOLD);
+        return $threshold > 0 && $attemptcount > $threshold;
+    }
+
+    /**
+     * Echoes the notice shown instead of blocking when
+     * should_defer_to_background() is true — the compute has been handed
+     * to a background task rather than started on this request, so unlike
+     * flush_computing_notice() (which precedes an inline compute that
+     * really will finish on this same request) there is nothing to wait
+     * for here; the visitor needs to come back to this page later.
+     */
+    public static function render_generating_in_background_notice(): void {
+        echo \html_writer::div(
+            get_string('generatinginbackground', 'local_quizanalytics'),
+            'alert alert-info'
+        );
+    }
+
+    /**
      * Echoes the vendored-library <script>/<link> tags, the JSON payload as
      * an inline script variable, and the shared sections-renderer.js — in
      * that guaranteed document order, so plain synchronous script execution

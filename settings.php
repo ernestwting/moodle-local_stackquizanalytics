@@ -98,4 +98,12 @@ if ($hassiteconfig) {
         2048,
         PARAM_INT
     ));
+
+    $settings->add(new admin_setting_configtext(
+        'local_quizanalytics/backgroundthreshold',
+        get_string('backgroundthreshold', 'local_quizanalytics'),
+        get_string('backgroundthreshold_desc', 'local_quizanalytics'),
+        \local_quizanalytics\quiz\output\sections_output_helper::DEFAULT_BACKGROUND_THRESHOLD,
+        PARAM_INT
+    ));
 }

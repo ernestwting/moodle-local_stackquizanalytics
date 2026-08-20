@@ -161,6 +161,18 @@ if ($view === 'question') {
     );
     $result = $qacache->get($qakey);
     if ($result === false) {
+        if (sections_output_helper::should_defer_to_background($stats->count)) {
+            // This quiz is large enough that a cold compute risks outliving
+            // a reverse proxy's own timeout before ignore_user_abort(true)
+            // below would even get a chance to help — see
+            // warm_single_view_adhoc_task's own docblock. Hand it to a
+            // background task and let the visitor come back to a warm
+            // cache instead of blocking this request on it.
+            \local_quizanalytics\task\warm_single_view_adhoc_task::dispatch_for_quiz($selectedquiz->id, $colorblind, $anonymize);
+            sections_output_helper::render_generating_in_background_notice();
+            echo $OUTPUT->footer();
+            exit;
+        }
         // See index.php's own comment on this same pattern: finish the
         // compute even if the browser/reverse proxy gives up first, so the
         // cache actually ends up warm for the next viewer instead of every
@@ -204,6 +216,12 @@ if ($view === 'question') {
     $metakey = local_quizanalytics_quiz_cache_helper::build_key($selectedquiz->id, $stats->fingerprint, $anonymize);
     $meta = $metacache->get($metakey);
     if ($meta === false) {
+        if (sections_output_helper::should_defer_to_background($stats->count)) {
+            \local_quizanalytics\task\warm_single_view_adhoc_task::dispatch_for_quiz_meta($selectedquiz->id, $anonymize);
+            sections_output_helper::render_generating_in_background_notice();
+            echo $OUTPUT->footer();
+            exit;
+        }
         sections_output_helper::flush_computing_notice();
         $previousabort = ignore_user_abort(true);
         $meta = $client->solution_process_meta($selectedquiz->name, $fetchrecords(), $anonymize);
