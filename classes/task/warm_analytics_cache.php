@@ -111,9 +111,23 @@ class warm_analytics_cache extends \core\task\scheduled_task {
         // parallel_course_fetcher.php (ordinary copied process memory, no
         // shared-resource fork hazard the way a DB connection is), so this
         // one call covers the parent's own merge/analyze work and every
-        // child's fetch work alike. The OS's own memory limits remain the
-        // real backstop against a genuine runaway leak.
-        @ini_set('memory_limit', -1);
+        // child's fetch work alike.
+        //
+        // Deliberately a bounded, admin-configurable value rather than -1
+        // (unlimited) — confirmed directly why that's not safe: with no PHP-
+        // level ceiling at all, several concurrent workers each drawing a
+        // few large quizzes can exceed the *host's* real available memory
+        // before PHP's own accounting would ever object, and at that point
+        // it's the kernel's OOM killer deciding what to kill, not PHP —
+        // observed taking out this task's own worker processes with no
+        // catchable error (just gone, SIGKILL), and on a busier host it
+        // could just as easily pick MariaDB or the Maxima backend instead,
+        // which is a much bigger problem than one course staying stale
+        // until the next run. A real PHP "Allowed memory size exhausted"
+        // fatal is self-contained and reported; see this task's own
+        // parallelworkermemory setting description for sizing guidance.
+        $workermemorymb = max(256, (int) (get_config('local_quizanalytics', 'parallelworkermemory') ?: 2048));
+        @ini_set('memory_limit', $workermemorymb . 'M');
 
         $client = new \local_quizanalytics_quiz_api_client();
         $workers = max(1, (int) (get_config('local_quizanalytics', 'parallelworkers') ?: 4));

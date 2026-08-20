@@ -90,4 +90,12 @@ if ($hassiteconfig) {
         4,
         PARAM_INT
     ));
+
+    $settings->add(new admin_setting_configtext(
+        'local_quizanalytics/parallelworkermemory',
+        get_string('parallelworkermemory', 'local_quizanalytics'),
+        get_string('parallelworkermemory_desc', 'local_quizanalytics'),
+        2048,
+        PARAM_INT
+    ));
 }

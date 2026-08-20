@@ -105,13 +105,40 @@ class parallel_course_fetcher {
         $children = []; // pid => tmpfile path.
         $anyfailed = false;
 
+        // Disposing the parent's own connection *before* forking, not just
+        // reconnecting each child afterward, matters: fork() duplicates the
+        // process's open file descriptors, so every child briefly holds a
+        // second handle onto the exact same underlying OS socket the parent
+        // is still using. A child reconnecting doesn't remove that risk by
+        // itself — the *old*, now-unreferenced connection object it
+        // inherited still gets destructed at some point in the child's own
+        // lifetime (its refcount hits zero, or the child process exits),
+        // and moodle_database's destructor calls dispose(), which closes
+        // the connection — on the *shared* socket, breaking the parent's
+        // copy of it too. Confirmed directly: a real run against the
+        // 38-quiz course completed its (long) course-wide fetch successfully,
+        // then failed with "MySQL server has gone away" the moment the
+        // parent's own connection was next touched, for a *different*
+        // course, well inside MariaDB's 8-hour wait_timeout — not a timeout
+        // at all, but exactly this. Disposing here means nobody has the
+        // connection open at the instant fork() actually runs, so there's
+        // nothing left to share or corrupt; the parent reconnects its own
+        // fresh copy once every child has exited, below.
+        global $DB;
+        $DB->dispose();
+        $parentreconnected = false;
+
         foreach ($chunks as $index => $chunk) {
             $tmpfile = $tmpdir . '/chunk_' . $index . '_' . uniqid('', true) . '.dat';
             $pid = pcntl_fork();
 
             if ($pid === -1) {
                 // Fork failed (e.g. process limit) — run this chunk inline
-                // in the parent rather than losing its data.
+                // in the parent rather than losing its data. The parent's
+                // own connection was just disposed above, so it needs
+                // reconnecting to do this chunk's DB work.
+                self::reconnect_db();
+                $parentreconnected = true;
                 self::run_chunk_and_write($course, $chunk, $tmpfile);
                 if (!self::read_and_delete($tmpfile, $partial)) {
                     $anyfailed = true;
@@ -124,13 +151,11 @@ class parallel_course_fetcher {
             if ($pid === 0) {
                 // Child process: fork() gave this process its own private
                 // copy of memory, so reassigning $DB here can never affect
-                // the parent's — but the *inherited* $DB object still
-                // points at the same underlying OS-level socket the parent
-                // is using, and touching that from two processes at once
-                // corrupts the connection for both. reconnect_db() never
-                // touches the inherited connection at all — it builds an
-                // entirely new one and rebinds the global to it — so the
-                // parent's connection is left completely alone.
+                // the parent's. The connection this process inherited was
+                // already disposed (in the parent, before forking), so
+                // there's no live shared socket left to worry about either
+                // way — reconnect_db() just needs to give this process its
+                // own real, working connection to do its actual DB work.
                 $exitcode = 0;
                 try {
                     self::reconnect_db();
@@ -163,6 +188,14 @@ class parallel_course_fetcher {
             }
         }
 
+        // The parent needs its own working connection again for whatever
+        // the caller does next (analyze()/cache->set() calls both touch the
+        // DB) — reconnect once, unless a fork-failure fallback above
+        // already did.
+        if (!$parentreconnected) {
+            self::reconnect_db();
+        }
+
         $byquiz = $byquiz ?? [];
         foreach ($children as $tmpfile) {
             if (!self::read_and_delete($tmpfile, $partial)) {
@@ -185,20 +218,67 @@ class parallel_course_fetcher {
     }
 
     /**
-     * Runs the existing, unmodified per-quiz fetch for one chunk of quizzes
-     * and serializes the result to a temp file for the parent to read back.
+     * Fetches one chunk's quizzes using the existing, unmodified per-quiz
+     * fetch — get_response_records_for_quiz(), never
+     * get_course_response_records() — and streams each quiz's result to the
+     * temp file as soon as that quiz is done, instead of accumulating the
+     * whole chunk in memory and serializing it all at once at the end.
+     *
+     * This matters at real scale: get_course_response_records() already
+     * frees each quiz's own internal working state as it goes
+     * (gc_collect_cycles() in data_fetcher.php), but it still holds every
+     * quiz's *finished* records array in memory simultaneously until the
+     * whole chunk is done — for a worker that draws several of a course's
+     * largest quizzes, that combined total is what was exhausting a
+     * generous, otherwise-plenty-for-one-quiz memory_limit. Writing (and
+     * then unsetting) each quiz's records right after fetching it bounds
+     * peak memory to roughly one quiz's worth, not a whole chunk's.
+     *
+     * Format: a sequence of [4-byte big-endian length][serialized
+     * ['quizname' => records[]]] pairs, back to back — not one blob or
+     * newline-delimited JSON, since response text can itself contain
+     * arbitrary bytes including newlines.
      *
      * @param \stdClass $course
      * @param \stdClass[] $chunk
      * @param string $tmpfile
      */
     private static function run_chunk_and_write(\stdClass $course, array $chunk, string $tmpfile): void {
-        $result = \local_quizanalytics_quiz_data_fetcher::get_course_response_records($course, $chunk);
-        file_put_contents($tmpfile, serialize($result));
+        $handle = fopen($tmpfile, 'wb');
+        if ($handle === false) {
+            throw new \Exception('local_quizanalytics: could not open worker result file for writing: ' . $tmpfile);
+        }
+        try {
+            foreach ($chunk as $quiz) {
+                $records = \local_quizanalytics_quiz_data_fetcher::get_response_records_for_quiz($quiz, $course);
+                $blob = serialize([$quiz->name => $records]);
+                fwrite($handle, pack('N', strlen($blob)));
+                fwrite($handle, $blob);
+                unset($records, $blob);
+                gc_collect_cycles();
+                // Moodle's own core_questiondata cache accumulates every
+                // distinct question this process ever loads for the rest of
+                // the process's life -- a reasonable assumption for a
+                // short-lived web request, not a long CLI worker that can
+                // touch hundreds of distinct STACK questions across many
+                // quizzes. Measured directly: without this, a worker's
+                // memory climbed continuously and never stopped, eventually
+                // exhausting even a 2048M ceiling; with it, memory plateaus
+                // once, staying flat instead of growing further. Purging
+                // just re-fetches from the DB on the next distinct question
+                // this process happens to touch — correct, just marginally
+                // slower than an in-memory hit would be, which is a fair
+                // trade against unbounded growth.
+                \cache_helper::purge_by_definition('core', 'questiondata');
+            }
+        } finally {
+            fclose($handle);
+        }
     }
 
     /**
-     * Reads and deletes a worker's result file.
+     * Reads, decodes, and deletes a worker's result file — the reverse of
+     * run_chunk_and_write()'s length-prefixed-records format.
      *
      * @param string $tmpfile
      * @param array|null $out set to the decoded [quiz_name => records[]] array on success
@@ -209,14 +289,47 @@ class parallel_course_fetcher {
             $out = null;
             return false;
         }
-        $contents = file_get_contents($tmpfile);
-        @unlink($tmpfile);
-        $decoded = @unserialize($contents, ['allowed_classes' => true]);
-        if (!is_array($decoded)) {
+
+        $handle = fopen($tmpfile, 'rb');
+        if ($handle === false) {
+            @unlink($tmpfile);
             $out = null;
             return false;
         }
-        $out = $decoded;
+
+        $merged = [];
+        $corrupt = false;
+        while (!feof($handle)) {
+            $lengthbytes = fread($handle, 4);
+            if ($lengthbytes === '' || $lengthbytes === false) {
+                break; // Clean end of file.
+            }
+            if (strlen($lengthbytes) !== 4) {
+                $corrupt = true;
+                break;
+            }
+            $unpacked = unpack('Nlength', $lengthbytes);
+            $length = $unpacked['length'];
+            $blob = $length > 0 ? fread($handle, $length) : '';
+            if ($blob === false || strlen($blob) !== $length) {
+                $corrupt = true;
+                break;
+            }
+            $decoded = @unserialize($blob, ['allowed_classes' => true]);
+            if (!is_array($decoded)) {
+                $corrupt = true;
+                break;
+            }
+            $merged += $decoded; // Quiz names are unique per course — safe to merge.
+        }
+        fclose($handle);
+        @unlink($tmpfile);
+
+        if ($corrupt) {
+            $out = null;
+            return false;
+        }
+        $out = $merged;
         return true;
     }
 
