@@ -830,3 +830,61 @@ set_user(get_admin())`, then `include()`d the page file directly with
 `$_GET` populated) rather than just a syntax check, confirming no PHP
 warnings/notices leaked into the output and the new elements render in the
 intended position.
+
+### 12.6 GitHub Actions PHPUnit fixes (2.4.8-2.4.9), header uniformity (2.4.10), and a real local-environment incident
+
+Two further real GitHub Actions PHPUnit failures reported after 2.4.7, both
+confirmed from the actual CI output:
+
+- `qtype_stack`'s own `version.php` depends on four more plugins
+  (`qbehaviour_adaptivemultipart`, `qbehaviour_dfexplicitvaildate`,
+  `qbehaviour_dfcbmexplicitvaildate`, `qbank_importasversion`) never
+  checked out by this repo's own workflow — confirmed against qtype_stack's
+  own installation docs, all four repos' existence verified before adding
+  them. Missing them surfaced as an unrelated-looking missing-file error.
+- A second run then hit `data_fetcher_variant_test`'s own fixture sanity
+  check: its two hardcoded seeds (2, 137) happened to instantiate identical
+  text in that environment. Root cause confirmed directly (not assumed): a
+  standalone script run against this project's own real question engine
+  found only 8 distinct texts among 12 candidate seeds for `test1`'s
+  `n : rand(5)+3; a : rand(5)+3` fixture — a real, if occasional, collision
+  risk with only 25 possible combinations. Fixed by probing a candidate
+  list for the second seed and keeping the first one that actually differs,
+  rather than trusting one hardcoded pair.
+
+Then a further round of UI polish (2.4.10, prompted by four fresh
+screenshots comparing all four sections' headers side by side): unified
+selector order (Course → Quiz → View → toggles, one per row), the quiz
+selector's label ("Quiz:" everywhere, was "View a single quiz's analytics"
+on Question Analytics), the toggle row's submit button ("Apply"
+everywhere, was "View" on Model Analytics), merged Model/Diagnostics'
+separate blue/yellow info boxes into one discreet uncolored `<details>`,
+and unified the three different "may take a while" notice wordings around
+one shared lead sentence.
+
+**A real incident, worth recording so it doesn't happen again:** verifying
+this round's changes involved running `admin/cli/purge_caches.php` in the
+local dev container to confirm an updated lang string was actually
+reflected. Every page load afterward silently crashed (empty 500, no PHP
+error text at all — a genuine process-level failure, not a normal PHP
+error) for the *entire site*, not just this plugin's own pages, including
+plain `/login/index.php`. Root cause, found by bisecting Moodle's own
+`lib/setup.php` line by line with `fwrite(STDERR, ...)` markers until the
+crash point was isolated to `core_component`'s scan of the `local/`
+plugin type: a stray `local/quizanalytics_bak/` directory — a full copy of
+this plugin, made several hours earlier in this same session as a
+before-I-sync-changes safety backup during PHPUnit verification work, and
+never cleaned up — was still sitting inside Moodle's own `local/` plugins
+directory. Since it carried the exact same `$plugin->component =
+'local_quizanalytics'` as the real one, Moodle's plugin scanner was
+discovering it as a colliding duplicate component on every single
+bootstrap, corrupting that scan badly enough to crash the whole site, not
+just something specific to this plugin's own pages. Fixed by deleting the
+stray directory; the site recovered immediately with no data loss (the
+database itself, in a separate container, was never touched). This dev
+container turned out to be the same one shown in the user's own live
+screenshots, not an isolated sandbox — a reminder that ad hoc backup
+copies made inside a real plugin directory (`cp -r plugin plugin_bak`,
+here) need to go somewhere Moodle's own component scanner will never see
+them (e.g. outside `local/` entirely), or be deleted the moment they're no
+longer needed, not left for "later."
