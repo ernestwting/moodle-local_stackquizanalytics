@@ -45,6 +45,41 @@ defined('MOODLE_INTERNAL') || die();
  */
 class stack_attempt_reader {
     /**
+     * Per-process memo, keyed by a string built from each method's own
+     * call parameters (see memoize() below) — added after confirming
+     * directly why this class needed it: model1_report::build() calls
+     * these once per student row (up to 100), and several of the queries
+     * below are *course-wide* (no userid filter at all — get_course_step_
+     * deltas(), and get_resource_access_timestamps()/get_stack_failure_
+     * events() when called with $userid=null), meaning the exact same
+     * expensive multi-table join was being re-run against the whole
+     * course's data once per student, up to 100 times over, for a result
+     * that's identical every time within one report. Measured directly on
+     * a real 38-quiz/1,147-student course: model1_report::build()
+     * took 299.4s before this fix. A static array is the right scope
+     * here — one report build is one PHP process/request, and nothing
+     * about the underlying data changes mid-request.
+     *
+     * @var array<string, mixed>
+     */
+    private static array $memo = [];
+
+    /**
+     * @param string $key unique across all callers — include the calling
+     *        method's own name, not just its arguments, so two different
+     *        methods can never collide even if called with coincidentally
+     *        identical-looking parameters.
+     * @param callable $compute run, and its result cached, only on a miss
+     * @return mixed
+     */
+    private static function memoize(string $key, callable $compute) {
+        if (!array_key_exists($key, self::$memo)) {
+            self::$memo[$key] = $compute();
+        }
+        return self::$memo[$key];
+    }
+
+    /**
      * One row per finished STACK question attempt belonging to this student
      * in this course, with the attempt's final fraction and maxmark — the
      * raw signal grade_trajectory needs.
@@ -56,30 +91,32 @@ class stack_attempt_reader {
      * @return \stdClass[] each with ->fraction (0..1 or null) and ->maxmark
      */
     public static function get_finished_stack_grades(int $userid, int $courseid, $starttime, $endtime): array {
-        global $DB;
+        return self::memoize(__FUNCTION__ . ":$userid:$courseid:$starttime:$endtime", function () use ($userid, $courseid, $starttime, $endtime) {
+            global $DB;
 
-        [$timesql, $params] = self::window_sql('qas.timecreated', $starttime, $endtime);
-        $params['contextmodule'] = CONTEXT_MODULE;
-        $params['courseid'] = $courseid;
-        $params['userid'] = $userid;
+            [$timesql, $params] = self::window_sql('qas.timecreated', $starttime, $endtime);
+            $params['contextmodule'] = CONTEXT_MODULE;
+            $params['courseid'] = $courseid;
+            $params['userid'] = $userid;
 
-        $sql = "SELECT qa.id AS qaid, qa.maxmark, qas.fraction
-                  FROM " . self::stack_slot_join_sql() . "
-                  JOIN {quiz_attempts} quiza ON quiza.quiz = quiz.id
-                                             AND quiza.userid = :userid
-                                             AND quiza.state = 'finished'
-                  JOIN {question_attempts} qa ON qa.questionusageid = quiza.uniqueid
-                                              AND qa.slot = slot.slot
-                  JOIN {question_attempt_steps} qas ON qas.questionattemptid = qa.id
-                                                    AND qas.sequencenumber = (
-                                                        SELECT MAX(s2.sequencenumber)
-                                                          FROM {question_attempt_steps} s2
-                                                         WHERE s2.questionattemptid = qa.id
-                                                    )
-                 WHERE quiz.course = :courseid
-                       $timesql";
+            $sql = "SELECT qa.id AS qaid, qa.maxmark, qas.fraction
+                      FROM " . self::stack_slot_join_sql() . "
+                      JOIN {quiz_attempts} quiza ON quiza.quiz = quiz.id
+                                                 AND quiza.userid = :userid
+                                                 AND quiza.state = 'finished'
+                      JOIN {question_attempts} qa ON qa.questionusageid = quiza.uniqueid
+                                                  AND qa.slot = slot.slot
+                      JOIN {question_attempt_steps} qas ON qas.questionattemptid = qa.id
+                                                        AND qas.sequencenumber = (
+                                                            SELECT MAX(s2.sequencenumber)
+                                                              FROM {question_attempt_steps} s2
+                                                             WHERE s2.questionattemptid = qa.id
+                                                        )
+                     WHERE quiz.course = :courseid
+                           $timesql";
 
-        return array_values($DB->get_records_sql($sql, $params));
+            return array_values($DB->get_records_sql($sql, $params));
+        });
     }
 
     /**
@@ -98,32 +135,34 @@ class stack_attempt_reader {
      *               fraction, timecreated)
      */
     public static function get_attempt_step_sequences(int $userid, int $courseid, $starttime, $endtime): array {
-        global $DB;
+        return self::memoize(__FUNCTION__ . ":$userid:$courseid:$starttime:$endtime", function () use ($userid, $courseid, $starttime, $endtime) {
+            global $DB;
 
-        [$timesql, $params] = self::window_sql('qas.timecreated', $starttime, $endtime);
-        $params['contextmodule'] = CONTEXT_MODULE;
-        $params['courseid'] = $courseid;
-        $params['userid'] = $userid;
+            [$timesql, $params] = self::window_sql('qas.timecreated', $starttime, $endtime);
+            $params['contextmodule'] = CONTEXT_MODULE;
+            $params['courseid'] = $courseid;
+            $params['userid'] = $userid;
 
-        $sql = "SELECT qas.id AS stepid, qa.id AS qaid, qas.sequencenumber, qas.state,
-                       qas.fraction, qas.timecreated
-                  FROM " . self::stack_slot_join_sql() . "
-                  JOIN {quiz_attempts} quiza ON quiza.quiz = quiz.id
-                                             AND quiza.userid = :userid
-                  JOIN {question_attempts} qa ON qa.questionusageid = quiza.uniqueid
-                                              AND qa.slot = slot.slot
-                  JOIN {question_attempt_steps} qas ON qas.questionattemptid = qa.id
-                 WHERE quiz.course = :courseid
-                       $timesql
-              ORDER BY qa.id, qas.sequencenumber";
+            $sql = "SELECT qas.id AS stepid, qa.id AS qaid, qas.sequencenumber, qas.state,
+                           qas.fraction, qas.timecreated
+                      FROM " . self::stack_slot_join_sql() . "
+                      JOIN {quiz_attempts} quiza ON quiza.quiz = quiz.id
+                                                 AND quiza.userid = :userid
+                      JOIN {question_attempts} qa ON qa.questionusageid = quiza.uniqueid
+                                                  AND qa.slot = slot.slot
+                      JOIN {question_attempt_steps} qas ON qas.questionattemptid = qa.id
+                     WHERE quiz.course = :courseid
+                           $timesql
+                  ORDER BY qa.id, qas.sequencenumber";
 
-        $rows = $DB->get_records_sql($sql, $params);
+            $rows = $DB->get_records_sql($sql, $params);
 
-        $byattempt = [];
-        foreach ($rows as $row) {
-            $byattempt[$row->qaid][] = $row;
-        }
-        return $byattempt;
+            $byattempt = [];
+            foreach ($rows as $row) {
+                $byattempt[$row->qaid][] = $row;
+            }
+            return $byattempt;
+        });
     }
 
     /**
@@ -161,36 +200,44 @@ class stack_attempt_reader {
      * @return float[] inter-step deltas in seconds, one per step transition
      */
     public static function get_course_step_deltas(int $courseid, $starttime, $endtime): array {
-        global $DB;
+        // The highest-value memoize() in this class: this specific query is
+        // course-wide (no userid filter at all) and identical for every
+        // student in one report, but was previously being re-run in full
+        // once per student row regardless — confirmed directly as the
+        // dominant cost behind model1_report::build() taking 299.4s on a
+        // real 1,147-student course (see this class's own $memo docblock).
+        return self::memoize(__FUNCTION__ . ":$courseid:$starttime:$endtime", function () use ($courseid, $starttime, $endtime) {
+            global $DB;
 
-        [$timesql, $params] = self::window_sql('qas.timecreated', $starttime, $endtime);
-        $params['contextmodule'] = CONTEXT_MODULE;
-        $params['courseid'] = $courseid;
+            [$timesql, $params] = self::window_sql('qas.timecreated', $starttime, $endtime);
+            $params['contextmodule'] = CONTEXT_MODULE;
+            $params['courseid'] = $courseid;
 
-        $sql = "SELECT qas.id AS stepid, qa.id AS qaid, qas.sequencenumber, qas.timecreated
-                  FROM " . self::stack_slot_join_sql() . "
-                  JOIN {quiz_attempts} quiza ON quiza.quiz = quiz.id
-                  JOIN {question_attempts} qa ON qa.questionusageid = quiza.uniqueid
-                                              AND qa.slot = slot.slot
-                  JOIN {question_attempt_steps} qas ON qas.questionattemptid = qa.id
-                 WHERE quiz.course = :courseid
-                       $timesql
-              ORDER BY qa.id, qas.sequencenumber";
+            $sql = "SELECT qas.id AS stepid, qa.id AS qaid, qas.sequencenumber, qas.timecreated
+                      FROM " . self::stack_slot_join_sql() . "
+                      JOIN {quiz_attempts} quiza ON quiza.quiz = quiz.id
+                      JOIN {question_attempts} qa ON qa.questionusageid = quiza.uniqueid
+                                                  AND qa.slot = slot.slot
+                      JOIN {question_attempt_steps} qas ON qas.questionattemptid = qa.id
+                     WHERE quiz.course = :courseid
+                           $timesql
+                  ORDER BY qa.id, qas.sequencenumber";
 
-        $rows = $DB->get_records_sql($sql, $params);
+            $rows = $DB->get_records_sql($sql, $params);
 
-        $byattempt = [];
-        foreach ($rows as $row) {
-            $byattempt[$row->qaid][] = (int) $row->timecreated;
-        }
-
-        $deltas = [];
-        foreach ($byattempt as $timestamps) {
-            for ($i = 1; $i < count($timestamps); $i++) {
-                $deltas[] = (float) ($timestamps[$i] - $timestamps[$i - 1]);
+            $byattempt = [];
+            foreach ($rows as $row) {
+                $byattempt[$row->qaid][] = (int) $row->timecreated;
             }
-        }
-        return $deltas;
+
+            $deltas = [];
+            foreach ($byattempt as $timestamps) {
+                for ($i = 1; $i < count($timestamps); $i++) {
+                    $deltas[] = (float) ($timestamps[$i] - $timestamps[$i - 1]);
+                }
+            }
+            return $deltas;
+        });
     }
 
     /**
@@ -206,37 +253,39 @@ class stack_attempt_reader {
      * @return float[] inter-step deltas in seconds
      */
     public static function get_user_step_deltas(int $userid, int $courseid, $starttime, $endtime): array {
-        global $DB;
+        return self::memoize(__FUNCTION__ . ":$userid:$courseid:$starttime:$endtime", function () use ($userid, $courseid, $starttime, $endtime) {
+            global $DB;
 
-        [$timesql, $params] = self::window_sql('qas.timecreated', $starttime, $endtime);
-        $params['contextmodule'] = CONTEXT_MODULE;
-        $params['courseid'] = $courseid;
-        $params['userid'] = $userid;
+            [$timesql, $params] = self::window_sql('qas.timecreated', $starttime, $endtime);
+            $params['contextmodule'] = CONTEXT_MODULE;
+            $params['courseid'] = $courseid;
+            $params['userid'] = $userid;
 
-        $sql = "SELECT qas.id AS stepid, qa.id AS qaid, qas.sequencenumber, qas.timecreated
-                  FROM " . self::stack_slot_join_sql() . "
-                  JOIN {quiz_attempts} quiza ON quiza.quiz = quiz.id AND quiza.userid = :userid
-                  JOIN {question_attempts} qa ON qa.questionusageid = quiza.uniqueid
-                                              AND qa.slot = slot.slot
-                  JOIN {question_attempt_steps} qas ON qas.questionattemptid = qa.id
-                 WHERE quiz.course = :courseid
-                       $timesql
-              ORDER BY qa.id, qas.sequencenumber";
+            $sql = "SELECT qas.id AS stepid, qa.id AS qaid, qas.sequencenumber, qas.timecreated
+                      FROM " . self::stack_slot_join_sql() . "
+                      JOIN {quiz_attempts} quiza ON quiza.quiz = quiz.id AND quiza.userid = :userid
+                      JOIN {question_attempts} qa ON qa.questionusageid = quiza.uniqueid
+                                                  AND qa.slot = slot.slot
+                      JOIN {question_attempt_steps} qas ON qas.questionattemptid = qa.id
+                     WHERE quiz.course = :courseid
+                           $timesql
+                  ORDER BY qa.id, qas.sequencenumber";
 
-        $rows = $DB->get_records_sql($sql, $params);
+            $rows = $DB->get_records_sql($sql, $params);
 
-        $byattempt = [];
-        foreach ($rows as $row) {
-            $byattempt[$row->qaid][] = (int) $row->timecreated;
-        }
-
-        $deltas = [];
-        foreach ($byattempt as $timestamps) {
-            for ($i = 1; $i < count($timestamps); $i++) {
-                $deltas[] = (float) ($timestamps[$i] - $timestamps[$i - 1]);
+            $byattempt = [];
+            foreach ($rows as $row) {
+                $byattempt[$row->qaid][] = (int) $row->timecreated;
             }
-        }
-        return $deltas;
+
+            $deltas = [];
+            foreach ($byattempt as $timestamps) {
+                for ($i = 1; $i < count($timestamps); $i++) {
+                    $deltas[] = (float) ($timestamps[$i] - $timestamps[$i - 1]);
+                }
+            }
+            return $deltas;
+        });
     }
 
     /** Components treated as "help resources" for the help-seeking-gap indicator. */
@@ -254,30 +303,37 @@ class stack_attempt_reader {
      * @return \stdClass[] each with ->userid and ->timecreated
      */
     public static function get_stack_failure_events(int $courseid, $starttime, $endtime, ?int $userid = null): array {
-        global $DB;
+        // help_seeking_gap calls this with $userid left null (the whole
+        // course's baseline population) for every student row it builds —
+        // another instance of the redundant-course-wide-query pattern this
+        // class's own $memo docblock explains; see get_course_step_deltas()
+        // for the one confirmed to dominate model1_report::build()'s cost.
+        return self::memoize(__FUNCTION__ . ":$courseid:$starttime:$endtime:$userid", function () use ($courseid, $starttime, $endtime, $userid) {
+            global $DB;
 
-        [$timesql, $params] = self::window_sql('qas.timecreated', $starttime, $endtime);
-        $params['contextmodule'] = CONTEXT_MODULE;
-        $params['courseid'] = $courseid;
+            [$timesql, $params] = self::window_sql('qas.timecreated', $starttime, $endtime);
+            $params['contextmodule'] = CONTEXT_MODULE;
+            $params['courseid'] = $courseid;
 
-        $usersql = '';
-        if ($userid !== null) {
-            $usersql = ' AND quiza.userid = :userid';
-            $params['userid'] = $userid;
-        }
+            $usersql = '';
+            if ($userid !== null) {
+                $usersql = ' AND quiza.userid = :userid';
+                $params['userid'] = $userid;
+            }
 
-        $sql = "SELECT qas.id AS stepid, quiza.userid, qas.timecreated
-                  FROM " . self::stack_slot_join_sql() . "
-                  JOIN {quiz_attempts} quiza ON quiza.quiz = quiz.id$usersql
-                  JOIN {question_attempts} qa ON qa.questionusageid = quiza.uniqueid
-                                              AND qa.slot = slot.slot
-                  JOIN {question_attempt_steps} qas ON qas.questionattemptid = qa.id
-                                                    AND qas.fraction IS NOT NULL
-                                                    AND qas.fraction < 1.0
-                 WHERE quiz.course = :courseid
-                       $timesql";
+            $sql = "SELECT qas.id AS stepid, quiza.userid, qas.timecreated
+                      FROM " . self::stack_slot_join_sql() . "
+                      JOIN {quiz_attempts} quiza ON quiza.quiz = quiz.id$usersql
+                      JOIN {question_attempts} qa ON qa.questionusageid = quiza.uniqueid
+                                                  AND qa.slot = slot.slot
+                      JOIN {question_attempt_steps} qas ON qas.questionattemptid = qa.id
+                                                        AND qas.fraction IS NOT NULL
+                                                        AND qas.fraction < 1.0
+                     WHERE quiz.course = :courseid
+                           $timesql";
 
-        return array_values($DB->get_records_sql($sql, $params));
+            return array_values($DB->get_records_sql($sql, $params));
+        });
     }
 
     /**
@@ -291,35 +347,39 @@ class stack_attempt_reader {
      * @return array userid => int[] timestamps, ordered
      */
     public static function get_resource_access_timestamps(int $courseid, $starttime, $endtime, ?int $userid = null): array {
-        global $DB;
+        // Same as get_stack_failure_events() above — help_seeking_gap calls
+        // this with $userid left null once per student row too.
+        return self::memoize(__FUNCTION__ . ":$courseid:$starttime:$endtime:$userid", function () use ($courseid, $starttime, $endtime, $userid) {
+            global $DB;
 
-        [$componentsql, $params] = $DB->get_in_or_equal(self::HELP_RESOURCE_COMPONENTS, SQL_PARAMS_NAMED, 'comp');
-        $params['courseid'] = $courseid;
+            [$componentsql, $params] = $DB->get_in_or_equal(self::HELP_RESOURCE_COMPONENTS, SQL_PARAMS_NAMED, 'comp');
+            $params['courseid'] = $courseid;
 
-        $usersql = '';
-        if ($userid !== null) {
-            $usersql = ' AND userid = :userid';
-            $params['userid'] = $userid;
-        }
+            $usersql = '';
+            if ($userid !== null) {
+                $usersql = ' AND userid = :userid';
+                $params['userid'] = $userid;
+            }
 
-        [$timesql, $timeparams] = self::window_sql('timecreated', $starttime, $endtime);
-        $params = array_merge($params, $timeparams);
+            [$timesql, $timeparams] = self::window_sql('timecreated', $starttime, $endtime);
+            $params = array_merge($params, $timeparams);
 
-        $sql = "SELECT id, userid, timecreated
-                  FROM {logstore_standard_log}
-                 WHERE courseid = :courseid
-                   AND component $componentsql
-                       $usersql
-                       $timesql
-              ORDER BY userid, timecreated";
+            $sql = "SELECT id, userid, timecreated
+                      FROM {logstore_standard_log}
+                     WHERE courseid = :courseid
+                       AND component $componentsql
+                           $usersql
+                           $timesql
+                  ORDER BY userid, timecreated";
 
-        $rows = $DB->get_records_sql($sql, $params);
+            $rows = $DB->get_records_sql($sql, $params);
 
-        $byuser = [];
-        foreach ($rows as $row) {
-            $byuser[$row->userid][] = (int) $row->timecreated;
-        }
-        return $byuser;
+            $byuser = [];
+            foreach ($rows as $row) {
+                $byuser[$row->userid][] = (int) $row->timecreated;
+            }
+            return $byuser;
+        });
     }
 
     /**
