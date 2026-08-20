@@ -105,43 +105,52 @@ class parallel_course_fetcher {
         $children = []; // pid => tmpfile path.
         $anyfailed = false;
 
-        // Deliberately NOT disposing the parent's own connection before
-        // forking (an earlier version of this method did — see git history
-        // if you're looking for why that seemed necessary at the time).
-        // fork() does duplicate the process's open file descriptors, so
-        // every child briefly holds a second handle onto the exact same
-        // underlying OS socket the parent is still using — the real risk
-        // was never that duplication itself, only a *later* real MySQL
-        // protocol-level close() on it (moodle_database::dispose() sends an
-        // actual QUIT packet down the wire, which the server treats as the
-        // one shared session ending, breaking both processes' copies of it
-        // no matter which side sent it). A child's inherited copy of this
-        // object would normally reach that point via its own destructor —
-        // but the child branch below now terminates itself with a direct
-        // SIGKILL specifically to skip PHP's normal shutdown/destructor
-        // sequence entirely (see that branch's own comment for the
-        // separate, real bug that fix addresses), which as a side effect
-        // also means the child's inherited copy of *this* object is never
-        // disposed either — it just sits inert and gets silently reclaimed
-        // by the OS, as a plain fd close with no MySQL protocol traffic on
-        // it, when the child's whole process is killed. That removes the
-        // original need to preemptively dispose anything here.
+        // Disposing the parent's own connection *before* forking, not just
+        // reconnecting each child afterward, matters: fork() duplicates the
+        // process's open file descriptors, so every child briefly holds a
+        // second handle onto the exact same underlying OS socket the parent
+        // is still using. A child reconnecting doesn't remove that risk by
+        // itself. Tried removing this step entirely at one point this
+        // session, reasoning that the child's own SIGKILL-based exit (see
+        // that branch's own comment) would avoid ever disposing the child's
+        // inherited copy — measured directly that this did *not* hold at
+        // real 50-quiz scale: the parent's own $DB (confirmed same
+        // spl_object_id() before and after, ruling out some other code
+        // reassigning it) started throwing "MySQL server has gone away"
+        // immediately after the very first fork/reconnect round regardless,
+        // and a targeted A/B check (workers=1, no forking at all, on the
+        // exact same course) confirmed the connection stays healthy without
+        // forking — so this is specifically a forking-related corruption,
+        // just not fully explained by the destructor/shutdown-function
+        // theory that motivated removing this step. Restored it since it's
+        // the one thing empirically proven, across many runs this session,
+        // to actually prevent the corruption — even though the exact
+        // OS/TCP-level mechanism isn't fully pinned down. Disposing here
+        // means nobody has the connection open at the instant fork()
+        // actually runs, so there's nothing left to share or corrupt; the
+        // parent reconnects its own fresh copy once every child has
+        // exited, below.
         //
-        // Disposing here also turned out to actively break something else:
-        // confirmed directly running this under real Moodle cron (not just
-        // the standalone CLI scripts this method was originally verified
-        // against) — \core\task\manager acquires real, DB-connection-backed
-        // locks in the *parent* process before this task's own execute()
-        // ever runs, and holds a direct reference to the exact $DB object
-        // in use at that time to release them later. Disposing that object
-        // mid-task, then swapping the global $DB to an unrelated new
-        // instance, left the lock's own reference pointing at a
-        // permanently dead connection — its later release() call failed
-        // with the same "Call to a member function real_escape_string() on
-        // null" this whole area was already fighting, this time from the
-        // *parent*, well after every child had already exited cleanly.
-        // Leaving the parent's original connection alone for its entire
-        // lifetime avoids that too.
+        // Known, accepted remaining rough edge from reconnecting to a new
+        // object here rather than the original: \core\task\manager (when
+        // this runs under real cron, not a standalone script) acquires a
+        // lock in the *parent* process before this task's own execute()
+        // ever runs, holding a direct reference to the $DB object in use at
+        // that time to release it later — disposing that object here and
+        // swapping to a genuinely different reconnected instance leaves
+        // that lock's own reference pointing at a dead connection, so its
+        // later release() can fail ("Call to a member function
+        // real_escape_string() on null"), which can show this task as
+        // "failed" in Moodle's task log despite the actual fetch/cache work
+        // above having completed and been cached correctly. Prioritized
+        // the connection-safety fix over this one, since a corrupted
+        // connection risks real data-fetch failures for whatever a visitor
+        // or the next scheduled task does next, where this is a
+        // log-accuracy issue on work that already genuinely succeeded.
+        global $DB;
+        $DB->dispose();
+        $parentreconnected = false;
+
         foreach ($chunks as $index => $chunk) {
             $tmpfile = $tmpdir . '/chunk_' . $index . '_' . uniqid('', true) . '.dat';
             $pid = pcntl_fork();
@@ -149,8 +158,10 @@ class parallel_course_fetcher {
             if ($pid === -1) {
                 // Fork failed (e.g. process limit) — run this chunk inline
                 // in the parent rather than losing its data. The parent's
-                // own connection was never disposed (see above), so it's
-                // still perfectly usable here without reconnecting.
+                // own connection was just disposed above, so it needs
+                // reconnecting to do this chunk's DB work.
+                self::reconnect_db();
+                $parentreconnected = true;
                 self::run_chunk_and_write($course, $chunk, $tmpfile);
                 if (!self::read_and_delete($tmpfile, $partial)) {
                     $anyfailed = true;
@@ -230,6 +241,14 @@ class parallel_course_fetcher {
             // actually leave behind.
             $status = 0;
             pcntl_waitpid($pid, $status);
+        }
+
+        // The parent needs its own working connection again for whatever
+        // the caller does next (analyze()/cache->set() calls both touch the
+        // DB) — reconnect once, unless a fork-failure fallback above
+        // already did.
+        if (!$parentreconnected) {
+            self::reconnect_db();
         }
 
         $byquiz = $byquiz ?? [];
