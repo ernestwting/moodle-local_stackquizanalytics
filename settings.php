@@ -45,11 +45,61 @@
 defined('MOODLE_INTERNAL') || die();
 
 if ($hassiteconfig) {
+    // "Re-detect" action for the resources readout below — a plain GET
+    // link (sesskey-protected, same as any other admin settings action)
+    // rather than a separate controller script, since settings.php is
+    // already include()'d directly with the full admin environment
+    // available (see this file's own docblock on why a local_ plugin's
+    // settings.php works this way). Re-runs the exact same detection
+    // db/install.php/db/upgrade.php ran once automatically — for an admin
+    // who's moved this site to different hardware (laptop to a real
+    // server, or the reverse) since then.
+    if (optional_param('quizanalyticsredetect', 0, PARAM_BOOL)) {
+        require_sesskey();
+        require_once($CFG->dirroot . '/local/quizanalytics/classes/task/resource_detector.php');
+        $workermemorymb = (int) (get_config('local_quizanalytics', 'parallelworkermemory') ?: 2048);
+        $recommendation = \local_quizanalytics\task\resource_detector::recommend_parallel_workers($workermemorymb);
+        set_config('parallelworkers', $recommendation['workers'], 'local_quizanalytics');
+        redirect(new moodle_url('/admin/settings.php', ['section' => 'local_quizanalytics']));
+    }
+
     $settings = new admin_settingpage(
         'local_quizanalytics',
         get_string('pluginname', 'local_quizanalytics')
     );
     $ADMIN->add('localplugins', $settings);
+
+    // Detected-resources readout: makes item 4's install/upgrade-time
+    // auto-detection visible rather than a value an admin would only
+    // discover by reading parallelworkers' own current number and
+    // wondering where it came from. Re-detects fresh on every page load
+    // (cheap — see resource_detector.php's own detection cost) rather than
+    // showing a stale, possibly-outdated figure from whenever install/
+    // upgrade last ran; the "Re-detect" link updates the actual
+    // parallelworkers setting to match, for a host that's changed since.
+    require_once($CFG->dirroot . '/local/quizanalytics/classes/task/resource_detector.php');
+    $currentworkermemorymb = (int) (get_config('local_quizanalytics', 'parallelworkermemory') ?: 2048);
+    $liverecommendation = \local_quizanalytics\task\resource_detector::recommend_parallel_workers($currentworkermemorymb);
+    $redetecturl = new moodle_url('/admin/settings.php', [
+        'section' => 'local_quizanalytics',
+        'quizanalyticsredetect' => 1,
+        'sesskey' => sesskey(),
+    ]);
+    if ($liverecommendation['source'] === 'detected') {
+        $resourcessummary = get_string('detectedresources', 'local_quizanalytics', (object) [
+            'cores' => $liverecommendation['cores'],
+            'memorygb' => round($liverecommendation['memorymb'] / 1024, 1),
+            'workers' => $liverecommendation['workers'],
+        ]);
+    } else {
+        $resourcessummary = get_string('detectedresourcesfailed', 'local_quizanalytics');
+    }
+    $settings->add(new admin_setting_heading(
+        'local_quizanalytics/detectedresources',
+        get_string('detectedresourcesheading', 'local_quizanalytics'),
+        html_writer::div($resourcessummary, 'alert alert-info')
+            . html_writer::link($redetecturl, get_string('redetectbutton', 'local_quizanalytics'), ['class' => 'btn btn-secondary btn-sm'])
+    ));
 
     // Cron-status banner: this plugin's cache-warming scheduled task and
     // its on-demand background-compute safeguard (warm_single_view_adhoc_task
@@ -113,7 +163,7 @@ if ($hassiteconfig) {
         'local_quizanalytics/parallelworkers',
         get_string('parallelworkers', 'local_quizanalytics'),
         get_string('parallelworkers_desc', 'local_quizanalytics'),
-        4,
+        $liverecommendation['workers'],
         PARAM_INT
     ));
 
