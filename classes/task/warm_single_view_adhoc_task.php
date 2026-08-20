@@ -76,6 +76,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot . '/local/quizanalytics/classes/quiz/data_fetcher.php');
 require_once($CFG->dirroot . '/local/quizanalytics/classes/quiz/api_client.php');
 require_once($CFG->dirroot . '/local/quizanalytics/classes/quiz/cache_helper.php');
+require_once($CFG->dirroot . '/local/quizanalytics/classes/task/parallel_course_fetcher.php');
 
 /**
  * Ad-hoc task: warm one specific quiz or course-wide view.
@@ -152,6 +153,23 @@ class warm_single_view_adhoc_task extends \core\task\adhoc_task {
 
     #[\Override]
     public function execute(): void {
+        // A course-wide view can need every one of a course's quizzes'
+        // full response records in memory at once (see
+        // get_course_response_records()) — the same reasoning
+        // warm_analytics_cache::execute() already applies to its own
+        // scheduled run applies here too, since this task can be asked to
+        // compute the exact same course-wide work, just for a specific
+        // visitor's own (gradetype, colorblind, anonymize) combination
+        // instead of the default view. Confirmed directly: without this,
+        // warming a real 38-quiz course from this task hit PHP's default
+        // 512M CLI memory_limit and died silently (a genuine "Allowed
+        // memory size exhausted" fatal, but one that happened to produce no
+        // visible output at this specific margin) rather than the fatal
+        // error someone debugging the resulting stuck task_adhoc row would
+        // expect to see.
+        $workermemorymb = max(256, (int) (get_config('local_quizanalytics', 'parallelworkermemory') ?: 2048));
+        @ini_set('memory_limit', $workermemorymb . 'M');
+
         $data = $this->get_custom_data();
         $client = new \local_quizanalytics_quiz_api_client();
 
@@ -274,7 +292,21 @@ class warm_single_view_adhoc_task extends \core\task\adhoc_task {
             return;
         }
 
-        $byquiz = \local_quizanalytics_quiz_data_fetcher::get_course_response_records($course, $stackquizzes);
+        // Same forked-worker-pool fetch warm_analytics_cache's own
+        // warm_course() uses, not the plain serial
+        // get_course_response_records() — this runs in CLI/cron context
+        // just the same (adhoc tasks execute via admin/cli/adhoc_task.php,
+        // the same runner scheduled tasks use), so there's no reason this
+        // background compute should be slower or more memory-concentrated
+        // than the equivalent scheduled-task run of the same course.
+        $workers = max(1, (int) (get_config('local_quizanalytics', 'parallelworkers') ?: 4));
+        try {
+            $byquiz = parallel_course_fetcher::fetch($course, $stackquizzes, $workers);
+        } catch (\Throwable $e) {
+            mtrace('local_quizanalytics: warm_single_view_adhoc_task could not fetch course '
+                . $courseid . ': ' . $e->getMessage());
+            return; // Leave the cache cold — a future dispatch or cron run can retry.
+        }
         $byquiz = array_filter($byquiz, fn($records) => !empty($records));
         $result = $client->analyze_course($course->fullname, $byquiz, $colorblind, $gradetype, $anonymize);
         if ($result !== null) {

@@ -105,29 +105,43 @@ class parallel_course_fetcher {
         $children = []; // pid => tmpfile path.
         $anyfailed = false;
 
-        // Disposing the parent's own connection *before* forking, not just
-        // reconnecting each child afterward, matters: fork() duplicates the
-        // process's open file descriptors, so every child briefly holds a
-        // second handle onto the exact same underlying OS socket the parent
-        // is still using. A child reconnecting doesn't remove that risk by
-        // itself — the *old*, now-unreferenced connection object it
-        // inherited still gets destructed at some point in the child's own
-        // lifetime (its refcount hits zero, or the child process exits),
-        // and moodle_database's destructor calls dispose(), which closes
-        // the connection — on the *shared* socket, breaking the parent's
-        // copy of it too. Confirmed directly: a real run against the
-        // 38-quiz course completed its (long) course-wide fetch successfully,
-        // then failed with "MySQL server has gone away" the moment the
-        // parent's own connection was next touched, for a *different*
-        // course, well inside MariaDB's 8-hour wait_timeout — not a timeout
-        // at all, but exactly this. Disposing here means nobody has the
-        // connection open at the instant fork() actually runs, so there's
-        // nothing left to share or corrupt; the parent reconnects its own
-        // fresh copy once every child has exited, below.
-        global $DB;
-        $DB->dispose();
-        $parentreconnected = false;
-
+        // Deliberately NOT disposing the parent's own connection before
+        // forking (an earlier version of this method did — see git history
+        // if you're looking for why that seemed necessary at the time).
+        // fork() does duplicate the process's open file descriptors, so
+        // every child briefly holds a second handle onto the exact same
+        // underlying OS socket the parent is still using — the real risk
+        // was never that duplication itself, only a *later* real MySQL
+        // protocol-level close() on it (moodle_database::dispose() sends an
+        // actual QUIT packet down the wire, which the server treats as the
+        // one shared session ending, breaking both processes' copies of it
+        // no matter which side sent it). A child's inherited copy of this
+        // object would normally reach that point via its own destructor —
+        // but the child branch below now terminates itself with a direct
+        // SIGKILL specifically to skip PHP's normal shutdown/destructor
+        // sequence entirely (see that branch's own comment for the
+        // separate, real bug that fix addresses), which as a side effect
+        // also means the child's inherited copy of *this* object is never
+        // disposed either — it just sits inert and gets silently reclaimed
+        // by the OS, as a plain fd close with no MySQL protocol traffic on
+        // it, when the child's whole process is killed. That removes the
+        // original need to preemptively dispose anything here.
+        //
+        // Disposing here also turned out to actively break something else:
+        // confirmed directly running this under real Moodle cron (not just
+        // the standalone CLI scripts this method was originally verified
+        // against) — \core\task\manager acquires real, DB-connection-backed
+        // locks in the *parent* process before this task's own execute()
+        // ever runs, and holds a direct reference to the exact $DB object
+        // in use at that time to release them later. Disposing that object
+        // mid-task, then swapping the global $DB to an unrelated new
+        // instance, left the lock's own reference pointing at a
+        // permanently dead connection — its later release() call failed
+        // with the same "Call to a member function real_escape_string() on
+        // null" this whole area was already fighting, this time from the
+        // *parent*, well after every child had already exited cleanly.
+        // Leaving the parent's original connection alone for its entire
+        // lifetime avoids that too.
         foreach ($chunks as $index => $chunk) {
             $tmpfile = $tmpdir . '/chunk_' . $index . '_' . uniqid('', true) . '.dat';
             $pid = pcntl_fork();
@@ -135,10 +149,8 @@ class parallel_course_fetcher {
             if ($pid === -1) {
                 // Fork failed (e.g. process limit) — run this chunk inline
                 // in the parent rather than losing its data. The parent's
-                // own connection was just disposed above, so it needs
-                // reconnecting to do this chunk's DB work.
-                self::reconnect_db();
-                $parentreconnected = true;
+                // own connection was never disposed (see above), so it's
+                // still perfectly usable here without reconnecting.
                 self::run_chunk_and_write($course, $chunk, $tmpfile);
                 if (!self::read_and_delete($tmpfile, $partial)) {
                     $anyfailed = true;
@@ -168,7 +180,35 @@ class parallel_course_fetcher {
                     );
                     $exitcode = 1;
                 }
-                exit($exitcode);
+                // Not a plain exit($exitcode) — confirmed directly running
+                // under real Moodle cron (this class is only ever reached
+                // from CLI/cron context in the first place): \core\task\
+                // manager acquires real, DB-connection-backed locks (a
+                // per-task lock, plus the site-wide "core_cron" lock) in the
+                // *parent* process before this task's own execute() ever
+                // runs, each registered with its own auto-release shutdown
+                // function. fork() duplicates that registration into every
+                // child along with everything else in memory, so a plain
+                // exit() here runs PHP's normal shutdown sequence and fires
+                // those inherited handlers too — trying to release a lock
+                // this child never acquired, through a $DB reference this
+                // child has already disposed/reconnected out from under.
+                // Observed directly: "Exception ignored in shutdown
+                // function core\lock\mysql_lock_factory::auto_release: Call
+                // to a member function real_escape_string() on null",
+                // alongside the child itself exiting with status 1 despite
+                // run_chunk_and_write() above having already completed and
+                // flushed its result to $tmpfile successfully. Killing this
+                // process directly skips PHP's shutdown sequence entirely
+                // (no shutdown functions, inherited or otherwise, ever run)
+                // — safe here specifically because run_chunk_and_write()'s
+                // own finally block has already closed and flushed the temp
+                // file before this point, so there is nothing left for a
+                // normal shutdown to correctly finish anyway.
+                if (function_exists('posix_kill') && function_exists('posix_getpid')) {
+                    posix_kill(posix_getpid(), SIGKILL);
+                }
+                exit($exitcode); // Fallback if posix isn't available.
             }
 
             // Parent process.
@@ -176,39 +216,39 @@ class parallel_course_fetcher {
         }
 
         foreach (array_keys($children) as $pid) {
+            // Only reaping here now, deliberately not treating the exit
+            // status itself as a failure signal: every child, successful or
+            // not, now terminates via a self-delivered SIGKILL (see the
+            // child branch above for why) — pcntl_wifexited()/wexitstatus()
+            // can no longer distinguish "finished cleanly" from "genuinely
+            // crashed," since both now look identical from here (killed by
+            // signal 9). The real, reliable success signal is whether each
+            // child's own $tmpfile is a complete, well-formed result,
+            // checked below via read_and_delete() — which already detects
+            // a truncated/corrupt file, exactly what a *genuine* kernel OOM
+            // kill (as opposed to this class's own intentional one) would
+            // actually leave behind.
             $status = 0;
             pcntl_waitpid($pid, $status);
-            if (!pcntl_wifexited($status) || pcntl_wexitstatus($status) !== 0) {
-                // mtrace(), not debugging() — see warm_analytics_cache.php's
-                // catch block for why: this task runs unattended on cron
-                // with $CFG->debug typically at DEBUG_NONE in production,
-                // where debugging() never surfaces anywhere. A worker killed
-                // by the kernel OOM killer (signal 9, SIGKILL) exits this
-                // way with no PHP-catchable exception at all — mtrace() is
-                // the only way this ever reaches an admin's task log.
-                $sig = pcntl_wifsignaled($status) ? pcntl_wtermsig($status) : null;
-                $reason = $sig === 9
-                    ? 'killed by SIGKILL (likely the kernel OOM killer — host is out of memory)'
-                    : ($sig !== null ? "killed by signal {$sig}" : 'exit code ' . pcntl_wexitstatus($status));
-                mtrace('local_quizanalytics: parallel fetch worker pid ' . $pid . ' for course ' . $course->id
-                    . ' exited abnormally: ' . $reason);
-                $anyfailed = true;
-            }
-        }
-
-        // The parent needs its own working connection again for whatever
-        // the caller does next (analyze()/cache->set() calls both touch the
-        // DB) — reconnect once, unless a fork-failure fallback above
-        // already did.
-        if (!$parentreconnected) {
-            self::reconnect_db();
         }
 
         $byquiz = $byquiz ?? [];
-        foreach ($children as $tmpfile) {
+        foreach ($children as $pid => $tmpfile) {
             if (!self::read_and_delete($tmpfile, $partial)) {
-                debugging('local_quizanalytics: parallel fetch worker result file missing or unreadable: ' . $tmpfile,
-                    DEBUG_DEVELOPER);
+                // mtrace(), not debugging() — see warm_analytics_cache.php's
+                // catch block for why: this task runs unattended on cron
+                // with $CFG->debug typically at DEBUG_NONE in production,
+                // where debugging() never surfaces anywhere. A missing or
+                // truncated result file from a worker that no longer exists
+                // is consistent with the kernel OOM killer taking it out
+                // mid-write (no PHP-catchable exception at all in that
+                // case) — not certain, since a worker can fail other ways
+                // too, but worth surfacing as the likely first thing to
+                // check.
+                mtrace('local_quizanalytics: parallel fetch worker pid ' . $pid . ' for course ' . $course->id
+                    . ' produced no usable result (missing/truncated ' . $tmpfile . ') — '
+                    . 'possibly killed by the kernel OOM killer; consider lowering parallelworkers '
+                    . 'or raising parallelworkermemory');
                 $anyfailed = true;
                 continue;
             }
