@@ -261,7 +261,7 @@ class local_quizanalytics_quiz_data_fetcher {
      * @param \question_usage_by_activity[] $qubasbyid keyed by uniqueid, this batch only
      * @param stdClass[] $users keyed by userid, every user in the whole quiz (not just this batch)
      * @param stdClass $quiz
-     * @param array $questiontextbyslot memo, shared and mutated across every batch of this quiz
+     * @param array $questiontextbyslot memo keyed by [slot][variant], shared and mutated across every batch of this quiz
      * @param array $records output, appended to in place
      */
     private static function append_response_rows(
@@ -319,10 +319,30 @@ class local_quizanalytics_quiz_data_fetcher {
                 // warm, instantiating a fresh question object here would be
                 // pure waste. Only call get_question() when the memo is
                 // actually still empty and its result will really be used.
-                if (empty($questiontextbyslot[$qnum])) {
-                    $questiontextbyslot[$qnum] = self::render_stack_question_text($quba->get_question($slot));
+                //
+                // Memoized by (slot, variant), not slot alone: a randomised
+                // STACK question can get a different Moodle-assigned seed
+                // per attempt (deployed variants, or free randomisation when
+                // none are deployed — see qtype_stack_question::
+                // start_attempt()), and different seeds genuinely instantiate
+                // different CAS text for the same slot. Confirmed directly
+                // against a real course's data first (courses 9/10/11/12:
+                // zero questions there ever use more than one distinct
+                // variant, so that data alone could never have caught this)
+                // then against a synthetic randomised question forced onto
+                // two different variants for the same slot, which reproduced
+                // exactly this bug — the second attempt processed silently
+                // inherited the first attempt's instantiated text. Variant
+                // count is bounded per slot (deployed variants, or whatever
+                // distinct seeds real attempts actually used), so this still
+                // gives the original memo's full benefit whenever a slot's
+                // attempts share a seed — the common case — and only ever
+                // pays for a fresh instantiation when they genuinely differ.
+                $variant = $quba->get_variant($slot);
+                if (empty($questiontextbyslot[$qnum][$variant])) {
+                    $questiontextbyslot[$qnum][$variant] = self::render_stack_question_text($quba->get_question($slot));
                 }
-                $row["question_{$qnum}_text"] = $questiontextbyslot[$qnum];
+                $row["question_{$qnum}_text"] = $questiontextbyslot[$qnum][$variant];
 
                 // Get_response_summary() is the same method the core "Responses"
                 // report calls to build its "Response N" column — for STACK
