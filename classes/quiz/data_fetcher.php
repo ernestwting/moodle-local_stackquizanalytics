@@ -38,6 +38,15 @@ require_once($CFG->dirroot . '/question/engine/lib.php');
  */
 class local_quizanalytics_quiz_data_fetcher {
     /**
+     * How many attempts' question usages get batch-loaded into memory at
+     * once inside get_response_records_for_quiz(), rather than the whole
+     * quiz's attempts in one go. Purely a memory/round-trip tradeoff, not a
+     * correctness one — see that method's own comment for the measurement
+     * behind this number.
+     */
+    const ATTEMPT_BATCH_SIZE = 250;
+
+    /**
      * Cheap existence check: does this course contain at least one quiz with
      * at least one qtype_stack question in one of its slots?
      *
@@ -203,44 +212,67 @@ class local_quizanalytics_quiz_data_fetcher {
         $userids = array_unique(array_map(fn($a) => $a->userid, $attempts));
         $users = $DB->get_records_list('user', 'id', $userids, '', 'id, firstname, lastname, email');
 
-        // Batch-load every attempt's question usage in one pass instead of
-        // once per attempt. question_engine::load_questions_usage_by_activity()
-        // (singular) issues its own set of queries every time it's called —
-        // at 500-1000 finished attempts that's 500-1000x the round trips,
-        // easily slow enough on its own to blow past a reverse proxy's
-        // request timeout (Cloudflare 524) before this method ever returns
-        // and lets its caller populate the result cache other requests rely
-        // on. question_engine_data_mapper::load_questions_usages_by_activity()
-        // (plural) is the exact same underlying question_usage_by_activity
-        // API, just backed by one batched recordset query across every
-        // requested usage id — the same fix mod_quiz's own "Responses"
-        // report uses for this identical problem at scale (see
+        // Batch-loading every attempt's question usage in one pass instead of
+        // once per attempt (question_engine::load_questions_usage_by_activity(),
+        // singular, issues its own set of queries every time it's called — at
+        // 500-1000 finished attempts that's 500-1000x the round trips) is
+        // still done in batches of self::ATTEMPT_BATCH_SIZE attempts at a
+        // time, not one single batch covering the whole quiz. Each batch is
+        // still one bulk query via question_engine_data_mapper::
+        // load_questions_usages_by_activity() (plural) — the same fix
+        // mod_quiz's own "Responses" report uses for this problem (see
         // quiz_first_or_all_responses_table::load_extra_data() in Moodle
-        // core, confirmed against a real Moodle 4.5 checkout).
-        $uniqueids = array_map(fn($a) => (int) $a->uniqueid, $attempts);
-        $datamapper = new question_engine_data_mapper();
-        $qubasbyid = $datamapper->load_questions_usages_by_activity(new qubaid_list($uniqueids));
-
-        // render_stack_question_text() runs a full CASText2 render (real CAS
-        // work, not a cheap DB read) — expensive enough that at a few
-        // thousand attempts it dominates this method's entire runtime. Every
-        // consumer of question_N_text (question_details.php's
-        // build_question_detail(), question_analysis.php) only ever wants
-        // one representative value per *question*, taking the first
-        // non-empty one across every attempt's row — never a specific
-        // attempt's own value. So of the up to one call per attempt per
-        // slot this loop would otherwise make, only the first non-empty
-        // result per slot position is ever kept; every later render for
-        // that same slot is thrown away downstream. Memoizing by slot
-        // position (stable across attempts of the same quiz) skips that
-        // wasted work entirely without changing which value ends up
-        // selected — right_answer_N is deliberately not memoized here since
-        // it's seed-dependent and the error drill-down needs each attempt's
-        // own value, and it's a cheap already-stored read anyway, not a
-        // fresh CAS render.
+        // core, confirmed against a real Moodle 4.5 checkout) — so this is
+        // still a handful of bulk round trips per quiz, not hundreds; the
+        // batching here is purely to bound *memory*, not round trips.
+        // Confirmed directly: a course with several quizzes at 2,000-2,700+
+        // attempts each needed close to or over 1GB just to hold one such
+        // quiz's whole batch of hydrated question_usage_by_activity objects
+        // (question_attempt <-> question_attempt_step reference cycles) at
+        // once. Processing and discarding one batch at a time — with an
+        // explicit gc_collect_cycles() between batches, the same fix that
+        // already solved this same class of problem one level up in
+        // get_course_response_records() below — bounds peak memory to
+        // roughly one batch's worth regardless of how large the quiz is,
+        // letting more parallel workers fit in the same host memory budget.
         $questiontextbyslot = [];
 
-        foreach ($attempts as $attempt) {
+        foreach (array_chunk($attempts, self::ATTEMPT_BATCH_SIZE, true) as $attemptbatch) {
+            $uniqueids = array_map(fn($a) => (int) $a->uniqueid, $attemptbatch);
+            $datamapper = new question_engine_data_mapper();
+            $qubasbyid = $datamapper->load_questions_usages_by_activity(new qubaid_list($uniqueids));
+
+            self::append_response_rows($attemptbatch, $qubasbyid, $users, $quiz, $questiontextbyslot, $records);
+
+            unset($qubasbyid);
+            gc_collect_cycles();
+        }
+
+        return $records;
+    }
+
+    /**
+     * Builds and appends one response row per attempt in $attemptbatch to
+     * $records — the per-attempt body of get_response_records_for_quiz(),
+     * factored out so that method can call it once per attempt batch
+     * instead of once for the whole quiz (see the batching comment there).
+     *
+     * @param stdClass[] $attemptbatch quiz_attempts rows for this batch
+     * @param \question_usage_by_activity[] $qubasbyid keyed by uniqueid, this batch only
+     * @param stdClass[] $users keyed by userid, every user in the whole quiz (not just this batch)
+     * @param stdClass $quiz
+     * @param array $questiontextbyslot memo, shared and mutated across every batch of this quiz
+     * @param array $records output, appended to in place
+     */
+    private static function append_response_rows(
+        array $attemptbatch,
+        array $qubasbyid,
+        array $users,
+        stdClass $quiz,
+        array &$questiontextbyslot,
+        array &$records
+    ): void {
+        foreach ($attemptbatch as $attempt) {
             $user = $users[$attempt->userid] ?? null;
             if (!$user) {
                 continue; // Deleted/suspended user — skip rather than fail the whole report.
@@ -306,8 +338,6 @@ class local_quizanalytics_quiz_data_fetcher {
 
             $records[] = $row;
         }
-
-        return $records;
     }
 
     /**
