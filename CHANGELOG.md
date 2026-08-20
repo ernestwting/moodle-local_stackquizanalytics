@@ -14,6 +14,27 @@ plugin by its merge-time component name, `local_stackquizanalytics`, and
 time; see [2.3.0] for why and when that settled on the current
 `local_quizanalytics`.
 
+## [2.4.12] — Loading notice consistency, and a chart box width fix
+
+- Quiz Analytics only flushed its "this may take a little time" notice on
+  an actual cache miss, unlike Model Analytics and Diagnostics Analytics,
+  which always show it before their own (uncached) compute. In practice
+  this meant the notice reliably appeared on Question/Model/Diagnostics
+  Analytics (genuinely uncached, or per-quiz keyed so a freshly-picked
+  quiz misses often) but stopped appearing on Quiz Analytics as soon as a
+  course's single course-wide cache entry warmed up — the common case
+  after the first visit. Now shown unconditionally, before the cache
+  lookup, matching the other three sections.
+- The horizontally-scrollable box 2.4.6 added around an unusually wide
+  "Line Graph of Various Metrics" chart (course-wide view, section 6) was
+  itself capped at a fixed 900px, narrower than every other element on the
+  page (tables, headings, the other charts) — so on a course wide enough
+  to need the scroll box at all, that one chart's own bounding box visibly
+  didn't line up with anything around it. The box itself now stays 100% of
+  the page's own content width, same as everything else; the (still
+  potentially much wider) chart scrolls *inside* that box exactly as
+  before.
+
 ## [2.4.11] — Made the flaky variant-seed test skip instead of fail
 
 2.4.9's retry-loop fix (try more candidate seeds until one instantiates

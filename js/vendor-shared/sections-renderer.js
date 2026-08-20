@@ -187,7 +187,12 @@
     // below reads the inner chart div's own offsetWidth, which keeps its
     // full intrinsic size regardless of an ancestor's overflow/max-width.
     var CHART_SCROLL_WIDTH_THRESHOLD = 900;
-    var CHART_SCROLL_MAX_WIDTH = 900;
+    // The wrapper's own box stays 100% of its parent — matching the width of
+    // every other element on the page (tables, headings, the other charts)
+    // — with the (potentially much wider) chart scrolling *inside* it,
+    // rather than the wrapper itself shrinking to a fixed pixel width
+    // narrower than everything around it.
+    var CHART_SCROLL_MAX_WIDTH = '100%';
 
     function renderChart(root, chart, prefix) {
         if (!chart || !chart.plotly_json) {
@@ -222,7 +227,7 @@
                 scrollWrapper.style.overflowY = 'auto';
             }
             if (needsWidthScroll) {
-                scrollWrapper.style.maxWidth = CHART_SCROLL_MAX_WIDTH + 'px';
+                scrollWrapper.style.maxWidth = CHART_SCROLL_MAX_WIDTH;
             }
             scrollWrapper.style.overflowX = 'auto';
             scrollWrapper.style.border = '1px solid #dee2e6';

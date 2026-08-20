@@ -165,6 +165,14 @@ echo ' ' . html_writer::empty_tag('input', [
 ]);
 echo html_writer::end_tag('form');
 
+// Shown unconditionally here, before the cache lookup below — matching
+// Model Analytics/Diagnostics Analytics, which always show this same
+// notice before their own (uncached) compute. Quiz Analytics used to only
+// show it on an actual cache miss, so once a course's cache warmed up
+// (the common case after the first visit) this page stopped showing any
+// "may take a while" notice at all, unlike the other three sections.
+sections_output_helper::flush_computing_notice();
+
 $qwcache = cache::make('local_quizanalytics', 'quizanalysiscoursewide');
 $qwkey = local_quizanalytics_quiz_cache_helper::build_key(
     $courseid,
@@ -216,8 +224,9 @@ if ($result === false) {
     // $qwcache->set() below — wasting the work and leaving every following
     // viewer to redo the exact same expensive computation from scratch.
     // Finishing anyway means the cache is warm for the very next request,
-    // even though this one's own visitor already saw an error page.
-    sections_output_helper::flush_computing_notice();
+    // even though this one's own visitor already saw an error page. The
+    // "may take a while" notice itself was already flushed unconditionally
+    // above, before this cache check.
     $previousabort = ignore_user_abort(true);
     $result = $client->analyze_course($course->fullname, $fetchbyquiz(), $colorblind, $gradetype, $anonymize);
     if ($result !== null) {

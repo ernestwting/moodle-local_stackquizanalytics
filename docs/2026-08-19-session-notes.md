@@ -888,3 +888,49 @@ copies made inside a real plugin directory (`cp -r plugin plugin_bak`,
 here) need to go somewhere Moodle's own component scanner will never see
 them (e.g. outside `local/` entirely), or be deleted the moment they're no
 longer needed, not left for "later."
+
+### 12.7 Two follow-on incidents from the same root cause, and a chart-box width fix (2.4.12)
+
+The version.php bumps across 2.4.3-2.4.11 were synced to the container's
+files on every round, but the database's own stored plugin version was
+never brought forward to match (no `admin/cli/upgrade.php` run in
+between) — Moodle detected the mismatch and silently suspended cron
+site-wide ("Moodle upgrade pending, cron execution suspended"), which
+manifested as two separate-looking user reports:
+
+- A background course-wide compute stuck "queued for 1 hour" with nothing
+  ever processing it — cron wasn't running at all, so nothing was left to
+  work through the adhoc task queue, regardless of which course dispatched
+  to it.
+- Smaller courses' Quiz Analytics page also failing to load — the same
+  cause: any course whose analytics happened to get dispatched to the
+  background queue (even briefly, under momentary host load) sat stuck
+  right alongside the large ones.
+
+Fixed by running `admin/cli/upgrade.php --non-interactive`, which brought
+the database back in sync and let cron resume immediately; the existing
+backlog (3 courses) cleared within minutes without further intervention.
+One of those courses (54,894 attempts, the largest in the system) took
+635s to compute and its task then logged as "failed" — traced this to an
+*already-documented*, deliberate trade-off inside
+`parallel_course_fetcher.php`'s own comments (a lock-release shutdown
+function racing against the fork-safety reconnect, after the real
+fetch/cache work has already completed) rather than a new bug; confirmed
+directly that the result had, in fact, been cached correctly and the page
+rendered the full result on the next load.
+
+Two smaller, unrelated fixes landed in the same version:
+
+- Quiz Analytics only showed its "may take a while" notice on an actual
+  cache miss, unlike Model/Diagnostics Analytics (which always show it,
+  having no cache at all) — moved to fire unconditionally, before the
+  cache lookup, so it's reliably visible regardless of cache state like
+  the other three sections.
+- The horizontally-scrollable box added around an unusually wide chart
+  (2.4.6, the course-wide "Line Graph of Various Metrics") was itself
+  capped at a fixed 900px — narrower than every other element on the page,
+  so its own bounding box visibly didn't line up with anything around it
+  on a course wide enough to need the scroll box at all. Changed the
+  wrapper's own width to 100% of its container (matching everything else
+  on the page), with the wider chart still scrolling *inside* that box
+  exactly as before.

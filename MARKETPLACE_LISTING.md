@@ -78,7 +78,7 @@ Moodle server.
 
 Requires `qtype_stack` (the STACK question type) to have anything to show.
 
-## Release notes (v2.4.7)
+## Release notes (v2.4.12)
 
 Copy-paste source for the "Plugin versions" tab (Edit plugin page →
 Versions) when uploading this release.
@@ -94,8 +94,11 @@ user-facing message was rewritten as plain sentences instead of
 em-dash/semicolon run-ons. All four sections' PDF downloads now show a
 "this may take a while for a large course" notice, and a course-wide line
 chart wide enough to need it now prints on a landscape page instead of
-shrinking its labels past legible. Toggle placement and "this may take a
-while" loading notices are now consistent across all four sections.
+shrinking its labels past legible. Every section's header now follows the
+same selector order (Course, then Quiz, then View, then colorblind/
+anonymize toggles), the same "Quiz:"/"Apply" labeling, and the same "may
+take a while" loading notice — shown reliably regardless of cache state,
+not just on a cold view.
 
 ## Release notes (v2.3.0)
 
