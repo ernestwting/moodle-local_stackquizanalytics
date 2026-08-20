@@ -179,11 +179,19 @@ class parallel_course_fetcher {
             $status = 0;
             pcntl_waitpid($pid, $status);
             if (!pcntl_wifexited($status) || pcntl_wexitstatus($status) !== 0) {
-                debugging(
-                    'local_quizanalytics: parallel fetch worker pid ' . $pid . ' exited abnormally (status '
-                        . $status . ')',
-                    DEBUG_DEVELOPER
-                );
+                // mtrace(), not debugging() — see warm_analytics_cache.php's
+                // catch block for why: this task runs unattended on cron
+                // with $CFG->debug typically at DEBUG_NONE in production,
+                // where debugging() never surfaces anywhere. A worker killed
+                // by the kernel OOM killer (signal 9, SIGKILL) exits this
+                // way with no PHP-catchable exception at all — mtrace() is
+                // the only way this ever reaches an admin's task log.
+                $sig = pcntl_wifsignaled($status) ? pcntl_wtermsig($status) : null;
+                $reason = $sig === 9
+                    ? 'killed by SIGKILL (likely the kernel OOM killer — host is out of memory)'
+                    : ($sig !== null ? "killed by signal {$sig}" : 'exit code ' . pcntl_wexitstatus($status));
+                mtrace('local_quizanalytics: parallel fetch worker pid ' . $pid . ' for course ' . $course->id
+                    . ' exited abnormally: ' . $reason);
                 $anyfailed = true;
             }
         }

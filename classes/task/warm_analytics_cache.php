@@ -204,10 +204,17 @@ class warm_analytics_cache extends \core\task\scheduled_task {
         try {
             $byquiz = \local_quizanalytics\task\parallel_course_fetcher::fetch($course, $quizzestofetch, $workers);
         } catch (\Throwable $e) {
-            debugging(
-                'local_quizanalytics: could not warm course ' . $course->id . ': ' . $e->getMessage(),
-                DEBUG_DEVELOPER
-            );
+            // mtrace(), not debugging() — this task runs unattended on cron,
+            // typically with $CFG->debug at its production default of
+            // DEBUG_NONE, under which debugging() is a silent no-op.
+            // Without a visible trace here, a course that consistently fails
+            // to warm (e.g. a worker that keeps losing the fork/OOM race
+            // under real host memory pressure — see parallel_course_fetcher's
+            // own docblock) looks like an ordinary "task completed" run in
+            // Site administration > Server > Tasks every single time, while
+            // silently re-attempting the same full, expensive fetch and
+            // never actually caching anything for that course.
+            mtrace('local_quizanalytics: could not warm course ' . $course->id . ': ' . $e->getMessage());
             return; // Try again next run rather than caching anything partial.
         }
 
@@ -226,6 +233,9 @@ class warm_analytics_cache extends \core\task\scheduled_task {
                     false
                 );
                 $qacache->set($qakey, $result);
+            } else {
+                mtrace('local_quizanalytics: analyze() returned no result for quiz ' . $quiz->id
+                    . ' (' . $quiz->name . ') in course ' . $course->id);
             }
         }
 
@@ -235,6 +245,8 @@ class warm_analytics_cache extends \core\task\scheduled_task {
             if ($result !== null) {
                 $qwcache = \cache::make('local_quizanalytics', 'quizanalysiscoursewide');
                 $qwcache->set($qwkey, $result);
+            } else {
+                mtrace('local_quizanalytics: analyze_course() returned no result for course ' . $course->id);
             }
         }
     }
