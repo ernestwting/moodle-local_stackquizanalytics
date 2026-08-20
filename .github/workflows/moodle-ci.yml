@@ -93,6 +93,42 @@ jobs:
           repository: maths/moodle-qtype_stack
           path: extra-plugins/qtype_stack
 
+      # qtype_stack's own version.php in turn depends on four more plugins
+      # not shipped with core (qbehaviour_adaptivemultipart,
+      # qbehaviour_dfexplicitvaildate, qbehaviour_dfcbmexplicitvaildate,
+      # qbank_importasversion), confirmed directly from qtype_stack's own
+      # installation docs (doc/en/Installation/index.md) rather than
+      # guessed. Missing these doesn't fail cleanly: a STACK question's own
+      # question.php require_once()s the adaptivemultipart behaviour
+      # unconditionally, so any PHPUnit test that instantiates a STACK quiz
+      # attempt fails with a missing-file/class error that looks unrelated
+      # to a missing plugin at first glance. moodle-plugin-ci finds each one
+      # via its own version.php under EXTRA_PLUGINS_DIR regardless of the
+      # checkout path used here, same as qtype_stack itself above.
+      - name: Check out qtype_stack's own required plugin dependencies
+        uses: actions/checkout@v4
+        with:
+          repository: maths/moodle-qbehaviour_adaptivemultipart
+          path: extra-plugins/qbehaviour_adaptivemultipart
+
+      - name: Check out qbehaviour_dfexplicitvaildate (qtype_stack dependency)
+        uses: actions/checkout@v4
+        with:
+          repository: maths/moodle-qbehaviour_dfexplicitvaildate
+          path: extra-plugins/qbehaviour_dfexplicitvaildate
+
+      - name: Check out qbehaviour_dfcbmexplicitvaildate (qtype_stack dependency)
+        uses: actions/checkout@v4
+        with:
+          repository: maths/moodle-qbehaviour_dfcbmexplicitvaildate
+          path: extra-plugins/qbehaviour_dfcbmexplicitvaildate
+
+      - name: Check out qbank_importasversion (qtype_stack dependency)
+        uses: actions/checkout@v4
+        with:
+          repository: maths/moodle-qbank_importasversion
+          path: extra-plugins/qbank_importasversion
+
       - name: Setup PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@v2
         with:

@@ -14,6 +14,32 @@ plugin by its merge-time component name, `local_stackquizanalytics`, and
 time; see [2.3.0] for why and when that settled on the current
 `local_quizanalytics`.
 
+## [2.4.8] — Fixed two real GitHub Actions PHPUnit failures
+
+Confirmed from the actual failed-run output (5 errors, 100 tests), not
+guessed:
+
+- `qtype_stack`'s own `version.php` depends on four more plugins not
+  shipped with Moodle core or checked out by this repo's own CI workflow
+  (`qbehaviour_adaptivemultipart`, `qbehaviour_dfexplicitvaildate`,
+  `qbehaviour_dfcbmexplicitvaildate`, `qbank_importasversion` — confirmed
+  against qtype_stack's own installation docs, not guessed). Missing them
+  doesn't fail cleanly: a STACK question's own `question.php`
+  `require_once()`s the adaptivemultipart behaviour unconditionally, so any
+  PHPUnit test that instantiates a real STACK quiz attempt
+  (`data_fetcher_variant_test.php`) failed with a missing-file error on one
+  test and a cascading "class not found" on another, both looking unrelated
+  to a missing plugin at first glance. Added all four as extra plugin
+  checkouts in `.github/workflows/moodle-ci.yml`, alongside the existing
+  `qtype_stack` one.
+- `tests/parallel_course_fetcher_test.php` called
+  `\local_quizanalytics_quiz_data_fetcher` directly (a legacy,
+  non-namespaced class Moodle's own `classes/` autoloader doesn't pick up)
+  without ever requiring `classes/quiz/data_fetcher.php` itself — the only
+  thing that had been loading it, `parallel_course_fetcher::fetch()`'s own
+  `require_once`, runs too late (inside its method body) to help a call
+  made before or alongside it. Added the missing `require_once`.
+
 ## [2.4.7] — Made toggle placement consistent, added the missing large-course notice
 
 Compared all four sections' headers (course/quiz selectors, colorblind/

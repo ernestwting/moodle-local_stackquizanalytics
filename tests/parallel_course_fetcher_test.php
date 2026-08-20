@@ -20,6 +20,16 @@ use local_quizanalytics\task\parallel_course_fetcher;
 
 defined('MOODLE_INTERNAL') || die();
 
+global $CFG;
+// local_quizanalytics_quiz_data_fetcher is a legacy, non-namespaced class
+// (classes/quiz/data_fetcher.php), so Moodle's own classes/ autoloader
+// doesn't pick it up the way it does parallel_course_fetcher above — every
+// real caller (index.php, questionanalytics.php, ...) requires this file
+// explicitly, and this test calls the class directly (not only through
+// parallel_course_fetcher::fetch(), whose own require of this same file
+// happens too late, inside its method body, to help the calls below).
+require_once($CFG->dirroot . '/local/quizanalytics/classes/quiz/data_fetcher.php');
+
 /**
  * Unit tests for parallel_course_fetcher's own dispatch/merge logic —
  * fallback thresholds, and that its result matches
