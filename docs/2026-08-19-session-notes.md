@@ -3,10 +3,11 @@
 A working log of everything done and discovered across this multi-day
 session, across plugin naming, a parsing bug, the Cloudflare 524 fix,
 local dev environment setup, the large-course performance investigation,
-and two further follow-up rounds (cron reliability/host-adaptive sizing/
-50-quiz stress testing, then a scoping audit that surfaced and fixed a
-severe Model Analytics performance bug plus two real CI failures). Written
-after the fact as a reference — see the actual commits (`git log`) for the
+and three further follow-up rounds (cron reliability/host-adaptive sizing/
+50-quiz stress testing; a scoping audit that surfaced and fixed a severe
+Model Analytics performance bug plus two real CI failures; and a UI/UX and
+bug-fix pass across readability, copy, chart ordering, and PDF export).
+Written after the fact as a reference — see the actual commits (`git log`) for the
 authoritative, tested detail on each change; this is the narrative/context
 around them, including things that were tried, discovered, or ruled out
 that don't show up in a diff.
@@ -24,6 +25,7 @@ that don't show up in a diff.
 9. [Final state (first round)](#9-final-state-first-round)
 10. [Follow-up round 1: cron reliability, host-adaptive sizing, 50-quiz stress test](#10-follow-up-round-1-cron-reliability-host-adaptive-sizing-50-quiz-stress-test)
 11. [Follow-up round 2: scoping audit, Model Analytics performance bug, CI fixes](#11-follow-up-round-2-scoping-audit-model-analytics-performance-bug-ci-fixes)
+12. [Follow-up round 3: readability, copy, chart ordering, PDF/UI polish](#12-follow-up-round-3-readability-copy-chart-ordering-pdfui-polish)
 
 ---
 
@@ -672,3 +674,159 @@ writing (no `gh` authentication available in this environment) — the fixes
 are verified as correct against the exact reported error text and via local
 simulation, but the next real CI run is what confirms all 6 matrix jobs
 actually go green.
+
+## 12. Follow-up round 3: readability, copy, chart ordering, PDF/UI polish
+
+Prompted by two screenshots: a multi-part STACK question's text rendering
+as one dense unbroken paragraph with stray literal `[[validation:ansN]]`
+markup visible, and the Right Answer/error drill-down sections cramming
+every `ansN` value onto one semicolon-joined line. Turned into a broader
+pass across readability, copy, a real chart-ordering bug, PDF export, and
+cross-section UI consistency, done and pushed in six phases (2.4.3-2.4.7,
+plus one 2.4.4 copy-only phase).
+
+### 12.1 Multi-part question text and answer readability (2.4.3)
+
+Traced the full pipeline from raw STACK question HTML through to the
+browser: the shared `sections-renderer.js` assigns question/answer text via
+`innerHTML`, so a real `<br>` tag — not a bare `\n`, which a browser just
+collapses as whitespace — is what actually produces a visible line break.
+Found and fixed three real bugs in `classes/quiz/analytics/`, all verified
+against a real 14-part definite-integral question matching the reported
+screenshots:
+
+- `parser::clean_html_text()` stripped every HTML tag down to a single
+  space, throwing away a multi-part question's own `<br>`/`<p>`/`<table>`
+  structure and collapsing the whole question into one unbroken run of
+  text. Rewrote to preserve those boundaries as real `<br>` breaks, using a
+  `\x02` placeholder (not whitespace, so it survives the later
+  whitespace-collapsing pass) converted to `<br>` right before returning.
+- `latex_utils::strip_stack_input_placeholders()` only stripped a
+  `[[validation:ansN]]` tag when it sat immediately next to its own
+  `[[input:ansN]]` — real STACK authoring often puts other content between
+  the two (closing math delimiters, a unit label), so those orphaned tags
+  survived as literal text in the rendered question, exactly what the
+  screenshot showed. Fixed with a second, unconditional strip pass — which
+  in turn left dangling runs of now-empty `<br>` tags where a
+  `[[validation:...]]`/`[[feedback:...]]` tag had been sitting between two
+  HTML boundaries and blocking `clean_html_text()`'s own collapse logic
+  from combining them; added a follow-up collapse pass here too, and a
+  `&nbsp;`-to-space fold in `clean_html_text()` (PHP's default `\s` never
+  matches `U+00A0`, so a WYSIWYG editor's "empty" trailing `<p>&nbsp;</p>`
+  survived every collapse untouched).
+- `latex_utils::extract_stack_answer_latex()` joined a question's multiple
+  `ansN` values with `"; "` on one line — hard to scan for a dozen-plus
+  parts. Changed to one `ansN` per line, fixing both the Right Answer
+  section and every row of the error drill-down table (both route through
+  this one function).
+
+### 12.2 Copy cleanup and anonymize default (2.4.4)
+
+Rewrote the exact `computingnotice` wording per explicit instruction (an
+em-dash/semicolon run-on → four plain sentences), then swept every other
+user-facing string in the lang file for the same pattern — an em-dash or
+semicolon bolting a second clause onto the first — and rewrote each as
+separate sentences, or a colon for short label/value pairs (status badges,
+PDF titles) where splitting didn't read naturally. Left genuine hyphenated
+compound words (drill-down, cache-warming, on-demand) and breadcrumb "→"
+separators alone; this was about run-on clause-joining, not hyphens as
+such. Separately checked whether "anonymize student data" defaults to on
+anywhere, per the request to turn it off across the board — it already
+defaulted to `false` in every code path (`resolve_anonymize_mode()`, Model
+Analytics, Diagnostics Analytics, all three PDF endpoints), so nothing
+needed changing there; likely a stale per-user preference on the live
+install rather than a code default.
+
+### 12.3 Course-wide charts plotting quizzes out of order (2.4.5)
+
+Real bug, confirmed against real data before and after: the course-wide
+view's charts 3-6 (box plot, engagement, scatter, line graph) plotted
+quizzes alphabetically instead of chronologically, so "Quiz 10" sorted
+before "Quiz 2". Two layers:
+
+- `data_fetcher::get_course_stack_quizzes()`'s SQL used `ORDER BY
+  quiz.name`. Changed to `COALESCE(NULLIF(quiz.timeopen, 0), cm.added)`
+  (falling back to the course module's own creation time when no open date
+  is set), with `quiz.name` as a tie-break for genuinely same-timestamp
+  quizzes.
+- Even with the query fixed, `quiz_metrics.php`'s own chart-building
+  functions independently re-sorted their quiz name lists alphabetically
+  before plotting — a deliberate leftover from porting the original
+  Python's pandas `groupby(sort=True)` default. Removed those internal
+  `sort()` calls so they keep the chronological order the data already
+  arrives in (first-appearance order in `$attemptframe`, which follows
+  `course_analysis.php`'s own iteration order).
+
+Verified end-to-end: fetched a real course's quiz list and ran it through
+the actual `course_analysis::build_analysis()` pipeline, confirming the
+boxplot/scatter chart trace order and the trend table's row order matched
+the corrected chronological input, not alphabetical.
+
+Also checked the "doesn't have to recompute each time" half of the same
+request: Question Analytics' existing `questionanalysis` MUC cache was
+already working as designed — purged it, then measured a cold compute at
+3.67s and a repeat cache hit at ~1ms on the same real quiz. No fix needed.
+
+### 12.4 PDF download notice and large-course chart rendering (2.4.6)
+
+Added a short "this may take a while for a large course" notice above the
+download button on all four sections' PDF forms (both `render_pdf_form()`
+implementations — `sections_output_helper`'s and `dashboard_renderer`'s).
+
+Investigating "does the PDF render these charts correctly for large
+courses" surfaced a genuine, unbounded scaling problem: the course-wide
+"Line Graph of Various Metrics" chart's width grows ~220px per quiz with no
+cap (`quiz_metrics::build_line_graph_figure()`), which on a large course:
+
+- **On screen**, stretched the whole page horizontally instead of just the
+  chart. Wrapped in the same horizontally-scrollable box already used for
+  unusually tall charts (the Student Performance Matrix heatmap), triggered
+  once a chart's declared width crosses 900px — confirmed this doesn't
+  affect the PDF capture math, since `collectChartImages()` reads the inner
+  chart div's own `offsetWidth`, unaffected by an ancestor's
+  `overflow`/`max-width`.
+- **In the PDF**, `pdf_builder.php` force-shrinks every chart to fit one
+  portrait page's ~178mm usable width, which for a wide many-quiz chart
+  shrank its per-quiz tick labels well past legible. A chart captured wider
+  than 1400px now gets a dedicated landscape page instead (~36% more
+  usable width on LETTER), with a fresh portrait page immediately after to
+  restore orientation for whatever content follows — self-contained to
+  `render_chart()`, not requiring every other `AddPage()` call site in the
+  file to track orientation. The chart's title had to move to *after* the
+  landscape switch too, or it would print alone at the bottom of the
+  previous (portrait) page, disconnected from its own chart.
+
+Verified against the real PDF builder, not just code reading: built a PDF
+with one normal-width and one artificially wide (1800px) chart, then
+regex-matched the raw PDF bytes' own `/MediaBox` entries — confirmed page 1
+portrait (612×792pt), page 2 (the wide chart) landscape (792×612pt), page 3
+back to portrait.
+
+### 12.5 Cross-section UI consistency (2.4.7)
+
+Compared all four sections' headers (course/quiz selectors, colorblind/
+anonymize toggles, warnings) side by side. Quiz Analytics and Question
+Analytics already agreed on order: selectors, then toggles, then the
+section's own heading. Two real inconsistencies:
+
+- Model Analytics' anonymize toggle was rendered *after* the Model 1
+  heading and intro text, inside the Model 1-only content block — moving
+  position (and disappearing entirely) depending which view (Model 1 vs
+  Model 2) was selected. Moved to right after the View selector, before any
+  section-specific content, still conditional on Model 1 (Model 2's table
+  has no student names, so correctly shows no toggle at all).
+- Model Analytics and Diagnostics Analytics never had the "this may take a
+  while" flush-before-compute notice Quiz/Question Analytics already show
+  on a cold-cache view — despite Model 1 alone measuring up to ~17s on a
+  real 38-quiz course (see §11.2). Added the same notice (new
+  `dashboard_renderer::flush_computing_notice()`, mirroring
+  `sections_output_helper`'s own) before both `model1_report::build()` /
+  `model2_report::build()` and `diagnostics_report::build()`.
+
+Verified all three affected pages (Model 1, Model 2, Diagnostics) via a
+real authenticated request against real course data — bootstrapped a
+Moodle session as admin from a CLI script (`\core\session\manager::
+set_user(get_admin())`, then `include()`d the page file directly with
+`$_GET` populated) rather than just a syntax check, confirming no PHP
+warnings/notices leaked into the output and the new elements render in the
+intended position.

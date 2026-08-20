@@ -78,6 +78,25 @@ Moodle server.
 
 Requires `qtype_stack` (the STACK question type) to have anything to show.
 
+## Release notes (v2.4.7)
+
+Copy-paste source for the "Plugin versions" tab (Edit plugin page →
+Versions) when uploading this release.
+
+Readability and consistency pass, prompted by real user reports: a
+multi-part STACK question's text and its Right Answer/error drill-down
+values now render with a visible line break between parts/answers instead
+of running together on one line, and orphaned `[[validation:...]]` markup
+no longer leaks into the displayed question text. Course-wide charts now
+plot quizzes left-to-right in the order they were actually taught (by quiz
+open date, falling back to creation order) instead of alphabetically. Every
+user-facing message was rewritten as plain sentences instead of
+em-dash/semicolon run-ons. All four sections' PDF downloads now show a
+"this may take a while for a large course" notice, and a course-wide line
+chart wide enough to need it now prints on a landscape page instead of
+shrinking its labels past legible. Toggle placement and "this may take a
+while" loading notices are now consistent across all four sections.
+
 ## Release notes (v2.3.0)
 
 Copy-paste source for the "Plugin versions" tab (Edit plugin page →
