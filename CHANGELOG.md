@@ -14,6 +14,43 @@ plugin by its merge-time component name, `local_stackquizanalytics`, and
 time; see [2.3.0] for why and when that settled on the current
 `local_quizanalytics`.
 
+## [2.4.2] — Fixed Model Analytics taking 5+ minutes on a real course, and two GitHub Actions CI failures
+
+Prompted by a request to verify every section of the plugin is actually
+scoped to the course/quiz selected, not silently computing for everything.
+Quiz Analytics, Question Analytics, and Model 2 were already correctly
+scoped (Question Analytics's apparent "not loading" turned out to be a
+debug-mode setting left on from earlier diagnostics, now off); Diagnostics
+Analytics's ~12s on a real large course is the natural cost of ~100 genuine
+per-slot computations, not a bug. Model 1 (correctly course-scoped by
+design — its indicators are per-student) turned out to have a much more
+serious, separate problem:
+
+- **`model1_report::build()` measured at 299.4s on a real 38-quiz/
+  1,147-student course** — effectively unusable, despite the existing
+  100-row cap. Root cause: two of `stack_attempt_reader`'s query methods
+  several of its 5 indicators go through are *course-wide*
+  (`get_course_step_deltas()`, and `get_resource_access_timestamps()`/
+  `get_stack_failure_events()` as `help_seeking_gap` calls them) but were
+  being re-run in full once per student row regardless — the same
+  expensive join, identical result every time, up to 100 times over. Fixed
+  with per-process memoization inside `stack_attempt_reader` itself, not
+  touching the indicators' `compute_for_sample()` signatures (the Analytics
+  API's own contract). Verified: 299.4s → 16.8s (~18x), byte-identical
+  output across 19 checks, and a real authenticated page load (17.5s,
+  previously timed out entirely).
+- **Two real GitHub Actions CI failures**, confirmed from the actual
+  failed-run output: `db/upgrade.php` was missing a required
+  `upgrade_plugin_savepoint()` call, and `tests/data_fetcher_variant_test.php`
+  referenced `$CFG->dirroot` without `global $CFG;` at file scope — safe
+  when a file runs as the true top-level script, but PHPUnit's own loader
+  `require_once()`s test files from inside one of its own methods, so the
+  included file's top-level code isn't in the true global scope; `$CFG`
+  was undefined, crashing every PHPUnit job across the CI matrix (3 PHP
+  versions × 2 databases) before a single test could run. Also removed a
+  stray PHP 8.3-only `#[\Override]` attribute found via a defensive scan
+  (the CI matrix tests PHP 8.1 too).
+
 ## [2.4.1] — Made the on-demand background-compute safeguard actually reliable, host-adaptive, and stress-tested to 50 quizzes/1,000 students
 
 [2.4.0]'s parallel cache-warming and (added in an unreleased follow-up)
