@@ -14,6 +14,27 @@ internet.
   Moodle needs a different floor).
 - `mod_quiz` (core, always present) and `qtype_stack` installed — this
   plugin is a no-op without STACK questions to analyze.
+- **Moodle cron running on a real schedule — a hard requirement, not just
+  a performance nice-to-have.** This plugin's cache-warming scheduled task
+  (step 2 below) and its on-demand background-compute safeguard (a quiz or
+  course too large to analyze inline hands the work to a queued adhoc task
+  instead of blocking the request — see step 5) both depend entirely on
+  `php admin/cli/cron.php` actually running, same entry point either way.
+  Without it, a large quiz/course's Quiz/Question Analytics page shows a
+  "generating in the background" notice that **never resolves** — not a
+  bug in the page, the compute really is just queued and waiting for
+  something to run it. Confirm cron is wired up before relying on this
+  plugin for anything beyond a small course: **Site administration →
+  Server → Scheduled tasks** should show recent "Last run" times (not
+  blank/very old) for tasks in general, **Site administration → Server →
+  Tasks → Task logs** should show `local_quizanalytics` task runs actually
+  completing, and this plugin's own settings page (**Site administration →
+  Plugins → Local plugins → STACK q-type Analytics**) shows a warning
+  banner if Moodle's own last-cron-run time looks stale.
+  A typical hosting setup runs cron via a system crontab entry hitting
+  `admin/cli/cron.php` every minute; this repo's own local Docker dev
+  environment runs it as a separate `moodle-cron` service in
+  `docker-compose.yml` for the same reason.
 
 ## 1. Place the files
 
@@ -59,26 +80,64 @@ on its own). This single step:
   (`db/tasks.php`, every 15 minutes) — proactively recomputes the Quiz
   Analytics/Question Analytics result cache for any course whose entry is
   missing or stale, so a real visitor essentially never has to wait through
-  a cold compute themselves. This depends on your site's Moodle cron
-  actually running on schedule (`php admin/cli/cron.php`, or whatever your
-  hosting's cron job/systemd timer runs) — a site with cron disabled or
-  badly delayed loses this benefit entirely, same as any other Moodle
-  scheduled task.
+  a cold compute themselves.
+- Also relies on Moodle's **adhoc task** mechanism (no separate
+  registration needed — adhoc tasks queue dynamically) for
+  `warm_single_view_adhoc_task`: when a visitor hits a cold cache on a
+  quiz/course above the background-compute threshold, this queues one of
+  these instead of computing inline. Both this and the scheduled task
+  above run only via cron (`php admin/cli/cron.php`, or whatever your
+  hosting's cron job/systemd timer runs) — see the Prerequisites section
+  above, this is a hard requirement for this plugin now, not just a
+  performance benefit.
 
-## 3. (Optional) Adjust the Quiz Analytics computation time limit
+## 3. (Optional) Review the performance/sizing settings
 
-**Site administration → Plugins → Local plugins → STACK q-type Analytics:**
+**Site administration → Plugins → Local plugins → STACK q-type Analytics.**
+Most of these are auto-configured against your actual server the first time
+this plugin is installed or upgraded onto it — this step is about knowing
+they exist and reviewing them, not something you need to configure by hand
+on a normal install.
 
-- **Computation time limit** → 120 seconds by default. Only relevant for a
-  course with many STACK quizzes and/or students — the Quiz Analytics
-  course-wide view and PDF export are the paths whose cost scales with the
-  whole course rather than a single quiz. Raise this if you see a timeout
-  on a large course specifically; 0 removes PHP's execution-time limit
-  entirely for this plugin's own requests. Note this only raises *PHP's*
-  own execution limit — it does nothing for a timeout enforced by a reverse
-  proxy/CDN in front of your site (e.g. Cloudflare's default ~100s edge
-  timeout, surfaced to a visitor as a 524); the scheduled task above is
-  what actually keeps a real visitor off that path on a large course.
+- **Detected server resources** (a readout, not a setting) — shows this
+  server's own detected CPU core count and RAM, and the "Cache-warming
+  parallel workers" value calculated from them. Set automatically on
+  install/upgrade (see `classes/task/resource_detector.php`'s own
+  docblock for exactly how); press **Re-detect and apply now** if this
+  server's hardware changes later (e.g. moving from a smaller box to a
+  larger one, or the reverse) — nothing re-runs this automatically outside
+  of install/upgrade. If detection fails (an unusual host or a restricted
+  container that doesn't expose `/proc` or cgroup limits), this falls back
+  to a conservative static default and says so plainly rather than leaving
+  the setting blank.
+- **Cache-warming parallel workers** — how many worker processes the
+  "Warm STACK q-type Analytics result caches" scheduled task forks to
+  fetch several quizzes concurrently (CLI/cron only; the on-demand web
+  pages always fetch serially). The detected-resources value above is a
+  safe starting point, not a ceiling — raise it by hand if you've confirmed
+  your server can handle more (see `CHANGELOG.md` for this session's own
+  worker-count benchmarking methodology if you want to do the same).
+- **Cache-warming worker memory limit** — the PHP memory limit each worker
+  gets. Sized together with the setting above: workers × this value should
+  comfortably fit under your server's real available RAM, with room left
+  for the database, the Maxima backend, and everything else already
+  running.
+- **On-demand background-compute time budget** → 20 seconds by default.
+  When a visitor hits a cold cache, this plugin times a real, small sample
+  fetch (not a fixed attempt-count guess) and extrapolates the full cost;
+  if that estimate exceeds this many seconds, the compute is handed to a
+  background task instead of run on that request, and the visitor sees a
+  "generating in the background" notice. Depends on cron — see
+  Prerequisites above. Set to 0 to disable and always compute inline (pre-
+  this-feature behaviour).
+- **Computation time limit** → 120 seconds by default. This only raises
+  *PHP's* own execution-time limit for the Quiz Analytics course-wide view
+  and PDF export (the paths whose cost scales with the whole course) — it
+  does nothing for a timeout enforced by a reverse proxy/CDN in front of
+  your site (e.g. Cloudflare's default ~100s edge timeout, surfaced to a
+  visitor as a 524); the background-compute time budget above, backed by
+  cron, is what actually keeps a real visitor off that path on a large
+  course or quiz.
 
 ## 4. Review and enable the Model Analytics models
 
@@ -162,6 +221,44 @@ course has enough data — `is_valid_analysable()`/`is_valid_sample()` on both
 targets reject courses/samples without enough to work with rather than
 producing a misleading prediction.
 
+## 8. How do I know it's working
+
+A short checklist for confirming this plugin's cron-dependent features are
+actually functioning, not just installed:
+
+1. **Site administration → Server → Scheduled tasks**: find "Warm STACK
+   q-type Analytics result caches" and confirm **Last run** is recent (not
+   blank, not hours old) and not stuck retrying.
+2. **Site administration → Server → Tasks → Task logs**: filter for
+   `local_quizanalytics` and confirm runs show as completed, not failed —
+   this also covers `warm_single_view_adhoc_task`, the on-demand
+   background-compute safeguard, which only ever shows up here (it's an
+   adhoc task, not a scheduled one, so it won't appear in the scheduled
+   tasks list above).
+3. **This plugin's own settings page** (Site administration → Plugins →
+   Local plugins → STACK q-type Analytics): no cron-status warning banner
+   at the top, and the **Detected server resources** readout shows real
+   numbers (not "could not detect").
+4. Visit Quiz Analytics or Question Analytics on a course/quiz large enough
+   to exceed the background-compute time budget (step 3): you should see a
+   "generating in the background" notice, not a timeout or a blank page —
+   and revisiting that same page a short while later should show the real
+   report. If that notice is still showing after a genuinely long wait
+   (15+ minutes), it says so directly rather than repeating the same calm
+   message indefinitely — treat that as a real failure and check steps 1-2
+   above.
+
+## Tested scale
+
+This plugin has been directly benchmarked (not just assumed to scale)
+against courses ranging from real production data (a 38-quiz, 48,445-
+attempt course) up to a synthetic **50 quizzes × 1,000 students** dataset —
+see `CHANGELOG.md` for the specific numbers (cold cron warm time, on-demand
+single-view time, worker memory) at that scale. Treat that as the
+tested ceiling, not a guaranteed limit — a course well beyond it may still
+work fine, it just isn't backed by a direct measurement the way everything
+up to that point is.
+
 ---
 
 ## Troubleshooting quick-reference
@@ -173,6 +270,7 @@ producing a misleading prediction.
 | "Analytics could not be computed for this quiz" | An unexpected error — check Moodle's debugging messages/logs (Site administration → Reports → Logs, or your server's PHP error log) for the underlying exception |
 | A large course's course-wide view or PDF export times out | Raise **Computation time limit** in the plugin's settings (see step 3 above) |
 | Quiz/Question Analytics 524s (or otherwise times out) on a large course (500+ attempts) | A reverse proxy/CDN in front of the site (e.g. Cloudflare), not PHP, is giving up first — **Computation time limit** won't fix this. Confirm Moodle cron is actually running so the **Warm STACK q-type Analytics result caches** scheduled task can keep the cache warm ahead of real visitors (Site administration → Server → Scheduled tasks); you can also run it once by hand (`php admin/cli/scheduled_task.php --execute='\local_quizanalytics\task\warm_analytics_cache'`) to warm a course immediately rather than waiting up to 15 minutes |
+| Quiz/Question Analytics shows "generating in the background" and never resolves, even after a long wait | Cron isn't running at all (most common cause — see Prerequisites above and step 8's checklist), or the background task crashed/is stuck in a fail-delay retry loop. Check this plugin's own settings page for a cron-status warning banner first, then Site administration → Server → Tasks → Task logs for `warm_single_view_adhoc_task` failures |
 | Charts blank / JS console errors (Quiz Analytics) | Check the browser console for a 404 on `js/vendor/plotly.min.js` or `js/vendor/katex/*` — those ship inside this repo already, so a 404 usually means the plugin folder wasn't copied completely |
 | Math renders as literal `\(...\)` text instead of typeset symbols | KaTeX's CSS/font files (`js/vendor/katex/fonts/`) didn't come along with the rest of `js/vendor/katex/` — re-copy the whole folder |
 | Question text shows `@variable@` placeholders or both languages' `[[lang]]` blocks at once | `castext2_qa_processor`/`stack_outofcontext_process` couldn't be loaded — check `qtype_stack` is installed and up to date |

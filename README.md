@@ -136,6 +136,27 @@ Known gaps, tracked rather than hidden:
   (`composer install` + `admin/tool/phpunit/cli/init.php`) to actually
   execute — see `CHANGELOG.md`'s Phase 16 entry.
 
+## Deployment & sizing
+
+**Moodle cron must actually be running — this is a hard requirement, not a
+performance nice-to-have.** Quiz Analytics/Question Analytics on a large
+quiz or course depend entirely on cron for both proactive cache-warming and
+the on-demand background-compute safeguard; without it, a large view shows
+"generating in the background" and never resolves. See
+[INSTALL.md](INSTALL.md)'s Prerequisites section for how to verify cron is
+running, and its own "How do I know it's working" checklist.
+
+Worker count, worker memory, and the on-demand background-compute time
+budget are all auto-detected/self-calibrating rather than fixed numbers
+tuned to one machine — see INSTALL.md for what's detected automatically on
+install/upgrade, the live readout on this plugin's own settings page, and
+how to override any of it by hand.
+
+**Tested ceiling: 50 quizzes, 1,000 students** (see `CHANGELOG.md` for the
+specific benchmark) — the scale this plugin has actually been verified
+against, not a claimed unlimited capacity. A course well beyond that may
+still work, just without a direct benchmark backing it.
+
 ## Installation
 
 See [INSTALL.md](INSTALL.md) for the full step-by-step setup. See

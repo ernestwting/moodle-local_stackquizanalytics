@@ -14,6 +14,114 @@ plugin by its merge-time component name, `local_stackquizanalytics`, and
 time; see [2.3.0] for why and when that settled on the current
 `local_quizanalytics`.
 
+## [2.4.1] — Made the on-demand background-compute safeguard actually reliable, host-adaptive, and stress-tested to 50 quizzes/1,000 students
+
+[2.4.0]'s parallel cache-warming and (added in an unreleased follow-up)
+on-demand background-compute safeguard both turned out to have real gaps
+only surfaced by running them for real — under actual Moodle cron, and at
+a synthetic 50-quiz/1,000-student/50,000-attempt scale well beyond the
+38-quiz real course [2.4.0] was tested against. Each found and fixed by
+reproducing directly, not assumed:
+
+**Cron dependency made real, and its own failures made visible:**
+- The on-demand background-compute safeguard (a cold view above a
+  threshold dispatches to a queued adhoc task instead of blocking the
+  request) depends entirely on Moodle cron running. Confirmed directly:
+  this project's own local dev environment had *no cron daemon at all* —
+  a real stuck task sat queued, never executed. Added a dedicated
+  `moodle-cron` service to the local Docker dev environment, and documented
+  cron as a hard requirement (not optional) in `INSTALL.md`.
+- Cron alone would not have fixed the stuck page, though — two further,
+  independent real bugs surfaced by actually running the queued task:
+  - Its course-wide path called the plain serial fetch directly, with no
+    `memory_limit` raise and no parallelization — a real 38-quiz course
+    died silently at PHP's default 512M CLI limit (exit 255, no visible
+    error at that specific margin). Fixed to match `warm_analytics_cache`'s
+    own pattern (raised memory, routed through the forked fetcher).
+  - Running under real Moodle cron (not just standalone CLI scripts)
+    surfaced a shutdown-function inheritance bug across `pcntl_fork()`: a
+    forked child's plain `exit()` re-runs PHP's whole shutdown sequence,
+    including a cron lock's auto-release handler the child inherited but
+    never itself acquired, using a `$DB` reference the child had already
+    reconnected out from under — cascading into the scheduled task itself
+    being marked failed. Fixed by having a child terminate via a direct
+    `SIGKILL` to itself instead, skipping the inherited shutdown sequence
+    entirely (safe: the child's own result is already flushed to disk by
+    that point).
+- A visible cron-health banner was added to the plugin's own settings page
+  (reusing core's own `tool_task\check\cronrunning` check), and the
+  "generating in the background" notice now distinguishes a task still
+  working normally from one that's been queued for a genuinely
+  suspicious amount of time (15+ minutes) — a real failure state (no
+  cron, a crashed worker) that now says so honestly instead of repeating
+  the same calm message indefinitely.
+- Dedup logic (queuing the same background compute at most once no matter
+  how many visitors/reloads hit it) was audited and confirmed already
+  correct — no fix needed.
+
+**Fixed-number thresholds replaced with host-measured ones:**
+- The synchronous on-demand path's background-compute threshold was a
+  fixed attempt count. Measured directly that this has a real blind spot:
+  per-attempt cost is genuinely question-complexity-dependent (a simple
+  randomised question measured ~10x cheaper per attempt than a complex
+  real one) — a fixed count picked one quiz too large to compute inline
+  while letting a *larger* but cheaper one through. Replaced with a real,
+  small sampled fetch (~100 attempts, on the actual quiz, on the actual
+  host) that extrapolates the full cost, verified directly to correctly
+  reverse both of the old threshold's misjudged cases.
+- `local_quizanalytics/parallelworkers` similarly stops being a fixed
+  number tuned to one development machine: `resource_detector.php` now
+  detects this host's own CPU cores and RAM (cgroup limits first, falling
+  back to `/proc`) and recommends a value from them, applied automatically
+  on install/upgrade (without overwriting an admin's own already-tuned
+  value on an existing site) and shown live on the settings page with a
+  "Re-detect" action for hardware that changes later.
+
+**Question Analytics/Model 2 scoping confirmed already correct** — both
+were already fetching/computing only the selected quiz, not the whole
+course; no fetch-path change was needed there.
+
+**`questionanalyticspdf.php`'s redundant re-fetch fixed:** flagged but not
+built in [2.4.0]'s own follow-up work. Traced that the "Download PDF"
+button is only ever reachable *after* the on-screen view has already
+computed successfully — so gating the button on the threshold above
+would rarely trigger in practice. The real, still-live problem was
+different: this route unconditionally re-fetched every raw record from
+scratch on every click, even moments after the same records had just been
+fetched for the page the button appears on. Fixed with a new, short-lived
+raw-record cache shared between the two routes — verified byte-identical
+output and a cache hit dropping from several seconds to effectively 0.00s.
+
+**Stress-tested at a synthetic 50 quizzes × 1,000 students (50,000 total
+attempts)** — well beyond [2.4.0]'s real 38-quiz ceiling. Surfaced one
+more real bug in the process: an earlier attempt to remove
+`parallel_course_fetcher::fetch()`'s pre-fork `$DB->dispose()` step (as
+part of the cron-lock fix above) broke down at this larger scale —
+"MySQL server has gone away" on the *parent's* own connection,
+reproduced down to a fast, minimal 6-quiz/3-worker case, and confirmed
+specifically fork-related via an A/B check against `workers=1`. Reverted
+that specific removal (prioritizing connection safety, proven reliable
+across this whole project's testing, over a cosmetic task-log accuracy
+issue the cron-lock fix still leaves — documented honestly in code
+rather than silently reintroduced). Full results at this scale:
+
+| Check | Result |
+|---|---|
+| Cold cron warm (all 50 quizzes + course-wide) | 293.7s, peak 2.3GB |
+| On-demand single quiz (1,000 attempts) | 0.6s |
+| On-demand course-wide (50,000 attempts) | 20.3s |
+
+Both comfortably under a 100s reverse-proxy timeout. One real calibration
+gap found and documented rather than glossed over: the sampled course-wide
+time estimate (13.8s, from one quiz's own rate extrapolated by total
+attempts) underestimated the real course-wide time (20.3s) — the
+per-attempt-rate model doesn't account for fixed per-quiz overhead, which
+becomes material once a course has many quizzes (50 here, vs. the 38 the
+model was tuned against). Both numbers stay well clear of the actual 100s
+proxy timeout that matters, so this is a minor internal-threshold
+calibration note, not a safety gap — left as a known limitation for a
+future, quiz-count-aware refinement rather than rushing an unverified fix.
+
 ## [2.4.0] — Made Quiz Analytics usable on a real 48,445-attempt course
 
 Live testing against a real 38-quiz course (48,445 finished attempts
