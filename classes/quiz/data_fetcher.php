@@ -129,7 +129,16 @@ class local_quizanalytics_quiz_data_fetcher {
     public static function get_course_stack_quizzes(int $courseid): array {
         global $DB;
 
-        $sql = "SELECT DISTINCT quiz.id, quiz.name, quiz.course, quiz.sumgrades
+        // Ordered chronologically (quiz.timeopen when the teacher set one,
+        // falling back to when the activity was added to the course
+        // otherwise) rather than alphabetically — a course-wide chart
+        // plotting one point per quiz reads as a timeline, so "Quiz 10"
+        // sorting before "Quiz 2" left it visibly out of order. Both
+        // columns feeding the COALESCE have to appear in the SELECT list
+        // (aliased) since this is a SELECT DISTINCT and Postgres requires
+        // every ORDER BY expression to be one of the selected columns.
+        $sql = "SELECT DISTINCT quiz.id, quiz.name, quiz.course, quiz.sumgrades,
+                       COALESCE(NULLIF(quiz.timeopen, 0), cm.added) AS chronoorder
                   FROM {quiz} quiz
                   JOIN {course_modules} cm ON cm.instance = quiz.id
                   JOIN {modules} m ON m.id = cm.module AND m.name = 'quiz'
@@ -143,7 +152,7 @@ class local_quizanalytics_quiz_data_fetcher {
                   JOIN {question_versions} qv ON qv.questionbankentryid = qbe.id
                   JOIN {question} q ON q.id = qv.questionid AND q.qtype = 'stack'
                  WHERE quiz.course = :courseid
-              ORDER BY quiz.name";
+              ORDER BY chronoorder, quiz.name";
 
         return $DB->get_records_sql($sql, [
             'contextmodule' => CONTEXT_MODULE,

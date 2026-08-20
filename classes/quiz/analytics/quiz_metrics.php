@@ -148,12 +148,14 @@ class quiz_metrics {
         }
 
         $byquiz = table_helpers::group_by($attemptframe, 'quiz_name');
-        // Pandas groupby("quiz_name") iterates groups in *sorted* key order
-        // by default (sort=True) — every aggregation below derives from a
-        // groupby, so the output row order needs the same plain string sort
-        // (matching prt_analysis::compute_prt_pass_rates()'s identical note).
+        // group_by() preserves each quiz's first-appearance order from
+        // $attemptframe, which callers build by iterating quizzes in
+        // data_fetcher::get_course_stack_quizzes()'s own chronological
+        // order — deliberately kept as-is rather than the Python original's
+        // pandas groupby("quiz_name") (sort=True default, i.e. alphabetical)
+        // so a course-wide chart's quiz axis reads as a timeline instead of
+        // "Quiz 10" sorting before "Quiz 2".
         $quiznames = array_keys($byquiz);
-        sort($quiznames);
 
         $statsbyquiz = array_fill_keys($quiznames, []);
 
@@ -247,13 +249,11 @@ class quiz_metrics {
         }
 
         $accent = $colorblindmode ? self::COLORBLIND_ACCENT : self::DEFAULT_ACCENT;
-        // Unlike the box traces above (plain px.box(color=...), which keeps
-        // first-appearance order), Python builds this line from
-        // attempt_frame.groupby("quiz_name")["overall_grade"].mean() — a
-        // groupby, sorted alphabetically by default — so it needs its own,
-        // separately-sorted quiz name list rather than reusing $quiznames.
+        // Reuses $quiznames' own (chronological, first-appearance) order
+        // rather than a separately alphabetically-sorted copy, so the mean
+        // line's markers land under the box they actually summarize instead
+        // of drifting to wherever that quiz's name would sort alphabetically.
         $meansquiznames = $quiznames;
-        sort($meansquiznames);
         $meansx = [];
         $meansy = [];
         foreach ($meansquiznames as $quiz) {
@@ -369,22 +369,18 @@ class quiz_metrics {
                 + $saturation * (self::SCATTER_MARKER_SIZE_MAX - self::SCATTER_MARKER_SIZE_MIN);
         }
 
-        // Merged's per-quiz trace order needs to match Python's: both
-        // attempt_count and grade_data come from a groupby(["quiz_name",
-        // "student_id"]) there, which sorts by quiz_name first (sort=True
-        // default) — a plain px.scatter() call over already-grouped-and-
-        // sorted data preserves that row order into the trace order.
-        // Within a single quiz's trace, points aren't additionally sorted by
-        // student_id (Python's secondary groupby key) — a scatter trace's
-        // own point order has no visual effect (it's an unordered cloud of
-        // markers), so this is a deliberately unmatched, invisible ordering
-        // difference, confirmed by comparing point sets rather than order.
+        // $merged's per-quiz trace order follows its own first-appearance
+        // order, which in turn follows $attemptframe's (see
+        // compute_quiz_stats()'s identical note) — a course-wide chart's
+        // quiz axis/legend should read chronologically, not alphabetically.
+        // Within a single quiz's trace, points aren't additionally ordered
+        // by student_id — a scatter trace's own point order has no visual
+        // effect (it's an unordered cloud of markers).
         $quiznames = [];
         foreach ($merged as $r) {
             $quiznames[$r['quiz_name']] = true;
         }
         $quiznames = array_keys($quiznames);
-        sort($quiznames);
         $palette = chart_helpers::qualitative_colors($colorblindmode, chart_helpers::PALETTE_SET2);
 
         $data = [];
@@ -459,11 +455,9 @@ class quiz_metrics {
      */
     public static function build_metric_trend_data(array $attemptframe, array $selectedmetrics): array {
         $byquiz = table_helpers::group_by($attemptframe, 'quiz_name');
-        // Every metric here comes from its own groupby("quiz_name") in the
-        // Python original (sort=True default) — see compute_quiz_stats()'s
+        // Chronological (first-appearance) order — see compute_quiz_stats()'s
         // identical note.
         $quiznames = array_keys($byquiz);
-        sort($quiznames);
 
         $out = [];
         foreach ($quiznames as $quiz) {

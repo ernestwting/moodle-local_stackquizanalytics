@@ -14,6 +14,31 @@ plugin by its merge-time component name, `local_stackquizanalytics`, and
 time; see [2.3.0] for why and when that settled on the current
 `local_quizanalytics`.
 
+## [2.4.5] — Fixed course-wide charts plotting quizzes out of chronological order
+
+The course-wide view's charts 3 through 6 (Quiz Grade Distribution box plot,
+Engagement Over Time, Attempts vs Grades scatter, Line Graph of Various
+Metrics — all under the Quiz Analytics section's "All STACK quizzes" view)
+plotted quizzes alphabetically instead of in teaching order, so e.g. "Quiz 10"
+appeared before "Quiz 2". Two layers, both fixed:
+
+- `data_fetcher::get_course_stack_quizzes()` queried `ORDER BY quiz.name`.
+  Now orders by `quiz.timeopen` (when the teacher set one) falling back to
+  the course module's own creation time otherwise, so the quiz list —
+  and everywhere that drives, including the Question Analytics quiz
+  selector — reads chronologically.
+- Even with that fixed, `quiz_metrics.php`'s own chart-building functions
+  independently re-sorted their quiz name lists alphabetically before
+  plotting (a deliberate port of the original Python's pandas
+  `groupby(sort=True)` default). Removed those internal re-sorts so they
+  keep the chronological order the data already arrives in.
+
+Verified end-to-end against a real course's quiz list and the resulting
+boxplot/scatter/trend chart traces, not assumed from code reading alone.
+Also confirmed Question Analytics' existing questionanalysis cache is
+already working as designed — a cold view computed in 3.67s, a cache hit on
+repeat came back in ~1ms — so no separate fix was needed there.
+
 ## [2.4.4] — Rewrote em-dash/semicolon run-on strings as plain sentences
 
 A copy pass across every user-facing string in `lang/en/local_quizanalytics.php`
