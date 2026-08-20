@@ -72,8 +72,38 @@ class parser {
             $text
         );
         $cleaned = html_entity_decode($cleaned, ENT_QUOTES | ENT_HTML5);
+        // PHP's default (non-Unicode) \s never matches U+00A0 (the decoded
+        // form of &nbsp;), so a WYSIWYG editor's "empty" trailing paragraph
+        // (commonly just `<p>&nbsp;</p>`) survives every whitespace-collapse
+        // pass below untouched and shows up as extra dangling <br> breaks at
+        // the end of the question text. Folding it to a plain space here
+        // lets those paragraphs collapse away like any other blank one.
+        $cleaned = str_replace("\xc2\xa0", ' ', $cleaned);
+
+        // A multi-part STACK question's own authored HTML almost always uses
+        // <br>/<p>/<table><tr> to separate its parts visually — stripping
+        // every tag down to a single space (as the pass below does) threw
+        // that structure away entirely, collapsing a whole multi-part
+        // question into one unbroken run of text with no visual separation
+        // between parts at all. \x02 is a placeholder (not whitespace, so
+        // the \s+ collapse below can't eat it) standing in for a line break
+        // at each of these boundaries, turned into a real <br> right before
+        // returning — the caller assigns this text via innerHTML (see
+        // sections-renderer.js), so an actual <br> tag, not a bare "\n"
+        // character a browser would just render as whitespace, is what's
+        // needed for it to show as a visible break.
+        $cleaned = preg_replace('/<\s*br\s*\/?\s*>/i', "\x02", $cleaned);
+        $cleaned = preg_replace('/<\/\s*(p|tr|table|div|li)\s*>/i', "\x02", $cleaned);
         $cleaned = preg_replace('/<[^>]+>/', ' ', $cleaned);
-        return trim(preg_replace('/\s+/', ' ', $cleaned));
+        $cleaned = trim(preg_replace('/[^\S\x02]+/', ' ', $cleaned));
+        // Several structural boundaries in a row (e.g. </tr><tr>, or a
+        // blank line in the source) would otherwise become a run of several
+        // consecutive breaks — collapsed to exactly one, since a report is
+        // for scanning quickly, not preserving an author's exact blank-line
+        // spacing.
+        $cleaned = preg_replace('/\s*(?:\x02\s*)+/', "\x02", $cleaned);
+        $cleaned = trim($cleaned, " \x02");
+        return str_replace("\x02", '<br>', $cleaned);
     }
 
     /**

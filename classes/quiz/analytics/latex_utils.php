@@ -83,7 +83,28 @@ class latex_utils {
             "<em>(student's answer)</em>",
             $text
         );
-        return preg_replace('/\[\[feedback:\w+\]\]/', '', $cleaned);
+        // A [[validation:ansN]] tag that isn't immediately adjacent to its
+        // own [[input:ansN]] (real STACK authoring commonly puts other
+        // content — closing math delimiters, a unit label — between the
+        // two) never matched the combined pattern above, so it survived
+        // untouched: visible, confusing literal "[[validation:ans3]]" text
+        // in the rendered report. Strips whatever's left on its own.
+        $cleaned = preg_replace('/\[\[validation:\w+\]\]/', '', $cleaned);
+        $cleaned = preg_replace('/\[\[feedback:\w+\]\]/', '', $cleaned);
+        // Text arrives here already run through parser::clean_html_text(),
+        // which turned each <br>/</p>/</tr> boundary into exactly one <br>
+        // — but only where it could tell those boundaries apart. A
+        // [[validation:ansN]] or [[feedback:prtN]] tag sitting between two
+        // such boundaries (common right after a question's last input, e.g.
+        // "...<br>[[validation:ans14]]<br>[[feedback:prt14]]") counted as
+        // real content at that point, so the boundaries on either side of it
+        // stayed as two separate <br> instead of collapsing into one; once
+        // stripped above, the run of now-empty <br> tags is left dangling.
+        // Collapses any such run (blank ones in the middle, or hanging at
+        // either end) the same way clean_html_text() already does for
+        // ordinary HTML boundaries.
+        $cleaned = preg_replace('/\s*(?:<br\s*\/?>\s*)+/i', '<br>', $cleaned);
+        return trim(preg_replace('/^(?:<br>\s*)+|(?:<br>\s*)+$/i', '', $cleaned));
     }
 
     /**
@@ -513,7 +534,14 @@ class latex_utils {
             $expr = $m[2];
             $parts[] = "ans{$idx}: $" . self::maxima_expr_to_latex($expr) . '$';
         }
-        return implode('; ', $parts);
+        // One answer per line rather than a single "; "-joined run — a
+        // multi-part question can have a dozen-plus ansN values, and
+        // reading them off as one long line (in the "Right answer" section,
+        // and in each row of the error drill-down table) was hard to scan.
+        // Both consumers (sections-renderer.js's qText/aText/error-drilldown
+        // table cells) assign this through innerHTML, so a real <br> here
+        // renders as an actual line break, not literal text.
+        return implode('<br>', $parts);
     }
 
     /**

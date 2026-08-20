@@ -14,6 +14,39 @@ plugin by its merge-time component name, `local_stackquizanalytics`, and
 time; see [2.3.0] for why and when that settled on the current
 `local_quizanalytics`.
 
+## [2.4.3] — Fixed multi-part question text and answer readability
+
+Prompted by screenshots showing a multi-part STACK question rendering as one
+dense, unbroken paragraph with stray literal `[[validation:ansN]]` markup
+visible, and the Right Answer / error drill-down sections cramming every
+`ansN` value onto a single semicolon-joined line. Traced the full pipeline
+from raw STACK question HTML through to the browser (the shared
+`sections-renderer.js` assigns all of this via `innerHTML`, so a real `<br>`
+tag — not a bare newline character, which a browser just collapses as
+whitespace — is what actually produces a visible line break) and fixed three
+real bugs found along the way, all in `classes/quiz/analytics/`:
+
+- **`parser::clean_html_text()`** stripped every HTML tag down to a single
+  space, throwing away a multi-part question's own `<br>`/`<p>`/`<table>`
+  structure entirely and collapsing the whole thing into one unbroken run of
+  text. Now preserves those boundaries as real `<br>` breaks instead.
+- **`latex_utils::strip_stack_input_placeholders()`** only stripped a
+  `[[validation:ansN]]` tag when it sat immediately next to its own
+  `[[input:ansN]]` — real STACK authoring often puts other content (closing
+  math delimiters, a unit label) between the two, so those orphaned tags
+  survived as confusing literal text in the rendered question. Now stripped
+  regardless of position, with a follow-up pass that also collapses the
+  runs of now-empty `<br>` tags this can leave dangling.
+- **`latex_utils::extract_stack_answer_latex()`** joined a question's
+  multiple `ansN` values with `"; "` on a single line — hard to scan for a
+  question with a dozen-plus parts. Changed to one `ansN` per line, fixing
+  both the Right Answer section and every row of the error drill-down table
+  (both route through this one function).
+
+Verified against a real 14-part definite-integral question from an actual
+course (matching the reported screenshots) at every stage of the fix, not
+assumed correct from code reading alone.
+
 ## [2.4.2] — Fixed Model Analytics taking 5+ minutes on a real course, and two GitHub Actions CI failures
 
 Prompted by a request to verify every section of the plugin is actually
