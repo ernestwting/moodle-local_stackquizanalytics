@@ -177,6 +177,18 @@
     var CHART_SCROLL_HEIGHT_THRESHOLD = 500;
     var CHART_SCROLL_MAX_HEIGHT = 500;
 
+    // "Line Graph of Various Metrics" sets an explicit layout.width of
+    // 220px per quiz (question_analysis.php: max(800, 220 * $ncategories))
+    // so a course-wide view's per-quiz tick labels stay legible instead of
+    // overlapping — for a large course (dozens of quizzes) that easily runs
+    // past any reasonable page width. Without a bounding box, that stretched
+    // the whole page horizontally rather than just the one chart. This
+    // doesn't affect the PDF export's own chart capture: collectChartImages()
+    // below reads the inner chart div's own offsetWidth, which keeps its
+    // full intrinsic size regardless of an ancestor's overflow/max-width.
+    var CHART_SCROLL_WIDTH_THRESHOLD = 900;
+    var CHART_SCROLL_MAX_WIDTH = 900;
+
     function renderChart(root, chart, prefix) {
         if (!chart || !chart.plotly_json) {
             return;
@@ -200,10 +212,18 @@
         // "looks tiny" problem that height was set to fix.
         var isScene3d = !!(chart.plotly_json.layout && chart.plotly_json.layout.scene);
         var declaredHeight = chart.plotly_json.layout && chart.plotly_json.layout.height;
-        if (!isScene3d && declaredHeight && declaredHeight > CHART_SCROLL_HEIGHT_THRESHOLD) {
+        var declaredWidth = chart.plotly_json.layout && chart.plotly_json.layout.width;
+        var needsHeightScroll = !isScene3d && declaredHeight && declaredHeight > CHART_SCROLL_HEIGHT_THRESHOLD;
+        var needsWidthScroll = declaredWidth && declaredWidth > CHART_SCROLL_WIDTH_THRESHOLD;
+        if (needsHeightScroll || needsWidthScroll) {
             var scrollWrapper = document.createElement('div');
-            scrollWrapper.style.maxHeight = CHART_SCROLL_MAX_HEIGHT + 'px';
-            scrollWrapper.style.overflowY = 'auto';
+            if (needsHeightScroll) {
+                scrollWrapper.style.maxHeight = CHART_SCROLL_MAX_HEIGHT + 'px';
+                scrollWrapper.style.overflowY = 'auto';
+            }
+            if (needsWidthScroll) {
+                scrollWrapper.style.maxWidth = CHART_SCROLL_MAX_WIDTH + 'px';
+            }
             scrollWrapper.style.overflowX = 'auto';
             scrollWrapper.style.border = '1px solid #dee2e6';
             scrollWrapper.style.marginBottom = '2rem';

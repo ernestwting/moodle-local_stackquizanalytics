@@ -72,6 +72,7 @@ $string['nostackquestions']     = 'This quiz has no STACK questions to visualize
 $string['nostackquizzes']       = 'This course has no STACK quizzes yet, or none have finished attempts.';
 $string['pagetitle']            = 'Quiz analytics';
 $string['pdfchartunavailable']  = '{$a}: chart image unavailable (not captured from the page).';
+$string['pdfdownloadnotice']    = 'Generating this PDF may take a while for a large course. Please wait for the download to finish.';
 $string['pdferror']           = 'The PDF report could not be generated. Contact your Moodle administrator.';
 $string['pdfnosections']        = 'No sections were selected for this report.';
 $string['pdfquizsubtitle']        = 'Combined across every STACK quiz in the course';

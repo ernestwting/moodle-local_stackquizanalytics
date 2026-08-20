@@ -49,6 +49,18 @@ class pdf_builder {
     /** @var float Chart images are scaled to fit within this max height, matching pdf_export.py's layout. */
     const MAX_CHART_HEIGHT_MM = 90.0;
 
+    /**
+     * A captured chart PNG wider than this (in its own source pixels) gets
+     * a landscape page instead of portrait. "Line Graph of Various Metrics"
+     * (see quiz_metrics::build_line_graph_figure()) grows ~220px per quiz
+     * with no upper bound, so a large course's chart, force-shrunk to fit
+     * one portrait page's ~178mm usable width the way every other chart is,
+     * would print with its per-quiz tick labels shrunk well past legible.
+     * 1400px is comfortably above what a normal-size course's charts
+     * capture at (typically 800-900px, the on-screen container width).
+     */
+    const WIDE_CHART_PIXEL_WIDTH = 1400;
+
     /** @var array<string, float> Column-width weighting, matching pdf_export.py's _compute_column_widths. */
     const NARROW_COLUMN_WEIGHTS = [
         'question' => 0.55, 'score' => 0.45, 'status' => 0.6,
@@ -272,31 +284,53 @@ class pdf_builder {
     private static function render_chart(quizanalytics_tcpdf $pdf, array $chart, array $chartimages): void {
         $datauri = $chartimages[$chart['id']] ?? null;
 
+        // Decoded and size-checked up front, before the title below is
+        // drawn: whether this chart needs a landscape page has to be known
+        // before the title is placed, not just before the image, or writing
+        // the title to the current (portrait) page and only then switching
+        // pages for the image would orphan the title alone at the bottom of
+        // the previous page, disconnected from its own chart.
+        $imagedata = null;
+        $imageinfo = false;
+        if ($datauri !== null && preg_match('#^data:image/(png|jpe?g);base64,(.+)$#s', $datauri, $m)) {
+            $decoded = base64_decode($m[2]);
+            if ($decoded !== false && strlen($decoded) > 0) {
+                $imagedata = $decoded;
+                $imageinfo = @getimagesizefromstring($decoded);
+            }
+        }
+        // A landscape page's own usable width (~36% more than portrait's on
+        // LETTER) gives an unusually wide chart real extra room before it's
+        // still shrunk to fit, same as every other chart. TCPDF reuses
+        // whichever orientation the last AddPage() call set for every page
+        // after it, so a fresh portrait page right after this chart (below)
+        // restores it for whatever content follows — self-contained to this
+        // one chart rather than requiring every other AddPage() call site
+        // in this file to track/pass an explicit orientation.
+        $waswidelandscape = $imageinfo !== false && $imageinfo[0] > self::WIDE_CHART_PIXEL_WIDTH;
+        if ($waswidelandscape) {
+            $pdf->AddPage('L');
+        }
+
         if ($chart['title']) {
             $pdf->SetFont('dejavusans', 'I', 8.5);
             $pdf->SetTextColor(0x64, 0x74, 0x8b);
             $pdf->MultiCell(0, 4, $chart['title'], 0, 'L');
         }
 
-        if ($datauri === null || !preg_match('#^data:image/(png|jpe?g);base64,(.+)$#s', $datauri, $m)) {
+        if ($imagedata === null || $imageinfo === false) {
             $pdf->SetFont('dejavusans', 'I', 9);
             $pdf->SetTextColor(0xb4, 0x54, 0x54);
             $label = $chart['title'] ?: $chart['id'];
             $pdf->MultiCell(0, 5, get_string('pdfchartunavailable', 'local_quizanalytics', $label), 0, 'L');
-            return;
-        }
-
-        $imagedata = base64_decode($m[2]);
-        if ($imagedata === false || strlen($imagedata) === 0) {
-            return;
-        }
-
-        $usablewidth = $pdf->getPageWidth() - $pdf->getMargins()['left'] - $pdf->getMargins()['right'];
-        $imageinfo = @getimagesizefromstring($imagedata);
-        if ($imageinfo === false) {
+            if ($waswidelandscape) {
+                $pdf->AddPage('P');
+            }
             return;
         }
         [$pxwidth, $pxheight] = $imageinfo;
+
+        $usablewidth = $pdf->getPageWidth() - $pdf->getMargins()['left'] - $pdf->getMargins()['right'];
         $drawwidth = $usablewidth;
         $drawheight = $pxheight * ($drawwidth / $pxwidth);
         if ($drawheight > self::MAX_CHART_HEIGHT_MM) {
@@ -305,7 +339,7 @@ class pdf_builder {
             $drawheight *= $shrink;
         }
 
-        if ($pdf->GetY() + $drawheight > $pdf->getPageHeight() - $pdf->getMargins()['bottom']) {
+        if (!$waswidelandscape && $pdf->GetY() + $drawheight > $pdf->getPageHeight() - $pdf->getMargins()['bottom']) {
             $pdf->AddPage();
         }
         // TCPDF's Image() never advances the page cursor itself (unlike
@@ -318,5 +352,8 @@ class pdf_builder {
         $y = $pdf->GetY();
         $pdf->Image('@' . $imagedata, $pdf->GetX(), $y, $drawwidth, $drawheight, '', '', '', true, 300);
         $pdf->SetY($y + $drawheight + 4);
+        if ($waswidelandscape) {
+            $pdf->AddPage('P');
+        }
     }
 }

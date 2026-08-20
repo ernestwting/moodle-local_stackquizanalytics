@@ -457,6 +457,7 @@ class sections_output_helper {
             ]);
             $html .= ' ' . \html_writer::label($label, $id) . \html_writer::empty_tag('br');
         }
+        $html .= \html_writer::tag('p', \get_string('pdfdownloadnotice', 'local_quizanalytics'), ['class' => 'text-muted mt-2 mb-0']);
         $html .= \html_writer::empty_tag('input', [
             'type' => 'submit', 'value' => $buttonlabel, 'class' => 'btn btn-primary mt-2',
         ]);

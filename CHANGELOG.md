@@ -14,6 +14,29 @@ plugin by its merge-time component name, `local_stackquizanalytics`, and
 time; see [2.3.0] for why and when that settled on the current
 `local_quizanalytics`.
 
+## [2.4.6] — Added a PDF download-time notice, and fixed large-course chart rendering
+
+- All four sections' "Generate PDF" forms now show a short notice ("Generating
+  this PDF may take a while for a large course...") right above the download
+  button, so a slow download on a large course doesn't read as broken.
+- The course-wide "Line Graph of Various Metrics" chart's width scales with
+  the number of quizzes (~220px each, no upper bound — see
+  quiz_metrics::build_line_graph_figure()), which on a large course:
+  - **On screen**, stretched the whole page horizontally instead of just the
+    chart, with no way to scroll just that one chart into view. Now wrapped
+    in the same horizontally-scrollable box already used for unusually tall
+    charts (the Student Performance Matrix heatmap), once a chart's declared
+    width crosses a threshold.
+  - **In the PDF**, every chart is force-shrunk to fit one portrait page's
+    ~178mm usable width, which for a wide, many-quiz chart shrank its
+    per-quiz tick labels well past legible. A chart captured wider than
+    1400px now gets a dedicated landscape page instead (~36% more usable
+    width on LETTER), with a fresh portrait page immediately after to
+    restore orientation for whatever follows — verified end-to-end (a
+    normal-width and an artificially wide chart through the real PDF
+    builder) that the wide chart's page, and only that page, actually comes
+    out landscape in the generated PDF's own page dimensions.
+
 ## [2.4.5] — Fixed course-wide charts plotting quizzes out of chronological order
 
 The course-wide view's charts 3 through 6 (Quiz Grade Distribution box plot,

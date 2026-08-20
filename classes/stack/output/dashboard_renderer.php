@@ -560,6 +560,7 @@ class dashboard_renderer {
             );
         }
 
+        $html .= \html_writer::tag('p', get_string('pdfdownloadnotice', 'local_quizanalytics'), ['class' => 'text-muted mt-2 mb-0']);
         $html .= \html_writer::empty_tag('input', [
             'type' => 'submit',
             'value' => get_string('downloadpdfbutton', 'local_quizanalytics'),
