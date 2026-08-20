@@ -169,7 +169,10 @@ if ($view === 'question') {
             // background task and let the visitor come back to a warm
             // cache instead of blocking this request on it.
             \local_quizanalytics\task\warm_single_view_adhoc_task::dispatch_for_quiz($selectedquiz->id, $colorblind, $anonymize);
-            sections_output_helper::render_generating_in_background_notice();
+            $age = \local_quizanalytics\task\warm_single_view_adhoc_task::get_queued_age_seconds([
+                'type' => 'quiz', 'id' => $selectedquiz->id, 'colorblind' => $colorblind, 'anonymize' => $anonymize,
+            ]);
+            sections_output_helper::render_generating_in_background_notice($age);
             echo $OUTPUT->footer();
             exit;
         }
@@ -218,7 +221,10 @@ if ($view === 'question') {
     if ($meta === false) {
         if (sections_output_helper::should_defer_to_background($stats->count)) {
             \local_quizanalytics\task\warm_single_view_adhoc_task::dispatch_for_quiz_meta($selectedquiz->id, $anonymize);
-            sections_output_helper::render_generating_in_background_notice();
+            $age = \local_quizanalytics\task\warm_single_view_adhoc_task::get_queued_age_seconds([
+                'type' => 'quizmeta', 'id' => $selectedquiz->id, 'anonymize' => $anonymize,
+            ]);
+            sections_output_helper::render_generating_in_background_notice($age);
             echo $OUTPUT->footer();
             exit;
         }

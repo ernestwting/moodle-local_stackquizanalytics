@@ -182,7 +182,10 @@ if ($result === false) {
         // Hand it to a background task and let the visitor come back to a
         // warm cache instead of blocking this request on it.
         \local_quizanalytics\task\warm_single_view_adhoc_task::dispatch_for_course($courseid, $gradetype, $colorblind, $anonymize);
-        sections_output_helper::render_generating_in_background_notice();
+        $age = \local_quizanalytics\task\warm_single_view_adhoc_task::get_queued_age_seconds([
+            'type' => 'course', 'id' => $courseid, 'gradetype' => $gradetype, 'colorblind' => $colorblind, 'anonymize' => $anonymize,
+        ]);
+        sections_output_helper::render_generating_in_background_notice($age);
         echo $OUTPUT->footer();
         exit;
     }

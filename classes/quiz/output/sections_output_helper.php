@@ -145,8 +145,29 @@ class sections_output_helper {
      * flush_computing_notice() (which precedes an inline compute that
      * really will finish on this same request) there is nothing to wait
      * for here; the visitor needs to come back to this page later.
+     *
+     * Distinguishes a task still working normally from one that's been
+     * queued suspiciously long (see warm_single_view_adhoc_task::
+     * STALE_SECONDS/get_queued_age_seconds()) — the same calm "come back
+     * in a few minutes" notice shown indefinitely for a task that's
+     * actually stuck (no cron running at all, a crashed worker, one stuck
+     * in a fail-delay retry loop) would leave an admin with nothing to go
+     * on beyond "the page never finishes loading."
+     *
+     * @param int|null $queuedagesecs from
+     *        warm_single_view_adhoc_task::get_queued_age_seconds() for the
+     *        exact view being requested — null if that couldn't be
+     *        determined (falls back to the ordinary notice rather than
+     *        risking a false "stuck" warning).
      */
-    public static function render_generating_in_background_notice(): void {
+    public static function render_generating_in_background_notice(?int $queuedagesecs = null): void {
+        if ($queuedagesecs !== null && $queuedagesecs > \local_quizanalytics\task\warm_single_view_adhoc_task::STALE_SECONDS) {
+            echo \html_writer::div(
+                get_string('generatingstale', 'local_quizanalytics', format_time($queuedagesecs)),
+                'alert alert-warning'
+            );
+            return;
+        }
         echo \html_writer::div(
             get_string('generatinginbackground', 'local_quizanalytics'),
             'alert alert-info'

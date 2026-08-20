@@ -83,6 +83,23 @@ require_once($CFG->dirroot . '/local/quizanalytics/classes/task/parallel_course_
  */
 class warm_single_view_adhoc_task extends \core\task\adhoc_task {
     /**
+     * How long a matching queued task can sit unstarted/unfinished before
+     * get_queued_age_seconds()'s caller should stop showing the ordinary
+     * "come back in a few minutes" notice and show an honest "this looks
+     * stuck" one instead. A flat cap rather than a multiple of the
+     * background-compute threshold (local_quizanalytics/backgroundthreshold)
+     * on purpose — that threshold is an *attempt count*, not a time
+     * estimate, and per-attempt cost is genuinely question-complexity- and
+     * host-dependent (see that setting's own description), so there's no
+     * reliable way to turn it into an expected-runtime figure. Every real
+     * full-course cold run measured this session, at any tested scale, has
+     * finished well inside this — a task still queued past it on a real
+     * site most likely means cron isn't running at all, or the task
+     * crashed/was OOM-killed and is sitting in a fail-delay backoff.
+     */
+    const STALE_SECONDS = 900;
+
+    /**
      * Queues (or, if an identical request is already queued, reuses) a
      * background compute of one quiz's Question Analytics/Solution Process
      * view for the given display options.
@@ -92,14 +109,12 @@ class warm_single_view_adhoc_task extends \core\task\adhoc_task {
      * @param bool $anonymize
      */
     public static function dispatch_for_quiz(int $quizid, bool $colorblind, bool $anonymize): void {
-        $task = new self();
-        $task->set_custom_data((object) [
+        self::dispatch([
             'type' => 'quiz',
             'id' => $quizid,
             'colorblind' => $colorblind,
             'anonymize' => $anonymize,
         ]);
-        \core\task\manager::queue_adhoc_task($task, true);
     }
 
     /**
@@ -114,13 +129,11 @@ class warm_single_view_adhoc_task extends \core\task\adhoc_task {
      * @param bool $anonymize
      */
     public static function dispatch_for_quiz_meta(int $quizid, bool $anonymize): void {
-        $task = new self();
-        $task->set_custom_data((object) [
+        self::dispatch([
             'type' => 'quizmeta',
             'id' => $quizid,
             'anonymize' => $anonymize,
         ]);
-        \core\task\manager::queue_adhoc_task($task, true);
     }
 
     /**
@@ -133,15 +146,63 @@ class warm_single_view_adhoc_task extends \core\task\adhoc_task {
      * @param bool $anonymize
      */
     public static function dispatch_for_course(int $courseid, string $gradetype, bool $colorblind, bool $anonymize): void {
-        $task = new self();
-        $task->set_custom_data((object) [
+        self::dispatch([
             'type' => 'course',
             'id' => $courseid,
             'gradetype' => $gradetype,
             'colorblind' => $colorblind,
             'anonymize' => $anonymize,
         ]);
+    }
+
+    /**
+     * @param array $customdata
+     */
+    private static function dispatch(array $customdata): void {
+        $task = new self();
+        $task->set_custom_data((object) $customdata);
         \core\task\manager::queue_adhoc_task($task, true);
+    }
+
+    /**
+     * How long (in seconds) a task matching $customdata has been sitting in
+     * the adhoc task queue, or null if no matching task is currently
+     * queued — either it's never been dispatched, or it already completed
+     * and was removed (Moodle deletes an adhoc task's own row on success).
+     * Used by index.php/questionanalytics.php to tell a genuinely stuck
+     * dispatch (see STALE_SECONDS) apart from one that's just still
+     * working normally.
+     *
+     * Re-derives \core\task\manager::get_queued_adhoc_task_record()'s own
+     * matching logic directly (classname + component + exact customdata)
+     * since that method is protected — there's no public "peek without
+     * dispatching" API to call instead.
+     *
+     * @param array $customdata must exactly match what the corresponding
+     *        dispatch_for_*() call above would pass — same keys, same
+     *        value types (bool/int/string, matching json_encode() output).
+     * @return int|null
+     */
+    public static function get_queued_age_seconds(array $customdata): ?int {
+        global $DB;
+
+        $task = new self();
+        $task->set_custom_data((object) $customdata);
+        $encoded = $task->get_custom_data_as_string();
+
+        $sql = 'classname = ? AND component = ? AND '
+            . $DB->sql_compare_text('customdata', \core_text::strlen($encoded) + 1) . ' = ?';
+        $record = $DB->get_record_select(
+            'task_adhoc',
+            $sql,
+            [\core\task\manager::get_canonical_class_name($task), $task->get_component(), $encoded],
+            'timecreated'
+        );
+
+        if (!$record) {
+            return null;
+        }
+        return time() - (int) $record->timecreated;
     }
 
     /**

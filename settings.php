@@ -51,6 +51,32 @@ if ($hassiteconfig) {
     );
     $ADMIN->add('localplugins', $settings);
 
+    // Cron-status banner: this plugin's cache-warming scheduled task and
+    // its on-demand background-compute safeguard (warm_single_view_adhoc_task
+    // — see that class's own docblock) both depend entirely on Moodle's
+    // cron actually running; a site with cron broken or missing doesn't
+    // get a slow version of either, it gets a Quiz/Question Analytics page
+    // that shows "generating in the background" and never resolves. Reuses
+    // core's own tool_task cron-health check (the same one Site
+    // administration's Server status page already surfaces) rather than
+    // re-deriving lastcronstart/expectedcronfrequency logic here — this is
+    // just a more prominent, plugin-specific place to see it, not a
+    // separate source of truth.
+    require_once($CFG->dirroot . '/admin/tool/task/classes/check/cronrunning.php');
+    $cronresult = (new \tool_task\check\cronrunning())->get_result();
+    if ($cronresult->get_status() !== \core\check\result::OK) {
+        $alertclass = $cronresult->get_status() === \core\check\result::CRITICAL ? 'alert-danger' : 'alert-warning';
+        $settings->add(new admin_setting_heading(
+            'local_quizanalytics/cronstatus',
+            get_string('cronstatusheading', 'local_quizanalytics'),
+            html_writer::div(
+                html_writer::tag('strong', get_string('cronstatuswarning', 'local_quizanalytics')) . ' '
+                    . s($cronresult->get_summary()),
+                'alert ' . $alertclass
+            )
+        ));
+    }
+
     $settings->add(new admin_setting_configtext(
         'local_quizanalytics/computetimelimit',
         get_string('computetimelimit', 'local_quizanalytics'),
