@@ -212,7 +212,6 @@ class warm_single_view_adhoc_task extends \core\task\adhoc_task {
         return get_string('task:warmsingleview', 'local_quizanalytics');
     }
 
-    #[\Override]
     public function execute(): void {
         // A course-wide view can need every one of a course's quizzes'
         // full response records in memory at once (see

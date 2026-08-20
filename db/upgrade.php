@@ -47,6 +47,8 @@ function xmldb_local_quizanalytics_upgrade($oldversion) {
             set_config('parallelworkers', $recommendation['workers'], 'local_quizanalytics');
         }
         set_config('resourcedetectionrun', time(), 'local_quizanalytics');
+
+        upgrade_plugin_savepoint(true, 2026082002, 'local', 'quizanalytics');
     }
 
     return true;
