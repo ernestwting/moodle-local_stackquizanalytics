@@ -32,6 +32,7 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot . '/mod/quiz/locallib.php');
 require_once($CFG->dirroot . '/question/engine/lib.php');
+require_once($CFG->dirroot . '/local/quizanalytics/classes/quiz/cache_helper.php');
 
 /**
  * Fetches quiz/course attempt records from Moodle's own DB tables for the analytics package to consume.
@@ -248,6 +249,40 @@ class local_quizanalytics_quiz_data_fetcher {
             gc_collect_cycles();
         }
 
+        return $records;
+    }
+
+    /**
+     * Same as get_response_records_for_quiz(), but backed by a short-lived
+     * cache (see db/caches.php's own 'rawrecords' area) keyed on the same
+     * attempt-fingerprint pattern this plugin already uses for its
+     * *computed* result caches — this one caches the raw fetch itself.
+     *
+     * Exists specifically to bridge questionanalytics.php (which fetches
+     * these records to build the on-screen view) and
+     * questionanalyticspdf.php (a separate later request when a visitor
+     * clicks "Download PDF" from that same page) — confirmed directly that
+     * PDF generation was always re-fetching every record from scratch even
+     * though the exact same quiz's exact same records had just been
+     * fetched, moments earlier, to render the page the PDF button appears
+     * on. Deliberately a short TTL (300s, not the 3600s this plugin's
+     * *result* caches use) — this is meant to catch "the same visitor,
+     * moments later," not to serve as a long-lived cache for records that
+     * are considerably larger than an already-computed result.
+     *
+     * @param stdClass $quiz
+     * @param stdClass $course
+     * @param string $fingerprint from local_quizanalytics_quiz_cache_helper::stats_for_quiz($quiz)
+     * @return array
+     */
+    public static function get_response_records_for_quiz_cached(stdClass $quiz, stdClass $course, string $fingerprint): array {
+        $cache = \cache::make('local_quizanalytics', 'rawrecords');
+        $key = \local_quizanalytics_quiz_cache_helper::build_key($quiz->id, $fingerprint);
+        $records = $cache->get($key);
+        if ($records === false) {
+            $records = self::get_response_records_for_quiz($quiz, $course);
+            $cache->set($key, $records);
+        }
         return $records;
     }
 

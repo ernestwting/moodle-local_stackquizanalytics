@@ -42,6 +42,7 @@ require_once(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/filelib.php'); // Send_file() lives here, not autoloaded for a lean entry point like this.
 require_once($CFG->dirroot . '/local/quizanalytics/classes/quiz/data_fetcher.php');
 require_once($CFG->dirroot . '/local/quizanalytics/classes/quiz/api_client.php');
+require_once($CFG->dirroot . '/local/quizanalytics/classes/quiz/cache_helper.php');
 
 $courseid = required_param('id', PARAM_INT);
 $kind     = required_param('kind', PARAM_ALPHA); // Expected: question or solutionprocess.
@@ -99,7 +100,12 @@ if (!$selectedquiz) {
     throw new \moodle_exception('nostackquizzes', 'local_quizanalytics');
 }
 
-$records = local_quizanalytics_quiz_data_fetcher::get_response_records_for_quiz($selectedquiz, $course);
+// Reuses whatever questionanalytics.php already fetched (and cached) for
+// this exact quiz, moments earlier, to render the page this PDF button
+// appears on — see get_response_records_for_quiz_cached()'s own comment
+// for why this route previously always re-fetched from scratch.
+$stats = local_quizanalytics_quiz_cache_helper::stats_for_quiz($selectedquiz);
+$records = local_quizanalytics_quiz_data_fetcher::get_response_records_for_quiz_cached($selectedquiz, $course, $stats->fingerprint);
 if (empty($records)) {
     throw new \moodle_exception('noattempts', 'local_quizanalytics');
 }

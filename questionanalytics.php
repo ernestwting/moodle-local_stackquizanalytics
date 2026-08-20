@@ -137,8 +137,12 @@ if ($stats->count === 0) {
 }
 
 $records = null;
-$fetchrecords = function () use (&$records, $selectedquiz, $course): array {
-    return $records ??= local_quizanalytics_quiz_data_fetcher::get_response_records_for_quiz($selectedquiz, $course);
+$fetchrecords = function () use (&$records, $selectedquiz, $course, $stats): array {
+    return $records ??= local_quizanalytics_quiz_data_fetcher::get_response_records_for_quiz_cached(
+        $selectedquiz,
+        $course,
+        $stats->fingerprint
+    );
 };
 
 // The "View:" sub-selector — only the selected view's data is ever
