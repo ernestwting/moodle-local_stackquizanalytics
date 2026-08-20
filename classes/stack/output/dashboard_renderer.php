@@ -64,6 +64,27 @@ class dashboard_renderer {
     ];
 
     /**
+     * Echoes a "this may take a little time" notice and pushes it to the
+     * browser immediately, before Model 1/Model 2's own report::build()
+     * calls — unlike Quiz/Question Analytics, these have no result cache to
+     * hit (every view recomputes), so a large course's real compute time
+     * (Model 1 alone measured up to ~17s on a real 38-quiz course) would
+     * otherwise leave a visitor looking at a blank tab with no indication
+     * anything is happening. Same purely-cosmetic flush pattern as
+     * sections_output_helper::flush_computing_notice().
+     */
+    public static function flush_computing_notice(): void {
+        echo \html_writer::div(
+            \get_string('largecoursenotice', 'local_quizanalytics'),
+            'alert alert-info'
+        );
+        if (\ob_get_level() > 0) {
+            @\ob_flush();
+        }
+        \flush();
+    }
+
+    /**
      * The collapsible "About this model" panel for Model 1 — the architecture
      * doc's §2.1-2.6 content (target, indicator catalog, time-splitting,
      * evaluation), in plain language, kept out of the main table so the page

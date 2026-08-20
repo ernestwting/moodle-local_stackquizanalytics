@@ -139,6 +139,7 @@ $string['courseselectorlabel'] = 'Course:';
 $string['quizselectorlabel'] = 'Quiz:';
 $string['viewselectorlabel'] = 'View:';
 $string['allquizzes'] = 'All Quizzes';
+$string['largecoursenotice'] = 'This may take a little time to load for a large course. Please wait for the results below.';
 $string['seedbiasheading'] = 'Seed bias (one-way ANOVA across random seeds)';
 $string['bloatedtreeheading'] = 'PRT branch coverage';
 $string['seedgroups'] = 'Distinct seeds observed';

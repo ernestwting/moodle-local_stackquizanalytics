@@ -14,6 +14,30 @@ plugin by its merge-time component name, `local_stackquizanalytics`, and
 time; see [2.3.0] for why and when that settled on the current
 `local_quizanalytics`.
 
+## [2.4.7] — Made toggle placement consistent, added the missing large-course notice
+
+Compared all four sections' headers (course/quiz selectors, colorblind/
+anonymize toggles, warnings) side by side. Quiz Analytics and Question
+Analytics already agreed: selectors, then toggles, then the section's own
+heading. Two real inconsistencies found and fixed:
+
+- Model Analytics' anonymize toggle was rendered *after* the Model 1 heading
+  and intro text, buried inside the Model 1-only content block, instead of
+  up with the other selectors/toggles like every other section — meaning it
+  moved position (and vanished from view) depending which view you were on.
+  Now sits right after the View selector, before any section-specific
+  content, still shown only for Model 1 (Model 2's table has no student
+  names to anonymize, so it correctly has no toggle at all).
+- Quiz Analytics and Question Analytics show a "this may take a while"
+  notice before a cold-cache compute; Model Analytics and Diagnostics
+  Analytics never had an equivalent, so a slow load on a large course (Model
+  1 alone measured up to ~17s on a real 38-quiz course) looked identical to
+  a hung page. Added the same flush-before-compute notice to both.
+
+Verified all three affected pages (Model 1, Model 2, Diagnostics) render
+without errors and in the intended order via a real authenticated request
+against actual course data, not just a syntax check.
+
 ## [2.4.6] — Added a PDF download-time notice, and fixed large-course chart rendering
 
 - All four sections' "Generate PDF" forms now show a short notice ("Generating

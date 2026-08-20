@@ -136,7 +136,8 @@ $quizid = optional_param('quizid', 0, PARAM_INT);
 // Shares its user preference and lang string with Quiz Analytics's own
 // anonymize toggle (classes/quiz/output/sections_output_helper.php) — one
 // teacher preference for anonymization across every section of this
-// plugin, not a separate on/off switch per page.
+// plugin, not a separate on/off switch per page. Only meaningful on Model 1
+// (Model 2's table is per-question, with no student names to anonymize).
 $anonymizeparam = optional_param('anonymize', null, PARAM_INT);
 if ($anonymizeparam !== null) {
     set_user_preference('local_quizanalytics_anonymize', (bool) $anonymizeparam);
@@ -145,11 +146,13 @@ if ($anonymizeparam !== null) {
     $anonymize = (bool) get_user_preferences('local_quizanalytics_anonymize', false);
 }
 
+// Positioned right after the view selector (and before the
+// "Responsible use" panel/section-specific heading below), matching where
+// Quiz Analytics and Question Analytics show their own colorblind/anonymize
+// toggles relative to their course/quiz selectors — previously this sat
+// after the Model 1 heading and intro text instead, moving position
+// depending which view/section a teacher was on.
 if ($view === 'model1') {
-    echo $OUTPUT->heading(get_string('model1heading', 'local_quizanalytics'), 3);
-    echo html_writer::tag('p', get_string('model1intro', 'local_quizanalytics'));
-    echo dashboard_renderer::render_model1_about();
-
     echo html_writer::start_tag('form', [
         'method' => 'get', 'action' => $PAGE->url->out_omit_querystring(), 'class' => 'mb-3',
     ]);
@@ -176,7 +179,14 @@ if ($view === 'model1') {
         'class' => 'btn btn-secondary btn-sm ml-2',
     ]);
     echo html_writer::end_tag('form');
+}
 
+if ($view === 'model1') {
+    echo $OUTPUT->heading(get_string('model1heading', 'local_quizanalytics'), 3);
+    echo html_writer::tag('p', get_string('model1intro', 'local_quizanalytics'));
+    echo dashboard_renderer::render_model1_about();
+
+    dashboard_renderer::flush_computing_notice();
     echo dashboard_renderer::render_model1_table(model1_report::build($courseid), $anonymize);
 } else {
     $quiznames = $DB->get_records_menu('quiz', ['course' => $courseid], '', 'id, name');
@@ -213,6 +223,7 @@ if ($view === 'model1') {
     echo $OUTPUT->heading(get_string('model2heading', 'local_quizanalytics'), 3);
     echo html_writer::tag('p', get_string('model2intro', 'local_quizanalytics'));
     echo dashboard_renderer::render_model2_about();
+    dashboard_renderer::flush_computing_notice();
     echo dashboard_renderer::render_model2_table(model2_report::build($courseid, $quizid !== 0 ? $quizid : null));
 }
 

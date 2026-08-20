@@ -162,6 +162,7 @@ echo html_writer::tag(
     ['class' => 'mb-3']
 );
 
+dashboard_renderer::flush_computing_notice();
 echo dashboard_renderer::render_diagnostics_section(diagnostics_report::build($courseid, $quizid !== 0 ? $quizid : null));
 
 echo dashboard_renderer::render_pdf_form(
