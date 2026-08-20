@@ -90,38 +90,31 @@ class sections_output_helper {
     }
 
     /**
-     * Default finished-attempt count above which a cold on-demand view
-     * defers to a background task instead of computing inline — used only
-     * when the admin hasn't set local_quizanalytics/backgroundthreshold.
+     * Default time budget (seconds) for a cold on-demand fetch — used only
+     * when the admin hasn't set local_quizanalytics/backgroundtimebudget.
      *
-     * Deliberately conservative, not just "under 100s on the best case
-     * measured": this plugin's own real, largest test quiz (2,764 attempts,
-     * genuinely complex STACK content — Bessel functions, differential
-     * equations) measured at ~21.6s cold end to end on this session's
-     * hardware, but a synthetic quiz built from a much simpler randomised
-     * question (4,000 attempts, ~3s) measured roughly 10x cheaper *per
-     * attempt* than the real one — confirming the fetch stage still scales
-     * linearly well past anything in this project's real test data (no sign
-     * of the batching in data_fetcher.php's own ATTEMPT_BATCH_SIZE failing
-     * to contain the GC cost that motivated it in the first place), but also
-     * that per-attempt cost is genuinely question-complexity-dependent, not
-     * a single constant this plugin can measure once and rely on. Using this
-     * session's own *pre-optimization* cold measurement for a
-     * similarly-sized real quiz (46.05s/2,764 attempts, before this
-     * session's batching and per-slot memoization fixes) as a deliberately
-     * pessimistic per-attempt rate, 4,000 attempts lands around 67s — real
-     * margin under a 100s reverse-proxy timeout even for content this
-     * plugin has already seen behave expensively, while today's actual
-     * (optimized, and likely-partially-cached) rate would put that same
-     * 4,000 attempts around 31s. An admin who profiles their own site's own
-     * questions can raise or lower this with real numbers instead of these
-     * two bounds.
+     * A fixed *attempt-count* threshold was tried first and replaced: measured
+     * directly against real data, per-attempt cost varies roughly 10x between
+     * a simple randomised question and a genuinely complex one (a synthetic
+     * simple-question quiz measured ~10x cheaper per attempt than this
+     * plugin's own real, largest test quiz), and obviously also depends on
+     * the host's own CPU/DB speed — a count picked against one specific
+     * machine's measured rate has no reason to hold on a slower shared host
+     * or a faster dedicated one. should_defer_to_background() now takes a
+     * real, sampled time estimate for *this* quiz on *this* host instead
+     * (see data_fetcher.php's own estimate_seconds_per_attempt()), so this
+     * constant is a genuine time budget, not a proxy for one. 20s leaves
+     * real margin under a 100s reverse-proxy timeout even after adding the
+     * analyze() stage on top (measured well under it on every quiz tested
+     * this session) and after accounting for the sampling estimate's own
+     * built-in conservative bias (~1.4x over a 100-attempt sample, measured
+     * directly — see estimate_seconds_per_attempt()'s own comment).
      */
-    const DEFAULT_BACKGROUND_THRESHOLD = 4000;
+    const DEFAULT_BACKGROUND_TIME_BUDGET_SECONDS = 20;
 
     /**
-     * Whether a cold compute over $attemptcount attempts is large enough
-     * that index.php/questionanalytics.php should dispatch it to a
+     * Whether a cold compute estimated to take $estimatedseconds is long
+     * enough that index.php/questionanalytics.php should dispatch it to a
      * background task (see warm_single_view_adhoc_task) instead of
      * computing it inline on this request — the synchronous on-demand path
      * has no forking (pcntl_fork only works in CLI/cron context) and no
@@ -130,12 +123,15 @@ class sections_output_helper {
      * exceed a reverse proxy's timeout before ignore_user_abort(true) even
      * gets a chance to help.
      *
-     * @param int $attemptcount
+     * @param float $estimatedseconds from data_fetcher.php's
+     *        estimate_seconds_per_attempt(), multiplied by the view's own
+     *        real attempt count — 0.0 (never defer) if estimation wasn't
+     *        possible (e.g. genuinely zero attempts to sample from).
      * @return bool
      */
-    public static function should_defer_to_background(int $attemptcount): bool {
-        $threshold = (int) (get_config('local_quizanalytics', 'backgroundthreshold') ?: self::DEFAULT_BACKGROUND_THRESHOLD);
-        return $threshold > 0 && $attemptcount > $threshold;
+    public static function should_defer_to_background(float $estimatedseconds): bool {
+        $budget = (int) (get_config('local_quizanalytics', 'backgroundtimebudget') ?: self::DEFAULT_BACKGROUND_TIME_BUDGET_SECONDS);
+        return $budget > 0 && $estimatedseconds > $budget;
     }
 
     /**

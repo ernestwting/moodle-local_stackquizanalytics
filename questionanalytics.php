@@ -161,7 +161,13 @@ if ($view === 'question') {
     );
     $result = $qacache->get($qakey);
     if ($result === false) {
-        if (sections_output_helper::should_defer_to_background($stats->count)) {
+        // Times a real, small sample fetch for this quiz on this host —
+        // see estimate_seconds_per_attempt()'s own comment for why a fixed
+        // attempt-count threshold doesn't generalize across question
+        // complexity or host speed the way an actual measured rate does.
+        $samplerate = local_quizanalytics_quiz_data_fetcher::estimate_seconds_per_attempt($selectedquiz, $course);
+        $estimatedseconds = $samplerate !== null ? $samplerate * $stats->count : 0.0;
+        if (sections_output_helper::should_defer_to_background($estimatedseconds)) {
             // This quiz is large enough that a cold compute risks outliving
             // a reverse proxy's own timeout before ignore_user_abort(true)
             // below would even get a chance to help — see
@@ -219,7 +225,9 @@ if ($view === 'question') {
     $metakey = local_quizanalytics_quiz_cache_helper::build_key($selectedquiz->id, $stats->fingerprint, $anonymize);
     $meta = $metacache->get($metakey);
     if ($meta === false) {
-        if (sections_output_helper::should_defer_to_background($stats->count)) {
+        $samplerate = local_quizanalytics_quiz_data_fetcher::estimate_seconds_per_attempt($selectedquiz, $course);
+        $estimatedseconds = $samplerate !== null ? $samplerate * $stats->count : 0.0;
+        if (sections_output_helper::should_defer_to_background($estimatedseconds)) {
             \local_quizanalytics\task\warm_single_view_adhoc_task::dispatch_for_quiz_meta($selectedquiz->id, $anonymize);
             $age = \local_quizanalytics\task\warm_single_view_adhoc_task::get_queued_age_seconds([
                 'type' => 'quizmeta', 'id' => $selectedquiz->id, 'anonymize' => $anonymize,

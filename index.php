@@ -175,7 +175,26 @@ $qwkey = local_quizanalytics_quiz_cache_helper::build_key(
 );
 $result = $qwcache->get($qwkey);
 if ($result === false) {
-    if (sections_output_helper::should_defer_to_background($coursestats->count)) {
+    // Times a real, small sample fetch from this course's own largest quiz
+    // (a reasonable proxy for the whole course's typical per-attempt cost,
+    // and the quiz most likely to dominate the course-wide total anyway)
+    // on this host — see estimate_seconds_per_attempt()'s own comment for
+    // why a fixed attempt-count threshold doesn't generalize the way an
+    // actual measured rate does.
+    $samplequiz = null;
+    $samplequizattempts = 0;
+    foreach ($stackquizzes as $candidatequiz) {
+        $candidatestats = local_quizanalytics_quiz_cache_helper::stats_for_quiz($candidatequiz);
+        if ($candidatestats->count > $samplequizattempts) {
+            $samplequiz = $candidatequiz;
+            $samplequizattempts = $candidatestats->count;
+        }
+    }
+    $samplerate = $samplequiz !== null
+        ? local_quizanalytics_quiz_data_fetcher::estimate_seconds_per_attempt($samplequiz, $course)
+        : null;
+    $estimatedseconds = $samplerate !== null ? $samplerate * $coursestats->count : 0.0;
+    if (sections_output_helper::should_defer_to_background($estimatedseconds)) {
         // A course this large risks outliving a reverse proxy's own
         // timeout before ignore_user_abort(true) below would even get a
         // chance to help — see warm_single_view_adhoc_task's own docblock.
