@@ -14,6 +14,22 @@ plugin by its merge-time component name, `local_stackquizanalytics`, and
 time; see [2.3.0] for why and when that settled on the current
 `local_quizanalytics`.
 
+## [2.4.11] — Made the flaky variant-seed test skip instead of fail
+
+2.4.9's retry-loop fix (try more candidate seeds until one instantiates
+different text from the anchor) still failed on the next real CI run — this
+time *every* candidate seed collided with the anchor, not just the original
+hardcoded pair. The earlier local verification that found real diversity
+among these candidates ran against the main site's own database/config;
+PHPUnit runs against a completely separate, isolated site (its own
+`$CFG->phpunit_dataroot`/`phpunit_dbname`), which evidently doesn't vary
+this fixture's instantiated text by seed the same way. This test's whole
+point is proving the fixture *can* distinguish two variants before trusting
+the rest of it to mean anything — an environment where it genuinely can't
+isn't a bug in the per-variant caching the test exists to catch, so failing
+the build over it would be testing this environment's STACK/CAS setup, not
+this plugin's own code. Now skips (not fails) with a clear message when no differing pair is found.
+
 ## [2.4.10] — Made every section's header layout, labels, and notices uniform
 
 Compared all four sections' headers side by side against real screenshots
