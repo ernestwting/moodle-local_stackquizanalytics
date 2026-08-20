@@ -100,7 +100,6 @@ $string['pdftitlequestion']       = '{$a}: Question Analytics';
 $string['pdftitlequiz']           = '{$a}: Quiz Analysis';
 $string['pdftitlesolutionprocess'] = '{$a}: Solution Process Visualization';
 $string['pdftruncatedrows']       = 'Showing the first {$a->shown} of {$a->total} rows.';
-$string['quizselectlabel']      = 'View a single quiz\'s analytics';
 $string['quizselectoption']     = 'All STACK quizzes (course-wide view)';
 $string['selectpart']           = 'Part';
 $string['selectquestion']       = 'Question';
@@ -108,7 +107,6 @@ $string['selectstudent']        = 'Student drill-down';
 $string['selectstudentnone']    = 'None';
 $string['servererror']          = 'Analytics could not be computed for this quiz. Contact your Moodle administrator.';
 $string['viewquestionanalytics'] = 'Question Analytics';
-$string['viewselectlabel']      = 'View:';
 $string['viewsolutionprocess']  = 'Solution Process Visualization';
 
 // Model Analytics + Diagnostics Analytics sections (modelanalytics.php,
@@ -223,8 +221,7 @@ $string['questionneedsreviewthreshold'] = 'Question-needs-review pass-rate thres
 $string['questionneedsreviewthreshold_desc'] = 'A question is labeled "needs review" (Model 2\'s proxy label) when its empirical pass rate falls below this value (0.0-1.0). See the architecture doc\'s §3.3 circularity caveat before lowering this to chase a particular result.';
 $string['task:warmanalyticscache'] = 'Warm STACK q-type Analytics result caches';
 $string['task:warmsingleview'] = 'Warm one Quiz/Question Analytics view (on-demand background compute)';
-$string['computingnotice'] = 'Computing analytics for the first time since the last new attempt. This can take a while for a large course. This page will show the results below once it\'s done. No need to refresh.';
-$string['generatinginbackground'] = 'This quiz/course has enough attempts that generating analytics for it could take longer than your browser or reverse proxy is willing to wait, so it\'s being computed in the background instead. Come back to this page in a few minutes to see the results.';
+$string['generatinginbackground'] = 'This may take a little time to load for a large course. It\'s being computed in the background. Come back to this page in a few minutes to see the results.';
 $string['generatingstale'] = 'This has been queued for {$a} without finishing. That is longer than any real background compute has taken on this site, so this most likely means Moodle\'s cron isn\'t running, or the background task crashed or ran out of memory. Ask your Moodle administrator to check Site administration → Server → Scheduled tasks (is cron running at all?) and Site administration → Server → Tasks → Task logs (did this task fail?) rather than waiting longer.';
 $string['cronstatusheading'] = 'Cron status';
 $string['cronstatuswarning'] = 'This plugin depends on Moodle cron running regularly.';

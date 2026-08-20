@@ -87,7 +87,7 @@ if (count($viewablecourses) > 1) {
         null
     );
     $courseselector->label = get_string('courseselectorlabel', 'local_quizanalytics');
-    echo html_writer::div($OUTPUT->render($courseselector), 'd-inline-block mr-4 mb-3');
+    echo html_writer::div($OUTPUT->render($courseselector), 'mb-3');
 }
 
 if (empty($stackquizzes)) {

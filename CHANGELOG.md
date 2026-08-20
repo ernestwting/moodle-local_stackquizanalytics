@@ -14,6 +14,42 @@ plugin by its merge-time component name, `local_stackquizanalytics`, and
 time; see [2.3.0] for why and when that settled on the current
 `local_quizanalytics`.
 
+## [2.4.10] — Made every section's header layout, labels, and notices uniform
+
+Compared all four sections' headers side by side against real screenshots
+and fixed the concrete differences found:
+
+- **Selector order and layout.** Course, then Quiz (where applicable), then
+  View (where applicable), then colorblind/anonymize toggles — one selector
+  per row, in this fixed order, on every section. Model Analytics
+  previously put Course and View on the same row and the Quiz selector
+  after View instead of before it; Question Analytics put View after the
+  quiz heading instead of before the toggles. Both now match.
+- **Labels.** Question Analytics' quiz selector said "View a single quiz's
+  analytics"; every other section already said "Quiz:". Unified on "Quiz:"
+  (and folded the now-duplicate `quizselectlabel`/`viewselectlabel` lang
+  strings into the ones already shared by the other sections). The
+  Model Analytics toggle row's submit button said "View"; Quiz/Question
+  Analytics' said "Apply". Unified on "Apply".
+- **The blue/yellow info boxes.** Model Analytics and Diagnostics Analytics
+  each showed two separate colored boxes (an "About this page" info box
+  and a "Responsible use" warning box) stacked above the selectors. Merged
+  into one plain, discreet `<details>` (no alert coloring) combining both,
+  positioned consistently right after the section selector on both pages.
+- **The "may take a while" notices.** Three different wordings existed
+  across sections (`computingnotice`, `largecoursenotice`,
+  `generatinginbackground`). Now share one lead sentence ("This may take a
+  little time to load for a large course.") followed by whatever's
+  actually true for that state — still wait-here vs. still
+  come-back-later, since those genuinely differ, just no longer reading as
+  unrelated messages. Dropped the now-redundant `computingnotice` string
+  entirely in favor of the shared `largecoursenotice`.
+
+Verified all four pages' full header structure via a real authenticated
+request against real course data (not just a syntax check), confirming the
+new selector order, labels, and merged box render correctly in every
+view (Question Analytics/Solution Process, Model 1/Model 2).
+
 ## [2.4.9] — Fixed a flaky PHPUnit test (real seed collision, confirmed live)
 
 The previous round's CI fix got PHPUnit past the missing-plugin errors,

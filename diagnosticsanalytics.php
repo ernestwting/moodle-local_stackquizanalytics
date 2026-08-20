@@ -59,15 +59,22 @@ echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('pagemaintitle', 'local_quizanalytics'));
 echo local_quizanalytics_section_selector::render($courseid, 'diagnostics');
 
-// Collapsed by default (native <details>, no JS needed) — mirrors the same
-// top-of-page intro box every other section shows.
+// One discreet, collapsed-by-default <details> combining what used to be
+// two separate colored boxes — the "About the Diagnostics Dashboard" intro
+// and the "Responsible use" callout — same shape and position as every
+// other section's own version of this.
 echo html_writer::tag(
     'details',
     html_writer::tag('summary', get_string('diagnosticspageintrosummary', 'local_quizanalytics'))
-        . html_writer::div(get_string('diagnosticspageintro', 'local_quizanalytics'), 'mt-2'),
-    ['class' => 'alert alert-info']
+        . html_writer::div(get_string('diagnosticspageintro', 'local_quizanalytics'), 'mt-2')
+        . html_writer::tag('p', html_writer::tag('strong', get_string('responsibleusesummary', 'local_quizanalytics')), ['class' => 'mt-3 mb-1'])
+        . html_writer::div(get_string('responsibleusecallout', 'local_quizanalytics')),
+    ['class' => 'mb-3']
 );
 
+// Course, then Quiz — one selector per row in this fixed order on every
+// section of this plugin, so switching sections doesn't reshuffle where
+// each control sits.
 $viewablecourses = stack_course_helper::get_viewable_courses();
 if (count($viewablecourses) > 1) {
     $courseoptions = [];
@@ -82,7 +89,7 @@ if (count($viewablecourses) > 1) {
         null
     );
     $courseselector->label = get_string('courseselectorlabel', 'local_quizanalytics');
-    echo html_writer::div($OUTPUT->render($courseselector), 'd-inline-block mr-4 mb-3');
+    echo html_writer::div($OUTPUT->render($courseselector), 'mb-3');
 }
 
 $slots = stack_course_helper::get_course_stack_slots($courseid);
@@ -92,13 +99,6 @@ if (empty($slots)) {
     echo $OUTPUT->footer();
     exit;
 }
-
-echo html_writer::tag(
-    'details',
-    html_writer::tag('summary', get_string('responsibleusesummary', 'local_quizanalytics'))
-        . html_writer::div(get_string('responsibleusecallout', 'local_quizanalytics'), 'mt-2'),
-    ['class' => 'alert alert-warning mt-2']
-);
 
 // Per-question, like Model 2 — narrows the report to one quiz at a time.
 $quizid = optional_param('quizid', 0, PARAM_INT);
@@ -140,7 +140,7 @@ if (count($slotsperquiz) > 1) {
         [0 => get_string('allquizzes', 'local_quizanalytics')]
     );
     $quizselector->label = get_string('quizselectorlabel', 'local_quizanalytics');
-    echo html_writer::div($OUTPUT->render($quizselector), 'd-inline-block mb-3');
+    echo html_writer::div($OUTPUT->render($quizselector), 'mb-3');
 } else {
     $quizid = 0; // Only one quiz in this course — nothing to filter.
 }

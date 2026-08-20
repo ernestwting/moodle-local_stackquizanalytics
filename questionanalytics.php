@@ -65,10 +65,9 @@ echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('pagemaintitle', 'local_quizanalytics'));
 echo local_quizanalytics_section_selector::render($courseid, 'question');
 
-// The course selector: same single_select pattern and shared
-// courseselectorlabel string every other section's own course selector
-// uses, so a teacher with STACK activity in more than one course can jump
-// between them from any section.
+// Course, then Quiz, then View, then toggles — one selector per row in this
+// fixed order on every section of this plugin, so switching sections
+// doesn't reshuffle where each control sits.
 $viewablecourses = stack_course_helper::get_viewable_courses();
 if (count($viewablecourses) > 1) {
     $courseoptions = [];
@@ -83,7 +82,7 @@ if (count($viewablecourses) > 1) {
         null
     );
     $courseselector->label = get_string('courseselectorlabel', 'local_quizanalytics');
-    echo html_writer::div($OUTPUT->render($courseselector), 'd-inline-block mr-4 mb-3');
+    echo html_writer::div($OUTPUT->render($courseselector), 'mb-3');
 }
 
 if (empty($stackquizzes)) {
@@ -112,16 +111,31 @@ $quizselector = new single_select(
     $quizid,
     null
 );
-$quizselector->label = get_string('quizselectlabel', 'local_quizanalytics');
-echo html_writer::div($OUTPUT->render($quizselector), 'd-inline-block mb-4');
+// Same "Quiz:" label as Model Analytics/Diagnostics Analytics' own quiz
+// selectors — this used to say "View a single quiz's analytics" instead.
+$quizselector->label = get_string('quizselectorlabel', 'local_quizanalytics');
+echo html_writer::div($OUTPUT->render($quizselector), 'mb-3');
+
+$selectedquiz = $stackquizzes[$quizid];
+
+// The "View:" sub-selector — only the selected view's data is ever
+// fetched/computed (a plain GET reload, not a client-side tab swap that
+// would need both already computed). Resolved and rendered here, ahead of
+// the colorblind/anonymize toggles below (and the quiz's own heading
+// further down) — previously this sat after the heading instead, moving
+// position relative to Model Analytics' own View: selector.
+$view = optional_param('view', 'question', PARAM_ALPHA);
+if (!in_array($view, ['question', 'solutionprocess'], true)) {
+    $view = 'question';
+}
+$PAGE->url->param('view', $view);
+echo sections_output_helper::render_view_selector_form($view);
 
 $colorblind = sections_output_helper::resolve_colorblind_mode();
 $anonymize = sections_output_helper::resolve_anonymize_mode();
 echo sections_output_helper::render_options_toggles($colorblind, $anonymize);
 
 $client = new local_quizanalytics_quiz_api_client();
-
-$selectedquiz = $stackquizzes[$quizid];
 
 echo $OUTPUT->heading($selectedquiz->name, 3, 'main mt-4 mb-3');
 
@@ -144,16 +158,6 @@ $fetchrecords = function () use (&$records, $selectedquiz, $course, $stats): arr
         $stats->fingerprint
     );
 };
-
-// The "View:" sub-selector — only the selected view's data is ever
-// fetched/computed (a plain GET reload, not a client-side tab swap that
-// would need both already computed).
-$view = optional_param('view', 'question', PARAM_ALPHA);
-if (!in_array($view, ['question', 'solutionprocess'], true)) {
-    $view = 'question';
-}
-$PAGE->url->param('view', $view);
-echo sections_output_helper::render_view_selector_form($view);
 
 if ($view === 'question') {
     $qacache = cache::make('local_quizanalytics', 'questionanalysis');

@@ -76,11 +76,14 @@ class sections_output_helper {
      * a blank/loading tab for the whole wait with no indication anything
      * is happening — this at minimum gets the page shell and this notice
      * out before the expensive part starts. Purely cosmetic: doesn't change
-     * what gets computed, cached, or how long it takes.
+     * what gets computed, cached, or how long it takes. Shares its wording
+     * (largecoursenotice) with dashboard_renderer's own identical method,
+     * used by Model/Diagnostics Analytics — one consistent "this may take a
+     * while" message across every section instead of a different one here.
      */
     public static function flush_computing_notice(): void {
         echo \html_writer::div(
-            get_string('computingnotice', 'local_quizanalytics'),
+            get_string('largecoursenotice', 'local_quizanalytics'),
             'alert alert-info'
         );
         if (ob_get_level() > 0) {
@@ -326,7 +329,7 @@ class sections_output_helper {
             }
             $html .= \html_writer::empty_tag('input', ['type' => 'hidden', 'name' => $name, 'value' => $value]);
         }
-        $html .= \html_writer::label(\get_string('viewselectlabel', 'local_quizanalytics'), 'qa-view-select');
+        $html .= \html_writer::label(\get_string('viewselectorlabel', 'local_quizanalytics'), 'qa-view-select');
         $html .= ' ' . \html_writer::select($options, 'view', $current, false, ['id' => 'qa-view-select']);
         $html .= ' ' . \html_writer::empty_tag('input', [
             'type' => 'submit', 'value' => \get_string('gobutton', 'local_quizanalytics'), 'class' => 'btn btn-secondary',
