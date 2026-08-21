@@ -968,3 +968,77 @@ authenticated request, checking the actual byte offsets of the notice and
 the hide-script in the raw HTML response to confirm the ordering, and
 confirming the hide-script is a safe no-op on a cache hit where no notice
 was ever shown in the first place.
+
+### 12.9 A real scoring bug, and background-page/spacing follow-ups (2.4.14-2.4.15)
+
+The user reported, and directly verified against Moodle's own grades,
+that "percent correct" and "average correct rate" were badly wrong on
+several quizzes/courses — some questions showing a flat 100% incorrect on
+the Response Outcome Percentages chart and 0% pass rate on the PRT
+Heatmap. This was the single most serious finding of the whole session:
+a real, live correctness bug in analytics teachers would reasonably trust
+as ground truth.
+
+Root-caused against real production data (quiz 154, "Quiz 0: Typing STACK
+Answers", course 9) rather than assumed — a general-purpose subagent's
+initial investigation correctly flagged the right FILES and the right
+general SHAPE of bug (silent fallback-to-wrong parsing) but got the
+specific mechanism wrong when checked against live data; that agent's
+report is preserved in this transcript as a reminder that "plausible and
+well-argued" isn't the same as "verified," even from a careful read of
+the code alone. The real, confirmed causes:
+
+1. **Never-attempted questions counted as failed, not excluded.**
+   `response_analysis.php`/`difficulty.php`/`question_metrics.php` each
+   divided a correct-count by *every* Pool B response for a question,
+   including 'blank' (nobody had attempted it) and 'ungraded' (STACK
+   re-validated after scoring, no PRT result survives). A question nobody
+   had reached landed on a flat 0% facility — indistinguishable from
+   everyone genuinely failing. Added `parser::is_graded_response()`
+   (true only for 'correct'/'incorrect') as the shared denominator filter
+   across all three files; zero graded responses now shows 0%/0% (two
+   empty bars, asserting nothing) instead of the previous, false 0%/100%.
+   `compute_question_summary()`'s own average_score/average_correct_rate
+   inherited this fix automatically, since both are just a mean of every
+   question's own (now-correct) number.
+2. **A STACK input named bare `ans` (no suffix at all) wasn't recognized
+   as an answer field**, in both `parser.php` and `prt_analysis.php` — both
+   regexes required *at least one* character after "ans" (`\w+`). Real data
+   confirmed this exists (`"ans: sin(2*x) [score]"`): the response
+   misclassified as blank in one file, and misread as a bogus failed PRT
+   node (falling through to prt_analysis.php's own "unrecognized value"
+   catch-all) in the other, for every response to that question. Both
+   regexes changed to `\w*`.
+
+Verified end to end: traced raw `response_N` text for both bug patterns
+directly from the database, confirmed the fix's effect on real per-
+question numbers (quiz 154's Q10/Q13 went from an artificial ~0% facility
+to their real ~99-100%, Q1/Q3/Q12 — genuinely, completely unattempted —
+correctly went from a false 100% incorrect to an honest 0%/0%), and
+scanned every quiz across four real courses afterward confirming no
+question still landed on the impossible flat 0%/100% state.
+
+Three smaller items from the same report:
+
+- **Large-course pages sometimes appearing to never load.** Traced to the
+  existing "computed in the background" page having no auto-refresh at
+  all — a visitor had to remember to manually reload it themselves, which
+  the user reported not reliably doing ("sometimes... nothing loads" until
+  clicking back in). Added a plain `<meta http-equiv="refresh"
+  content="20">` (matching this plugin's own no-JS-needed convention) plus
+  a small CSS spinner, only for a task still working normally — a
+  genuinely stuck task (past the existing 15-minute staleness threshold)
+  keeps its plain, non-refreshing admin-troubleshooting message instead,
+  since auto-refreshing a loop of "still not done" wouldn't help there.
+- **A table squeezed with no gap against whatever rendered right after
+  it.** `wrapScrollable()`'s wrapper `<div>` sets `overflow`, which forms
+  its own block-formatting context — this silently traps the wrapped
+  table's own bottom margin instead of letting it collapse outward the
+  normal way, leaving genuinely zero visible space afterward. Given the
+  wrapper its own explicit margin instead of relying on the table's.
+- **A chart's legend colliding with its own hover tooltip.** Plotly's
+  default legend position (top-right, just outside the plot) is the same
+  spot a hover tooltip for a bar near the top of the y-axis renders —
+  visible on a chart with many questions along the x-axis. Moved
+  `build_grouped_bar_figure()`'s legend to a horizontal strip below the
+  chart instead.

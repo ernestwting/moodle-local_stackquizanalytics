@@ -120,6 +120,14 @@
     function wrapScrollable(el, rowCount) {
         var wrapper = document.createElement('div');
         wrapper.style.overflowX = 'auto';
+        // `overflow` (X here, X+Y below for a tall table) puts this wrapper
+        // in its own block-formatting context, which stops the wrapped
+        // table's own bottom margin from collapsing outward the normal way
+        // — without an explicit margin on the wrapper itself, that margin
+        // gets trapped inside it, leaving nothing between this table and
+        // whatever renders right after it (the next section's own
+        // heading/chart, with no visible gap at all).
+        wrapper.style.marginBottom = '1.5rem';
         if (rowCount > SCROLL_ROW_THRESHOLD) {
             wrapper.style.maxHeight = '420px';
             wrapper.style.overflowY = 'auto';

@@ -170,16 +170,41 @@ class sections_output_helper {
      */
     public static function render_generating_in_background_notice(?int $queuedagesecs = null): void {
         if ($queuedagesecs !== null && $queuedagesecs > \local_quizanalytics\task\warm_single_view_adhoc_task::STALE_SECONDS) {
+            // No auto-refresh here: the task is genuinely stuck (or cron
+            // isn't running at all), so repeatedly reloading only repeats
+            // the same "still not done" result — the admin needs to see
+            // and act on this troubleshooting message, not have it vanish
+            // into a reload every 20 seconds.
             echo \html_writer::div(
                 get_string('generatingstale', 'local_quizanalytics', format_time($queuedagesecs)),
                 'alert alert-warning'
             );
             return;
         }
-        echo \html_writer::div(
-            get_string('generatinginbackground', 'local_quizanalytics'),
-            'alert alert-info'
+        // Auto-refreshing via a plain <meta> tag (not JS) matches this
+        // plugin's own established "plain GET-reload, no JS needed"
+        // convention elsewhere (native <details>, plain forms) — and
+        // previously this page just sat here forever until a visitor
+        // manually reloaded it themselves, which is exactly what a visitor
+        // reported having to do "sometimes" and not reliably remembering
+        // to. A <meta http-equiv="refresh"> tag works correctly even
+        // placed in the body (long-standing, reliable browser behaviour),
+        // so no change to header output earlier in the response is needed
+        // here. 20s matches the wording in the notice text itself.
+        echo \html_writer::empty_tag('meta', ['http-equiv' => 'refresh', 'content' => '20']);
+        echo \html_writer::start_div('alert alert-info d-flex align-items-center');
+        echo \html_writer::tag(
+            'span',
+            '',
+            [
+                'class' => 'lqa-spinner mr-2',
+                'style' => 'display:inline-block;width:1rem;height:1rem;border:2px solid currentColor;'
+                    . 'border-right-color:transparent;border-radius:50%;animation:lqa-spin 0.75s linear infinite;',
+            ]
         );
+        echo \html_writer::tag('style', '@keyframes lqa-spin { to { transform: rotate(360deg); } }');
+        echo \html_writer::tag('span', get_string('generatinginbackground', 'local_quizanalytics'));
+        echo \html_writer::end_div();
     }
 
     /**

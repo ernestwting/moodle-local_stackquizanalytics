@@ -254,6 +254,19 @@ class chart_helpers {
                 'template' => 'plotly',
                 'xaxis' => ['title' => ['text' => $xtitle]],
                 'yaxis' => ['title' => ['text' => $ytitle]],
+                // Plotly's own default legend position (top-right, just
+                // outside the plot area) sits right where a hover tooltip
+                // for a bar near the top of the y-axis also renders,
+                // especially with many categories on the x-axis (e.g. one
+                // bar per question in a large quiz) — the two visibly
+                // collide. A horizontal legend anchored below the plot has
+                // nothing else rendering there to collide with.
+                'legend' => [
+                    'orientation' => 'h',
+                    'x' => 0.5,
+                    'xanchor' => 'center',
+                    'y' => -0.2,
+                ],
             ],
         ];
     }

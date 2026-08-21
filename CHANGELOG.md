@@ -14,6 +14,34 @@ plugin by its merge-time component name, `local_stackquizanalytics`, and
 time; see [2.3.0] for why and when that settled on the current
 `local_quizanalytics`.
 
+## [2.4.15] — Auto-refresh while a large course computes in the background; two spacing fixes
+
+- The "computed in the background" page previously just sat there
+  indefinitely until a visitor manually reloaded it themselves — reported
+  as sometimes needing to click back into the page repeatedly, and not
+  always reliably remembered. Now auto-refreshes itself every 20 seconds
+  via a plain `<meta http-equiv="refresh">` tag (no JS dependency, matching
+  this plugin's own established "plain GET-reload" convention elsewhere)
+  and shows a small spinner alongside the notice, so no one has to guess
+  whether the page is still working or remember to check back by hand.
+  A genuinely stuck task (past the existing 15-minute staleness threshold)
+  still shows the plain admin-troubleshooting message without auto-
+  refreshing, since repeating the same "still not done" result on a loop
+  wouldn't help there.
+- A rendered table's own bottom margin was getting trapped inside its
+  horizontally-scrollable wrapper `<div>` (an element with `overflow` set
+  forms its own block-formatting context, which stops a child's margin
+  from collapsing outward the normal way) — invisible on its own, but
+  visibly squeezing that table right up against whatever rendered next
+  with no gap at all. The wrapper now carries its own explicit bottom
+  margin instead of relying on the table's.
+- The Response Outcome Percentages chart's own legend sat at Plotly's
+  default position (top-right, just outside the plot area) — the same
+  spot a hover tooltip for a bar near the top of the y-axis renders,
+  visibly colliding on a chart with many questions along the x-axis.
+  Moved the legend to a horizontal strip below the chart instead, where
+  nothing else ever renders.
+
 ## [2.4.14] — Fixed a real, verified scoring bug: never-attempted questions counted as failed
 
 A user reported, and directly verified against Moodle's own grades, that
