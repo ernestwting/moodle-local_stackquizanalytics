@@ -14,6 +14,58 @@ plugin by its merge-time component name, `local_stackquizanalytics`, and
 time; see [2.3.0] for why and when that settled on the current
 `local_quizanalytics`.
 
+## [2.4.14] — Fixed a real, verified scoring bug: never-attempted questions counted as failed
+
+A user reported, and directly verified against Moodle's own grades, that
+"percent correct" and "average correct rate" were badly wrong for several
+quizzes and courses — with the Response Outcome Percentages chart and PRT
+Heatmap showing some questions as a flat 100% incorrect / 0% pass rate.
+Root-caused against real production data (quiz 154, "Quiz 0: Typing STACK
+Answers"), not assumed, to two distinct, real bugs:
+
+- **Never-attempted questions counted as failed, not excluded.**
+  `response_analysis.php`, `difficulty.php`, and `question_metrics.php`
+  each computed their own "percent correct" / "facility" / "average score"
+  by dividing a correct-count by *every* Pool B response for a question,
+  including ones nobody had actually answered yet (`response_status` =
+  'blank') or ones STACK re-validated after scoring, leaving no usable PRT
+  result (`response_status` = 'ungraded'). A question three students out
+  of 914 hadn't reached yet was a small, mostly-hidden distortion; a
+  question *nobody* had reached at all divided by a denominator that
+  still included all of them, landing on a flat 0% facility — indistinguishable
+  from every real attempt genuinely failing. `compute_question_summary()`'s
+  own "average_score"/"average_correct_rate" then inherited this per-
+  question error directly, since both are just a mean across every
+  question's own number. Added `parser::is_graded_response()` (true only
+  for 'correct'/'incorrect', excluding 'blank'/'ungraded') and applied it
+  as the shared denominator filter across all three files; a question with
+  zero graded responses now shows 0%/0% (two empty bars — no assertion
+  either way) instead of the previous 0%/100% (a false claim of universal
+  failure).
+- **A STACK input named bare `ans` (no numeric or named suffix at all)
+  wasn't recognized as an answer field at all**, in both
+  `parser.php` (`parse_response_cell()`) and `prt_analysis.php`
+  (`ANS_FIELD_RE`) — both regexes required *at least one* character after
+  "ans" (`\w+`), so a genuinely answered, correctly graded response like
+  `"ans: sin(2*x) [score]"` parsed to an empty ans_list and was
+  misclassified as blank in one file, and misread as a bogus PRT node
+  (falling through to prt_analysis.php's own "unrecognized value shape"
+  catch-all, recorded as a hard failure) in the other — for *every*
+  response to that question. Fixed both regexes to `\w*` (zero or more),
+  matching a bare "ans" the same way the existing `\w+` already matched
+  "ans1"/"ans_mcq". Real production data confirms this pattern exists:
+  quiz 154's Q10/Q13 went from an artificially low ~0% facility to their
+  real ~100%, and the PRT Heatmap now correctly shows a gray "not
+  applicable" cell for a genuinely unattempted question instead of a red
+  "0% pass rate" one.
+
+Verified against real, live course data throughout (not just unit-level
+reasoning): traced the exact raw `response_N` text for both the
+genuinely-unattempted questions and the bare-`ans` questions, confirmed
+the fix's effect on real correct/incorrect and pass-rate numbers, and
+scanned every quiz across four real courses afterward to confirm no
+question was still landing on the impossible flat 0%/100% state.
+
 ## [2.4.13] — Maturity bumped to stable; the loading notice now disappears once results are ready
 
 - `$plugin->maturity` changed from `MATURITY_ALPHA` to `MATURITY_STABLE`.

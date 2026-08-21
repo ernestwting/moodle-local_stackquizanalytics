@@ -119,12 +119,19 @@ class parser {
         // 1. Parse ans fields: ansK: expression [tag]. STACK input names are
         // author-defined too (default "ans1"/"ans2", but a multi-part
         // question commonly renames them to something descriptive like
-        // "ans_mcq"/"ans_fx") — matched on the "ans...: ... [tag]" shape
-        // rather than a literal numeric suffix, same reasoning as the PRT
-        // matching below. 'index' stays an int (and is used for numeric
-        // part-lookups elsewhere) only when the suffix genuinely is one;
-        // a named suffix leaves it null rather than colliding on 0.
-        preg_match_all('/ans(\w+):\s*(.*?)\s*\[(score|valid|invalid)\]/', $celltext, $ansmatches, PREG_SET_ORDER);
+        // "ans_mcq"/"ans_fx", or — a single-input question, confirmed on
+        // real production data — leaves off any suffix at all: just "ans")
+        // — matched on the "ans...: ... [tag]" shape rather than a literal
+        // numeric suffix, same reasoning as the PRT matching below. The
+        // suffix group is `\w*` (zero or more), not `\w+`: a `+` here
+        // silently failed to match a bare "ans:" field at all, so a
+        // genuinely answered, correctly graded response (e.g. "ans:
+        // sin(2*x) [score]") had an empty parsed ans_list and was
+        // misclassified as 'blank' — a real bug, not a hypothetical one.
+        // 'index' stays an int (and is used for numeric part-lookups
+        // elsewhere) only when the suffix genuinely is one; a named suffix
+        // or no suffix at all leaves it null rather than colliding on 0.
+        preg_match_all('/ans(\w*):\s*(.*?)\s*\[(score|valid|invalid)\]/', $celltext, $ansmatches, PREG_SET_ORDER);
         $anslist = [];
         foreach ($ansmatches as $m) {
             $anslist[] = [
@@ -349,6 +356,36 @@ class parser {
         }
 
         return $anonymize ? anonymize::anonymize_response_rows($rows) : $rows;
+    }
+
+    /**
+     * True if $row has a genuine correct/incorrect outcome worth counting
+     * toward a facility/success-rate/average-score denominator — i.e. its
+     * response_status is 'correct' or 'incorrect', not 'blank' (never
+     * attempted at all) or 'ungraded' (STACK re-validated the answer after
+     * the attempt was already scored, so no PRT result survives to read).
+     * 'invalid' stays counted as a real outcome (toward "incorrect"): the
+     * student did submit something, STACK just couldn't parse it as a
+     * well-formed expression, which is the same 0-mark outcome Moodle's own
+     * gradebook records for it.
+     *
+     * Every facility/percent-correct/average-score calculation across this
+     * plugin's analytics needs this same exclusion, or a question nobody
+     * ever reached (blank) silently divides its "correct" count by a
+     * denominator that includes those never-attempted rows anyway —
+     * producing a *lower*, not "no data", facility, and in the extreme
+     * case (nobody attempted the question at all) a flat 0% facility /
+     * 100% incorrect that looks like verified universal failure rather
+     * than what it actually is: no attempts to measure at all. Confirmed
+     * as a real, live bug this way (not just a theoretical risk): a real
+     * course had several consecutive questions nobody had ever attempted,
+     * each showing exactly 100% incorrect on the Response Outcome
+     * Percentages chart before this fix, which dragged the course-wide
+     * "average correct rate" summary down with it since that stat is
+     * itself just a mean of every question's own (buggy) percent_correct.
+     */
+    public static function is_graded_response(array $row): bool {
+        return $row['response_status'] === 'correct' || $row['response_status'] === 'incorrect';
     }
 
     /**

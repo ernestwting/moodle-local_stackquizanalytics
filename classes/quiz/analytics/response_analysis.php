@@ -51,10 +51,25 @@ class response_analysis {
             $qa = array_values(array_filter($poola, fn($r) => $r['question'] === $q));
             $qb = array_values(array_filter($poolb, fn($r) => $r['question'] === $q));
 
-            $lenb = count($qb);
-            $facilityb = $lenb > 0 ? count(array_filter($qb, fn($r) => $r['grade'] === 1.0)) / $lenb : 0.0;
-            $correctpct = $facilityb * 100.0;
-            $incorrectpct = (1.0 - $facilityb) * 100.0;
+            // Only responses with a genuine correct/incorrect outcome count
+            // here — see parser::is_graded_response()'s own comment. Without
+            // this, a question nobody had attempted yet (blank) or whose PRT
+            // result STACK had discarded via re-validation (ungraded) showed
+            // as a flat 0% correct / 100% incorrect, indistinguishable from
+            // every real attempt genuinely failing.
+            $gradedb = array_values(array_filter($qb, fn($r) => parser::is_graded_response($r)));
+            $lenb = count($gradedb);
+            if ($lenb > 0) {
+                $facilityb = count(array_filter($gradedb, fn($r) => $r['grade'] === 1.0)) / $lenb;
+                $correctpct = $facilityb * 100.0;
+                $incorrectpct = (1.0 - $facilityb) * 100.0;
+            } else {
+                // Nobody has a graded response for this question at all —
+                // 0%/0% (two empty bars) asserts nothing about correctness,
+                // unlike 0%/100% which falsely claims universal failure.
+                $correctpct = 0.0;
+                $incorrectpct = 0.0;
+            }
 
             $lena = count($qa);
             $invalida = count(array_filter($qa, fn($r) => $r['response_status'] === 'invalid'));

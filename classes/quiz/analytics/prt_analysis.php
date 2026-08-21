@@ -36,7 +36,17 @@ class prt_analysis {
      * "ansK: ... [tag]" fields, and treat anything else shaped like
      * "<name>: value" as a PRT.
      */
-    const ANS_FIELD_RE = '/^\s*ans\w+\s*:\s*.*\[(?:score|valid|invalid)\]\s*$/i';
+    // \w* (zero or more), not \w+: a single-input question can genuinely
+    // name its own STACK input bare "ans" with no numeric/named suffix at
+    // all (confirmed on real production data) — a `+` here failed to
+    // recognize that field as an ans field, so it fell through to the
+    // generic "<name>: value" PRT-detection check below (line 59) instead,
+    // getting misread as a bogus PRT that then hit the "unrecognized value
+    // shape" catch-all and was recorded as a hard-failed PRT node for
+    // every single response to that question — see parser.php's identical
+    // ans-field regex for the matching fix on the response-classification
+    // side of this same bug.
+    const ANS_FIELD_RE = '/^\s*ans\w*\s*:\s*.*\[(?:score|valid|invalid)\]\s*$/i';
 
     /** @var string Matches the "Seed: ..." metadata line so it's excluded from PRT-field detection. */
     const SEED_FIELD_RE = '/^\s*seed\s*:/i';

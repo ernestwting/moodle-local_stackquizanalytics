@@ -83,20 +83,29 @@ class difficulty {
                 continue;
             }
 
-            $scores10 = array_map(fn($r) => $r['grade'] === null ? null : $r['grade'] * 10.0, $qb);
+            // Blank (never attempted) and ungraded (STACK re-validated,
+            // no PRT result left to read) rows carry no real outcome for
+            // this question — see parser::is_graded_response()'s own
+            // comment. Every stat below is computed over graded rows only,
+            // so a question several students never reached doesn't drag
+            // down its own average marks or facility with zero-credit
+            // rows for attempts that never happened.
+            $gradedqb = array_values(array_filter($qb, fn($r) => parser::is_graded_response($r)));
+
+            $scores10 = array_map(fn($r) => $r['grade'] * 10.0, $gradedqb);
             $avgmarks = stats::mean($scores10);
             $medianmarks = stats::median($scores10);
-            $nonnullcount = count(array_filter($scores10, fn($v) => $v !== null));
+            $nonnullcount = count($scores10);
             $stdmarks = $nonnullcount > 1 ? stats::sample_stdev($scores10) : 0.0;
             $varmarks = $nonnullcount > 1 ? stats::sample_variance($scores10) : 0.0;
 
-            $lenqb = count($qb);
-            $correctcount = count(array_filter($qb, fn($r) => $r['grade'] === 1.0));
+            $lenqb = count($gradedqb);
+            $correctcount = count(array_filter($gradedqb, fn($r) => $r['grade'] === 1.0));
             $facility = $lenqb > 0 ? $correctcount / $lenqb : 0.0;
             $successrate = $facility * 100.0;
 
-            $topq = array_values(array_filter($qb, fn($r) => isset($topgroup[$r['student_id']])));
-            $bottomq = array_values(array_filter($qb, fn($r) => isset($bottomgroup[$r['student_id']])));
+            $topq = array_values(array_filter($gradedqb, fn($r) => isset($topgroup[$r['student_id']])));
+            $bottomq = array_values(array_filter($gradedqb, fn($r) => isset($bottomgroup[$r['student_id']])));
 
             $ftop = count($topq) > 0
                 ? count(array_filter($topq, fn($r) => $r['grade'] === 1.0)) / count($topq)

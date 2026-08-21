@@ -61,17 +61,28 @@ class question_metrics {
             $percentvalida = max(0.0, (1.0 - $invalidratea - $blankratea) * 100.0);
             $reattemptsharea = $attemptsa > 0 ? max(0.0, (($attemptsa - $studentsa) / $attemptsa) * 100.0) : 0.0;
 
-            // Pool B metrics (performance / mastery).
-            $numstudentsb = count($qb);
-            $correctcountb = count(array_filter($qb, fn($r) => $r['grade'] === 1.0));
+            // Pool B metrics (performance / mastery). Blank (never
+            // attempted) and ungraded (STACK re-validated, no PRT result
+            // left to read) rows carry no real outcome for this question —
+            // see parser::is_graded_response()'s own comment — so every
+            // stat below is computed over graded rows only. Without this, a
+            // question several students never reached showed as a
+            // misleadingly low facility/average score, dragging down
+            // compute_question_summary()'s own average_score/
+            // average_correct_rate right along with it since those are
+            // just a mean of every question's own (previously buggy)
+            // per-question numbers here.
+            $gradedqb = array_values(array_filter($qb, fn($r) => parser::is_graded_response($r)));
+            $numstudentsb = count($gradedqb);
+            $correctcountb = count(array_filter($gradedqb, fn($r) => $r['grade'] === 1.0));
             $facilityb = $numstudentsb > 0 ? $correctcountb / $numstudentsb : 0.0;
-            $gradesb = array_map(fn($r) => $r['grade'], $qb);
+            $gradesb = array_map(fn($r) => $r['grade'], $gradedqb);
             $partialcreditmeanb = $numstudentsb > 0 ? stats::mean($gradesb) : 0.0;
             $avgscoreb = $partialcreditmeanb * 10.0;
             $scaledscoreb = $partialcreditmeanb * 10.0;
 
             $percentcorrectb = $facilityb * 100.0;
-            $percentincorrectb = (1.0 - $facilityb) * 100.0;
+            $percentincorrectb = $numstudentsb > 0 ? (1.0 - $facilityb) * 100.0 : 0.0;
 
             // Catch-all share over wrong attempts in Pool B.
             $wrongb = array_values(array_filter($qb, fn($r) => $r['grade'] !== null && $r['grade'] < 1.0));
